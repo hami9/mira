@@ -1,0 +1,24 @@
+{
+  "name": "mira",
+  "version": "0.1.0",
+  "private": true,
+  "description": "پلتفرم لایو چت پشتیبانی خودمیزبان با هوش مصنوعی (جایگزین گفتینو)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.5.0"
+  }
+}

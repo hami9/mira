@@ -1,0 +1,56 @@
+# این compose جدا از استک اصلی میرا است — فقط برای تست دستی افزونه با یک سایت ووکامرس واقعی.
+# در production مشتری‌ها سایت وردپرس خودشون رو دارن؛ اینجا صرفاً یک نمونه‌ی یک‌بارمصرف برای تست می‌سازیم.
+services:
+  wp_mysql:
+    image: mysql:8.0
+    container_name: mira_wp_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - wp_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-prootpassword']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    container_name: mira_wp
+    restart: unless-stopped
+    depends_on:
+      wp_mysql:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: wp_mysql
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+    ports:
+      - '8081:80'
+    volumes:
+      - wp_data:/var/www/html
+      - ./mira:/var/www/html/wp-content/plugins/mira
+
+  # برای اجرای دستورات نصب/تنظیم: docker compose -f docker-compose.test.yml run --rm wpcli wp <...>
+  wpcli:
+    image: wordpress:cli-php8.2
+    depends_on:
+      - wordpress
+    environment:
+      WORDPRESS_DB_HOST: wp_mysql
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+    volumes:
+      - wp_data:/var/www/html
+      - ./mira:/var/www/html/wp-content/plugins/mira
+    entrypoint: ['wp']
+
+volumes:
+  wp_mysql_data:
+  wp_data:

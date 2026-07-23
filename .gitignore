@@ -1,0 +1,36 @@
+# وابستگی‌ها
+node_modules/
+.pnp/
+.pnp.js
+
+# خروجی build
+dist/
+build/
+*.tsbuildinfo
+
+# متغیرهای محیطی حساس
+.env
+.env.local
+.env.*.local
+
+# لاگ‌ها
+*.log
+npm-debug.log*
+logs/
+
+# ادیتور/سیستم‌عامل
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# پوشش تست
+coverage/
+
+# فایل‌های خروجی ویجت
+apps/widget/dist/
+
+# دیتای دیتابیس/مینیو در حالت توسعه محلی (اگر bind-mount شد)
+infra/postgres/data/
+infra/minio/data/

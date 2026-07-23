@@ -1,0 +1,48 @@
+// تشخیص ساده و ارزان مبتنی بر کلیدواژه — بدون نیاز به فراخوانی مدل زبانی، چون باید فوری
+// (روی مسیر پیام زنده) اجرا شود. بین api (escalation فوریت) و worker (تشخیص درخواست اپراتور
+// پیش از فراخوانی ربات RAG) مشترک است تا لیست کلمات در یک‌جا نگه‌داری شود.
+
+const URGENT_KEYWORDS = [
+  'فوری',
+  'فوریه',
+  'اورژانسی',
+  'شکایت',
+  'کلاهبرداری',
+  'خیلی ناراضی',
+  'به شدت ناراضی',
+  'وکیل',
+  'مراجع قانونی',
+  'urgent',
+  'emergency',
+  'scam',
+  'fraud',
+  'lawsuit',
+  'furious',
+];
+
+const HUMAN_REQUEST_KEYWORDS = [
+  'اپراتور',
+  'انسان',
+  'آدم واقعی',
+  'کارشناس',
+  'پشتیبان واقعی',
+  'صحبت با انسان',
+  'human',
+  'real person',
+  'talk to agent',
+  'talk to a human',
+  'speak to someone',
+];
+
+function containsAny(text: string, keywords: string[]): boolean {
+  const normalized = text.toLowerCase();
+  return keywords.some((keyword) => normalized.includes(keyword.toLowerCase()));
+}
+
+export function containsUrgentKeywords(text: string): boolean {
+  return containsAny(text, URGENT_KEYWORDS);
+}
+
+export function containsHumanRequestKeywords(text: string): boolean {
+  return containsAny(text, HUMAN_REQUEST_KEYWORDS);
+}

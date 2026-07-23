@@ -1,0 +1,27 @@
+{
+  "name": "@mira/worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "پردازشگرهای BullMQ برای کارهای پس‌زمینه هوش مصنوعی (فاز ۴): پایگاه دانش، ربات پاسخ‌گو، Copilot، خلاصه‌سازی",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@mira/shared-types": "*",
+    "@anthropic-ai/sdk": "^0.32.1",
+    "bullmq": "^5.34.4",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "openai": "^4.73.1",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "@types/pg": "^8.11.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  }
+}

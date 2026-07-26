@@ -12,6 +12,8 @@ import type {
   CustomerContextDto,
   KnowledgeDocumentDto,
   CreateKnowledgeDocumentDto,
+  ReportsOverviewDto,
+  AgentPerformanceDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
@@ -160,6 +162,30 @@ class ApiClient {
 
   async suggestReply(conversationId: string): Promise<void> {
     await this.authedPostNoContent(`/v1/conversations/${conversationId}/suggest-reply`);
+  }
+
+  async getReportsOverview(from: string, to: string): Promise<ReportsOverviewDto> {
+    return this.authedGet<ReportsOverviewDto>(`/v1/reports/overview?from=${from}&to=${to}`);
+  }
+
+  async getAgentPerformance(from: string, to: string): Promise<AgentPerformanceDto[]> {
+    return this.authedGet<AgentPerformanceDto[]>(`/v1/reports/agents?from=${from}&to=${to}`);
+  }
+
+  async downloadReportsCsv(from: string, to: string): Promise<void> {
+    const response = await fetch(`${API_URL}/v1/reports/export?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error('دریافت خروجی CSV با خطا مواجه شد');
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'gozaresh-amalkard.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   private async authedGet<T>(path: string): Promise<T> {

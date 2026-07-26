@@ -9,6 +9,7 @@ import { ConversationList } from './components/ConversationList';
 import { ChatWindow } from './components/ChatWindow';
 import { VisitorInfoPanel } from './components/VisitorInfoPanel';
 import { SettingsPage } from './components/SettingsPage';
+import { ReportsPage } from './components/ReportsPage';
 import {
   ensureNotificationPermission,
   playNotificationSound,
@@ -20,7 +21,7 @@ const REFRESH_INTERVAL_MS = 10 * 60 * 1000; // هر ۱۰ دقیقه access token
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [view, setView] = useState<'inbox' | 'settings'>('inbox');
+  const [view, setView] = useState<'inbox' | 'settings' | 'reports'>('inbox');
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDto | null>(null);
   const [filters, setFilters] = useState<ListConversationsParams>({});
@@ -141,17 +142,29 @@ export default function App() {
     return <SettingsPage onClose={() => setView('inbox')} />;
   }
 
+  if (view === 'reports') {
+    return <ReportsPage onClose={() => setView('inbox')} />;
+  }
+
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center justify-between border-b border-gray-200 bg-white p-3 text-sm font-bold text-gray-700">
         داشبورد اپراتور میرا
         {isAdmin && (
-          <button
-            onClick={() => setView('settings')}
-            className="text-xs font-normal text-blue-600"
-          >
-            تنظیمات
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setView('reports')}
+              className="text-xs font-normal text-blue-600"
+            >
+              گزارش‌ها
+            </button>
+            <button
+              onClick={() => setView('settings')}
+              className="text-xs font-normal text-blue-600"
+            >
+              تنظیمات
+            </button>
+          </div>
         )}
       </header>
       <div className="flex flex-1 overflow-hidden">

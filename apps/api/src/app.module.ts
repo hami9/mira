@@ -17,6 +17,7 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { MessagesModule } from './modules/messages/messages.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.mod
     MessagesModule,
     ChatModule,
     KnowledgeBaseModule,
+    ReportsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

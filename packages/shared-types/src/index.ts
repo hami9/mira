@@ -8,3 +8,4 @@ export * from './customer-context';
 export * from './ai';
 export * from './keywords';
 export * from './socket-bridge';
+export * from './reports';

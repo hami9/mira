@@ -1,6 +1,6 @@
 {
   "name": "@mira/dashboard",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "داشبورد اپراتور/ادمین (React + Vite + TypeScript + Tailwind)",
   "scripts": {

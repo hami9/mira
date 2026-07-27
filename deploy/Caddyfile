@@ -23,9 +23,10 @@
 }
 
 # دامنه‌ی داشبورد اپراتور — جدا از دامنه‌ی ویجت تا سطح دسترسی‌ها مخلوط نشود
+# (در پروداکشن داشبورد یک باندل استاتیک است که nginx روی پورت ۸۰ سرو می‌کند)
 {$DASHBOARD_DOMAIN} {
 	encode gzip
-	reverse_proxy dashboard:5173
+	reverse_proxy dashboard:80
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

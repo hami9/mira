@@ -1,6 +1,6 @@
 {
   "name": "@mira/worker",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "پردازشگرهای BullMQ برای کارهای پس‌زمینه هوش مصنوعی (فاز ۴): پایگاه دانش، ربات پاسخ‌گو، Copilot، خلاصه‌سازی",
   "main": "dist/main.js",

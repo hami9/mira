@@ -60,7 +60,19 @@ services:
     logging: *default_logging
 
   dashboard:
+    # در پروداکشن به‌جای dev server، باندل استاتیک با nginx سرو می‌شود
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile.prod
+      args:
+        # آدرس API در زمان build داخل باندل می‌نشیند
+        VITE_API_URL: ${PUBLIC_API_URL}
     ports: !override []
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:80/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     logging: *default_logging
 
   # بک‌آپ روزانه‌ی Postgres با نگه‌داری ۱۴ روز آخر

@@ -165,6 +165,16 @@ After phase 7 the "version 1.0.0" bundle was added (full description in `CHANGEL
   `mira setup` provide a build-free installation path; building from source stayed the
   default on purpose, because ghcr access is not guaranteed from every server.
 
+Version 1.1.0 then made **English the canonical language of every public surface** (full
+description in `CHANGELOG.md`). The naming convention: the conventional filename holds the
+English text, the Persian mirror sits beside it with a `.fa` suffix, and both carry a
+language bar. This covers the root docs, the installation guide, the GitHub Pages landing
+page, the brand guide, and every string GitHub renders in its UI — workflow/job/step names
+and the title and body of each Release. The `mira` CLI and the packaging scripts print
+English, following Debian convention. **Product i18n was deliberately excluded**: the
+dashboard, widget and plugin UI, plus all code comments, stay Persian. The same release
+fixed bug #8 below.
+
 ### Migrations (in order)
 
 ```

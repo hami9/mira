@@ -1,7 +1,12 @@
 {
   "name": "@mira/shared-types",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hami9/mira.git"
+  },
   "description": "تایپ‌های مشترک بین api/dashboard/widget",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

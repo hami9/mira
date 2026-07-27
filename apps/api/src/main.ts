@@ -14,6 +14,8 @@ async function bootstrap(): Promise<void> {
   const config = app.get(ConfigService);
   const sitesService = app.get(SitesService);
 
+  const isProduction = config.get<string>('NODE_ENV') === 'production';
+
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   // هدرهای امنیتی باید *پیش از* useStaticAssets ثبت شوند، وگرنه فایل‌های استاتیک
@@ -21,11 +23,30 @@ async function bootstrap(): Promise<void> {
   app.use(
     createSecurityHeadersMiddleware({
       publicApiUrl: config.get<string>('PUBLIC_API_URL', ''),
-      isProduction: config.get<string>('NODE_ENV') === 'production',
+      isProduction,
     }),
   );
 
-  // فایل‌های استاتیک صفحه دمو ویجت (فقط برای تست دستی فاز ۱ — در تولید واقعی از CDN/هاست جدا سرو می‌شه)
+  // صفحه‌ی دمو فقط ابزار تست دستی است و کلید ویجت نمونه را داخل خودش دارد؛
+  // در production سرو نمی‌شود تا روی هر استقرار واقعی یک صفحه‌ی عمومی اضافی باز نماند.
+  // (این چک باید *پیش از* useStaticAssets باشد وگرنه فایل استاتیک زودتر پاسخ می‌دهد.)
+  if (isProduction) {
+    app.use(
+      (
+        req: { path: string },
+        res: { status: (code: number) => { end: () => void } },
+        next: () => void,
+      ) => {
+        if (req.path === '/demo.html') {
+          res.status(404).end();
+          return;
+        }
+        next();
+      },
+    );
+  }
+
+  // فایل‌های استاتیک: خروجی build ویجت (`/widget-dist/widget.js`) که در production هم لازم است
   app.useStaticAssets(join(__dirname, '..', 'public'));
 
   const dashboardOrigins = (config.get<string>('CORS_ALLOWED_ORIGINS') ?? '')

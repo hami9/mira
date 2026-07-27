@@ -1,0 +1,60 @@
+# نگه‌داری یک‌بارمصرف — اصلاح تگ ریلیزهای فازی (0.0.1 تا 0.0.7)
+#
+# این تگ‌ها از رابط وب گیت‌هاب ساخته شده بودند، پس هرکدام به HEAD شاخه‌ی اصلی در
+# لحظه‌ی ساخت وصل شدند، نه به کامیتی که آن فاز واقعاً در آن تمام شده بود.
+# این workflow آن‌ها را با force به کامیت درست منتقل می‌کند.
+#
+# ⚠️ فقط دستی اجرا می‌شود و بعد از یک‌بار اجرا باید از مخزن حذف شود.
+name: Retag (maintenance)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'برای اجرا دقیقاً بنویس: RETAG'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  retag:
+    name: انتقال تگ‌های فازی به کامیت درست
+    runs-on: ubuntu-latest
+    if: inputs.confirm == 'RETAG'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: انتقال تگ‌ها
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          move() {
+            tag="$1"; sha="$2"; msg="$3"
+            # اطمینان از وجود کامیت مقصد پیش از دست‌زدن به تگ
+            git cat-file -e "$sha^{commit}"
+            git tag -f -a "$tag" "$sha" -m "$msg"
+            git push -f origin "refs/tags/$tag"
+            echo "✔ $tag → $sha"
+          }
+
+          # فازهای ۱ تا ۳ همگی در کامیت اولیه‌ی مخزن هستند (جدا کامیت نشده بودند)
+          move 0.0.1 7e0f7a6 'فاز ۱ — هسته چت زنده (MVP)'
+          move 0.0.2 7e0f7a6 'فاز ۲ — داشبورد کامل'
+          move 0.0.3 7e0f7a6 'فاز ۳ — افزونه وردپرس/ووکامرس'
+          move 0.0.4 a5aa782 'فاز ۴ — هوش مصنوعی (RAG، Copilot، handoff)'
+          move 0.0.5 dac717c 'فاز ۵ — گزارش‌گیری'
+          move 0.0.6 95420f3 'فاز ۶ — امکانات اضافه (اتوماسیون، وب‌هوک، 2FA)'
+          move 0.0.7 8fc67c6 'فاز ۷ — سخت‌سازی و استقرار'
+
+      - name: نتیجه
+        run: |
+          echo '### تگ‌های اصلاح‌شده' >> "$GITHUB_STEP_SUMMARY"
+          for t in 0.0.1 0.0.2 0.0.3 0.0.4 0.0.5 0.0.6 0.0.7; do
+            printf -- '- `%s` → %s\n' "$t" "$(git rev-list -n1 "$t")" >> "$GITHUB_STEP_SUMMARY"
+          done

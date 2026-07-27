@@ -1,7 +1,12 @@
 {
   "name": "@mira/dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hami9/mira.git"
+  },
   "description": "داشبورد اپراتور/ادمین (React + Vite + TypeScript + Tailwind)",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

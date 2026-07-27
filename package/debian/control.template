@@ -5,7 +5,7 @@ Priority: optional
 Architecture: all
 Depends: bash (>= 4.0), openssl, curl, ca-certificates
 Recommends: docker-ce | docker.io
-Maintainer: hami9 <ghostmasterar@gmail.com>
+Maintainer: hami9 <84276087+hami9@users.noreply.github.com>
 Homepage: https://github.com/hami9/mira
 Description: Mira self-hosted live chat platform with AI
  Self-hosted Persian live-chat support platform (Goftino alternative)

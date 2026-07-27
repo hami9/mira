@@ -4,7 +4,7 @@ Tags: live chat, support, woocommerce, chat widget
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,10 @@ REST endpoint سفارشی، اطلاعات سبد خرید فعلی، تاری�
 4. همان کلید API را در تنظیمات داشبورد میرا («اتصال وردپرس/ووکامرس») هم وارد کنید.
 
 == Changelog ==
+
+= 1.0.0 =
+* بازطراحی صفحه تنظیمات با هویت برند میرا (هدر گرادیانی، کارت‌بندی بخش‌ها، انتخاب‌گر رنگ)
+* رنگ پیش‌فرض ویجت به آبی برند (#2E6BE6) تغییر کرد؛ بدون رنگ سفارشی، گرادیان برند اعمال می‌شود
 
 = 0.1.0 =
 * نسخه اولیه (فاز ۳ نقشه راه میرا)

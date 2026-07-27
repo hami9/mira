@@ -347,6 +347,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # ساخت پکیج نصب دبیان (خروجی: package/dist/mira_<version>_all.deb)
 bash package/build-deb.sh
 
+# انتشار یک نسخه: اول بخش نسخه را به CHANGELOG.md اضافه کن (تیتر: "## [1.1.0] — ...")،
+# نسخه‌ی همه‌ی package.jsonها و افزونه را بالا ببر، بعد tag بزن.
+# یادداشت ریلیز خودکار از همان بخش CHANGELOG خوانده می‌شود؛ اگر بخش نبود، ریلیز fail می‌شود.
+git tag v1.1.0 && git push origin v1.1.0
+
 # lint/format/build روی host (بدون داکر — CI هم همین‌ها را اجرا می‌کند)
 npm ci && npm run lint && npm run format:check && npm run build
 ```

@@ -1,10 +1,24 @@
-# انتشار نسخه — با push هر tag نسخه (v1.0.0، v1.1.0، ...) اجرا می‌شود:
-#   پکیج دبیان + zip افزونه‌ی وردپرس ساخته و به GitHub Release پیوست می‌شوند.
+# انتشار نسخه — با push هر tag نسخه (v1.0.0، v1.1.0، ...) خودکار اجرا می‌شود:
+#   یادداشت انتشار از بخش همان نسخه در CHANGELOG.md خوانده می‌شود و
+#   پکیج دبیان + zip افزونه‌ی وردپرس ساخته و پیوست می‌شوند.
+# با اجرای دستی (workflow_dispatch) هم می‌توان برای یک tag موجود ریلیز ساخت/بازسازی کرد —
+# مثلاً برای نسخه‌های قدیمی که هنوز اسکریپت ساخت پکیج را نداشتند (attach_artifacts=false).
 name: Release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'تگ نسخه (مثلاً v1.0.0) — باید از قبل در مخزن وجود داشته باشد'
+        required: true
+        type: string
+      attach_artifacts:
+        description: 'ساخت و پیوست پکیج deb و zip افزونه‌ی وردپرس'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -16,10 +30,57 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: تعیین نسخه
+        id: version
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "number=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      # یادداشت انتشار = بخش همین نسخه از CHANGELOG.md (تا تیتر نسخه‌ی بعدی)
+      - name: استخراج یادداشت انتشار از CHANGELOG
+        run: |
+          VERSION='${{ steps.version.outputs.number }}'
+          awk -v v="## [$VERSION]" '
+            index($0, v) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "بخش نسخه‌ی $VERSION در CHANGELOG.md پیدا نشد" >&2
+            exit 1
+          fi
+          cat >> release-notes.md <<'EOF'
+
+          ---
+
+          ## نصب روی سرور دبیان/اوبونتو
+
+          ```bash
+          sudo dpkg -i mira_*_all.deb || sudo apt -f install
+          sudo mira setup && sudo mira start
+          ```
+
+          راهنمای کامل (همه‌ی توزیع‌ها، وردپرس، عیب‌یابی):
+          [`package/INSTALL.fa.md`](https://github.com/hami9/mira/blob/main/package/INSTALL.fa.md)
+
+          افزونه‌ی وردپرس: فایل `mira-wordpress-plugin.zip` را از پیشخوان وردپرس نصب کنید.
+
+          ## ایمیج‌های Docker
+
+          ```
+          ghcr.io/hami9/mira-api
+          ghcr.io/hami9/mira-worker
+          ghcr.io/hami9/mira-dashboard
+          ```
+          EOF
+
       - name: ساخت پکیج دبیان
+        if: github.event_name == 'push' || inputs.attach_artifacts
         run: bash package/build-deb.sh
 
       - name: ساخت zip افزونه‌ی وردپرس
+        if: github.event_name == 'push' || inputs.attach_artifacts
         run: |
           cd wordpress-plugin
           zip -r ../package/dist/mira-wordpress-plugin.zip mira
@@ -27,18 +88,10 @@ jobs:
       - name: انتشار GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: میرا ${{ steps.version.outputs.tag }}
+          body_path: release-notes.md
+          # اگر artifactها ساخته نشده باشند، glob خالی می‌ماند و بی‌صدا رد می‌شود
           files: |
             package/dist/*.deb
             package/dist/mira-wordpress-plugin.zip
-          body: |
-            ## نصب روی سرور دبیان/اوبونتو
-
-            ```bash
-            sudo dpkg -i mira_*_all.deb || sudo apt -f install
-            sudo mira setup && sudo mira start
-            ```
-
-            راهنمای کامل: [`package/INSTALL.fa.md`](https://github.com/hami9/mira/blob/main/package/INSTALL.fa.md)
-
-            افزونه‌ی وردپرس: فایل `mira-wordpress-plugin.zip` را از پیشخوان وردپرس نصب کنید.

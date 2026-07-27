@@ -26,4 +26,14 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // اسکریپت‌های استاتیک مرورگر (مثل config.js زمان اجرای داشبورد)
+    files: ['**/public/**/*.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+      },
+    },
+  },
 );

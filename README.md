@@ -39,6 +39,11 @@ sudo mira start
 راهنمای کامل (همه‌ی توزیع‌ها، وردپرس، عیب‌یابی): **[`package/INSTALL.fa.md`](package/INSTALL.fa.md)**
 — بقیه‌ی این README مستندات توسعه و استقرار دستی است.
 
+> ⚡ ایمیج‌های آماده‌ی Docker هم با هر نسخه در
+> [GitHub Packages](https://github.com/hami9?tab=packages&repo_name=mira) منتشر می‌شوند
+> (`mira-api`، `mira-worker`، `mira-dashboard`) — در `mira setup` گزینه‌ی «ایمیج آماده» را
+> انتخاب کن تا نصب بدون build و در چند دقیقه انجام شود.
+
 ## استک فنی
 
 | بخش                   | فناوری                                                    |

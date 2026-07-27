@@ -128,6 +128,14 @@ deploy/        Caddyfile و اسکریپت بک‌آپ (فقط پروداکشن)
   شکستن `vite build` روی پکیج workspace ‏CJS (با `build.commonjsOptions` رفع شد —
   قبلاً build پروداکشن داشبورد هرگز اجرا نشده بود)؛ دو خطای ESLint قدیمی؛ و
   یکدست‌سازی کل ریپو با prettier (قبلاً format:check سراسری pass نمی‌شد).
+- **انتشار ایمیج‌ها در GHCR** ‏(`docker-publish.yml`): با هر push به main و هر tag،
+  سه ایمیج `ghcr.io/hami9/mira-{api,worker,dashboard}` منتشر می‌شوند. برای این‌که
+  ایمیج داشبورد روی هر دامنه‌ای کار کند، آدرس API **زمان اجرا** تزریق می‌شود:
+  `public/config.js` + اسکریپت `/docker-entrypoint.d/10-mira-config.sh` در ایمیج nginx
+  (اولویت: `window.__MIRA_API_URL__` ← ‏`VITE_API_URL` زمان build ← ‏localhost).
+  لایه‌ی `docker-compose.ghcr.yml` + گزینه‌ی «ایمیج آماده» در `mira setup` مسیر نصب
+  بدون build را می‌سازد؛ پیش‌فرض عمداً build از سورس ماند چون دسترسی ghcr از
+  سرورهای داخل ایران تضمینی نیست.
 
 ### مایگریشن‌ها (به ترتیب)
 
@@ -286,7 +294,11 @@ docker exec mira_postgres psql -U kgchat -d kgchat -c "SELECT ..."
    `dpkg -i` ← `mira setup` ← `mira start` روی یک دبیان واقعی اجرا نشده.
 4. **کانتینر پروداکشن جدید داشبورد (nginx) اجرا نشده.** `vite build` محلی موفق و
    خروجی استاتیک با مرورگر واقعی تأیید شد، ولی خود ایمیج `Dockerfile.prod` build/run
-   نشده (دیمن داکر در محیط توسعه‌ی این تغییرات در دسترس نبود).
+   نشده (دیمن داکر در محیط توسعه‌ی این تغییرات در دسترس نبود). مکانیزم config زمان
+   اجرا (`config.js`) با شبیه‌سازی همان اسکریپت entrypoint و مرورگر واقعی تأیید شد —
+   درخواست لاگین به آدرس تزریقی رفت — ولی اجرای خود اسکریپت داخل کانتینر nginx نه.
+   ‏workflow ‏`docker-publish.yml` هم هنوز هیچ اجرای واقعی‌ای نداشته (فقط روی main
+   trigger می‌شود)؛ بعد از اولین اجرا باید سه پکیج GHCR دستی public شوند.
 5. **UI جدید فقط با API ماک‌شده بصری تأیید شده.** صفحه‌ی ورود، پوسته‌ی سایدبار، نمای
    گفتگو و ویجت با اسکرین‌شات واقعی Chromium (Playwright + ماک fetch) دیده و درست
    بودند — ولی نه متصل به بک‌اند واقعی. تست جریان کامل (سوکت واقعی، همه‌ی صفحات

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>دیزاین‌سیستم میرا — پیش‌نمایش</title>
+    <title>Mira design system — preview</title>
     <style>
       :root {
         --primary-50: #f0f6fe;
@@ -361,7 +361,7 @@
           viewBox="0 0 256 200"
           width="150"
           role="img"
-          aria-label="نشان میرا"
+          aria-label="Mira logo"
         >
           <defs>
             <linearGradient id="pBlue" x1="0" y1="0" x2="1" y2="1">
@@ -503,17 +503,21 @@
           />
         </svg>
       </div>
-      <h1>دیزاین‌سیستم میرا</h1>
+      <h1>Mira design system</h1>
       <p>
-        هویت بصری برگرفته از لوگو: گفت‌وگویی که به قلب می‌رسد. آبی اعتماد، فیروزه‌ای هوش مصنوعی،
-        نارنجی گرمای انسانی.
+        A visual identity taken from the logo: a conversation that reaches the heart. Blue for
+        trust, teal for AI, orange for human warmth.
+        <br /><small
+          >The specimens below (buttons, chat bubbles, sidebar) are shown in Persian on purpose —
+          Mira's product UI is Persian and fully right-to-left.</small
+        >
       </p>
     </div>
 
     <main>
       <section class="card">
-        <h2>پالت رنگ <small>primary / teal / accent — سایه‌های ۵۰ تا ۹۵۰</small></h2>
-        <div class="row-label">primary — آبی برند (#2E6BE6 در سایه‌ی 600)</div>
+        <h2>Colour palette <small>primary / teal / accent — shades 50 to 950</small></h2>
+        <div class="row-label">primary — brand blue (#2E6BE6 at shade 600)</div>
         <div class="swatches">
           <div class="swatch light" style="background: var(--primary-50)"><span>50</span></div>
           <div class="swatch light" style="background: var(--primary-100)"><span>100</span></div>
@@ -527,7 +531,7 @@
           <div class="swatch" style="background: var(--primary-900)"><span>900</span></div>
           <div class="swatch" style="background: var(--primary-950)"><span>950</span></div>
         </div>
-        <div class="row-label">teal — فیروزه‌ای هوش مصنوعی (#17B8A6 در سایه‌ی 500)</div>
+        <div class="row-label">teal — AI teal (#17B8A6 at shade 500)</div>
         <div class="swatches">
           <div class="swatch light" style="background: var(--teal-50)"><span>50</span></div>
           <div class="swatch light" style="background: var(--teal-100)"><span>100</span></div>
@@ -541,7 +545,7 @@
           <div class="swatch" style="background: var(--teal-900)"><span>900</span></div>
           <div class="swatch" style="background: var(--teal-950)"><span>950</span></div>
         </div>
-        <div class="row-label">accent — نارنجی قلب (#F5A623 در سایه‌ی 500)</div>
+        <div class="row-label">accent — heart orange (#F5A623 at shade 500)</div>
         <div class="swatches">
           <div class="swatch light" style="background: var(--accent-50)"><span>50</span></div>
           <div class="swatch light" style="background: var(--accent-100)"><span>100</span></div>
@@ -555,12 +559,12 @@
           <div class="swatch" style="background: var(--accent-900)"><span>900</span></div>
           <div class="swatch" style="background: var(--accent-950)"><span>950</span></div>
         </div>
-        <div class="row-label">گرادیان برند</div>
+        <div class="row-label">Brand gradient</div>
         <div style="height: 52px; border-radius: 10px; background: var(--gradient)"></div>
       </section>
 
-      <section class="card type-sample">
-        <h2>تایپوگرافی <small>وزیرمتن (داشبورد) — Tahoma (ویجت)</small></h2>
+      <section class="card type-sample" lang="fa" dir="rtl">
+        <h2>Typography <small>Vazirmatn (dashboard) — Tahoma (widget)</small></h2>
         <p style="font-size: 24px; font-weight: 800; color: var(--primary-800)">
           میرا — چت پشتیبانی هوشمند
         </p>
@@ -571,22 +575,26 @@
       </section>
 
       <section class="card">
-        <h2>دکمه‌ها و ورودی‌ها</h2>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center">
+        <h2>Buttons and inputs</h2>
+        <div
+          lang="fa"
+          dir="rtl"
+          style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center"
+        >
           <button class="btn btn-primary">ارسال پیام</button>
           <button class="btn btn-gradient">شروع گفتگو</button>
           <button class="btn btn-ghost">پاسخ آماده</button>
           <button class="btn btn-ai">✦ پیشنهاد هوش مصنوعی</button>
           <button class="btn btn-danger">حذف</button>
         </div>
-        <div style="margin-top: 14px">
+        <div lang="fa" dir="rtl" style="margin-top: 14px">
           <input class="input" placeholder="پیام خود را بنویسید…" />
         </div>
       </section>
 
       <section class="card">
-        <h2>حباب‌های گفتگو</h2>
-        <div class="chat">
+        <h2>Chat bubbles</h2>
+        <div class="chat" lang="fa" dir="rtl">
           <div class="msg msg-visitor">سلام، سفارش من کی ارسال می‌شه؟</div>
           <div class="msg msg-bot">
             <span class="tag">✦ ربات میرا</span>سلام! سفارش شما امروز تحویل پست شده و تا ۴۸ ساعت
@@ -597,8 +605,8 @@
       </section>
 
       <section class="card">
-        <h2>نشان‌ها و وضعیت‌ها</h2>
-        <div class="badges">
+        <h2>Badges and states</h2>
+        <div class="badges" lang="fa" dir="rtl">
           <span class="badge-unread">۳ نخوانده</span>
           <span class="badge-online"><i></i> آنلاین</span>
           <span class="stars">★★★★☆</span>
@@ -631,8 +639,8 @@
         style="display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start"
       >
         <div>
-          <h2>سایدبار داشبورد</h2>
-          <div class="navdemo">
+          <h2>Dashboard sidebar</h2>
+          <div class="navdemo" lang="fa" dir="rtl">
             <div class="nav-item active">
               💬 گفتگوها <span class="spacer"></span><span class="badge-unread">۵</span>
             </div>
@@ -643,8 +651,8 @@
           </div>
         </div>
         <div>
-          <h2>حباب ویجت</h2>
-          <button class="bubble-demo" aria-label="باز کردن چت">
+          <h2>Widget bubble</h2>
+          <button class="bubble-demo" aria-label="Open chat">
             <svg viewBox="0 0 64 64" width="30" fill="#fff">
               <path
                 d="M32 47 C 21.5 38.5, 15 31, 15 22.5 C 15 15.5, 20.5 11.5, 26 12.5 C 28.8 13, 31 15, 32 17.5 C 33 15, 35.2 13, 38 12.5 C 43.5 11.5, 49 15.5, 49 22.5 C 49 31, 42.5 38.5, 32 47 Z"
@@ -652,12 +660,13 @@
             </svg>
           </button>
           <p style="font-size: 12px; color: #6b7280; max-width: 200px">
-            گرادیان برند + حلقه‌ی پالس دوره‌ای؛ با تنظیم رنگ سفارشی سایت، رنگ تخت جایگزین می‌شود.
+            The brand gradient plus a periodic pulse ring; setting a custom site colour replaces it
+            with a flat colour.
           </p>
         </div>
       </section>
 
-      <footer>میرا — دیزاین‌سیستم نسخه‌ی ۱٫۰ — <span dir="ltr">docs/brand/</span></footer>
+      <footer>Mira — design system v1.0 — <span dir="ltr">docs/brand/</span></footer>
     </main>
   </body>
 </html>

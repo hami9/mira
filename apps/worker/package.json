@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/hami9/mira.git"
   },
-  "description": "پردازشگرهای BullMQ برای کارهای پس‌زمینه هوش مصنوعی (فاز ۴): پایگاه دانش، ربات پاسخ‌گو، Copilot، خلاصه‌سازی",
+  "description": "BullMQ processors for background AI jobs: knowledge base, answering bot, Copilot, summarisation",
   "main": "dist/main.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",

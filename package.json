@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/hami9/mira/issues"
   },
-  "description": "پلتفرم لایو چت پشتیبانی خودمیزبان با هوش مصنوعی (جایگزین گفتینو)",
+  "description": "Self-hosted AI-powered live chat support platform for WordPress/WooCommerce",
   "workspaces": [
     "apps/*",
     "packages/*"

@@ -128,14 +128,14 @@ tenant isolation, secrets handling) before opening a PR.
 
 ## Documentation
 
-| Doc                                              | What's in it                                          |
-| ------------------------------------------------ | ----------------------------------------------------- |
-| [`README.fa.md`](README.fa.md)                   | Full Persian documentation — the deepest resource     |
-| [`package/INSTALL.md`](package/INSTALL.md)       | Server installation, WordPress setup, troubleshooting |
-| [`docs/brand/README.md`](docs/brand/README.md)   | Brand guide and design system                         |
-| [`AGENTS.md`](AGENTS.md)                         | Architecture decisions, real bugs fixed, known gaps   |
-| [`CHANGELOG.md`](CHANGELOG.md)                   | Version history                                       |
-| [`SECURITY.md`](SECURITY.md)                     | Reporting vulnerabilities                             |
+| Doc                                            | What's in it                                          |
+| ---------------------------------------------- | ----------------------------------------------------- |
+| [`README.fa.md`](README.fa.md)                 | Full Persian documentation — the deepest resource     |
+| [`package/INSTALL.md`](package/INSTALL.md)     | Server installation, WordPress setup, troubleshooting |
+| [`docs/brand/README.md`](docs/brand/README.md) | Brand guide and design system                         |
+| [`AGENTS.md`](AGENTS.md)                       | Architecture decisions, real bugs fixed, known gaps   |
+| [`CHANGELOG.md`](CHANGELOG.md)                 | Version history                                       |
+| [`SECURITY.md`](SECURITY.md)                   | Reporting vulnerabilities                             |
 
 ## Status
 

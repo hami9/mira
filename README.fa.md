@@ -10,7 +10,7 @@ _گفت‌وگویی که به قلب می‌رسد ♥_
 
 [![CI](https://github.com/hami9/mira/actions/workflows/ci.yml/badge.svg)](https://github.com/hami9/mira/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2E6BE6)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/hami9/mira?color=17B8A6)](https://github.com/hami9/mira/releases)
+[![Release](https://img.shields.io/github/v/release/hami9/mira?sort=semver&color=17B8A6)](https://github.com/hami9/mira/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623)](CONTRIBUTING.md)
 
 [English](README.md) · **فارسی**
@@ -36,7 +36,7 @@ _گفت‌وگویی که به قلب می‌رسد ♥_
 
 ---
 
-> وضعیت فعلی: **همه‌ی فازهای ۰ تا ۷ تکمیل — نسخه‌ی ۱.۰.۰.** چت زنده، داشبورد کامل با هویت برند، افزونه ووکامرس، هوش مصنوعی با RAG، گزارش‌گیری، اتوماسیون و API/وب‌هوک، مدیریت اپراتور با دسترسی نقش‌محور، سخت‌سازی امنیتی با SSL خودکار و بک‌آپ دوره‌ای، و پکیج نصب دبیان. راهنمای استقرار و چک‌لیست امنیتی پایین‌تر در همین فایل است.
+> وضعیت فعلی: **همه‌ی فازهای ۰ تا ۷ تکمیل** (نسخه‌ی جاری را بج بالا و [`CHANGELOG.md`](CHANGELOG.md) نشان می‌دهند). چت زنده، داشبورد کامل با هویت برند، افزونه ووکامرس، هوش مصنوعی با RAG، گزارش‌گیری، اتوماسیون و API/وب‌هوک، مدیریت اپراتور با دسترسی نقش‌محور، سخت‌سازی امنیتی با SSL خودکار و بک‌آپ دوره‌ای، و پکیج نصب دبیان. راهنمای استقرار و چک‌لیست امنیتی پایین‌تر در همین فایل است.
 
 > 🤖 **اگر یک عامل هوش مصنوعی هستی که قرار است روی این پروژه کار کند:**
 > پیش از هر تغییری [`AGENTS.md`](AGENTS.md) را کامل بخوان — تاریخچه‌ی کامل ساخت،

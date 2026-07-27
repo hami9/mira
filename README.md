@@ -10,7 +10,7 @@ _A conversation that reaches the heart ♥_
 
 [![CI](https://github.com/hami9/mira/actions/workflows/ci.yml/badge.svg)](https://github.com/hami9/mira/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2E6BE6)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/hami9/mira?color=17B8A6)](https://github.com/hami9/mira/releases)
+[![Release](https://img.shields.io/github/v/release/hami9/mira?sort=semver&color=17B8A6)](https://github.com/hami9/mira/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623)](CONTRIBUTING.md)
 
 **English** · [فارسی](README.fa.md)
@@ -139,7 +139,8 @@ tenant isolation, secrets handling) before opening a PR.
 
 ## Status
 
-Version 1.0.0 — phases 0 through 7 of the roadmap are complete. Honest caveats (untested
+Phases 0 through 7 of the roadmap are complete — see the release badge above for the current
+version, and [`CHANGELOG.md`](CHANGELOG.md) for what changed. Honest caveats (untested
 surfaces, known technical debt) are listed in [`AGENTS.md`](AGENTS.md) rather than hidden.
 There is no automated test suite yet; all testing so far has been manual against real services.
 

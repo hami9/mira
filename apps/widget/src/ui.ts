@@ -5,54 +5,127 @@ const STYLE_ID = 'mira-widget-styles';
 // همه‌ی استایل‌ها inline در JS تزریق می‌شن تا ویجت به هیچ فایل CSS خارجی نیاز نداشته باشه.
 // رنگ با یک CSS variable قابل تنظیمه؛ موقعیت (راست/چپ) با کلاس‌های mira-pos-* که physical
 // left/right هستن (نه logical inset-inline-*) — چون باید مستقل از جهت متن سایت میزبان باشه.
+// پیش‌فرض رنگ/گرادیان از هویت برند میراست (docs/brand/README.md)؛ اگر سایت رنگ سفارشی بدهد،
+// --mira-gradient هم با همان رنگ تختِ سفارشی جایگزین می‌شود (رفتار قبلی حفظ شده).
 function injectStyles(): void {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = `
     .mira-bubble {
-      position: fixed; bottom: 20px; width: 56px; height: 56px;
-      border-radius: 50%; background: var(--mira-color, #2563eb); color: #fff; border: none; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,.2); font-size: 24px; z-index: 999998;
+      position: fixed; bottom: 20px; width: 60px; height: 60px;
+      border-radius: 50%; background: var(--mira-gradient, linear-gradient(135deg, #2E6BE6 0%, #17B8A6 100%));
+      color: #fff; border: none; cursor: pointer;
+      box-shadow: 0 6px 20px rgba(46,107,230,.4); z-index: 999998;
+      animation: mira-bubble-in .45s cubic-bezier(.34,1.56,.64,1) both;
+      transition: transform .2s ease, box-shadow .2s ease;
     }
+    .mira-bubble:hover { transform: scale(1.06); box-shadow: 0 8px 26px rgba(46,107,230,.5); }
+    .mira-bubble::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(46,107,230,.45); animation: mira-pulse 3s ease-out .8s infinite;
+    }
+    .mira-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity .2s ease, transform .25s ease; }
+    .mira-icon-close { opacity: 0; transform: rotate(-90deg) scale(.4); }
+    .mira-bubble.mira-bubble-open .mira-icon-chat { opacity: 0; transform: rotate(90deg) scale(.4); }
+    .mira-bubble.mira-bubble-open .mira-icon-close { opacity: 1; transform: none; }
+    .mira-bubble.mira-bubble-open::before { animation: none; }
     .mira-trigger {
-      position: fixed; bottom: 84px; max-width: 240px;
-      background: #fff; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.18);
+      position: fixed; bottom: 92px; max-width: 240px;
+      background: #fff; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.18);
       padding: 12px 14px; font-size: 13px; line-height: 1.5; cursor: pointer;
-      display: none; z-index: 999997; direction: rtl; font-family: Tahoma, Arial, sans-serif;
+      z-index: 999997; direction: rtl; font-family: Tahoma, Arial, sans-serif;
+      opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease, visibility .25s;
     }
-    .mira-trigger.mira-open { display: block; }
+    .mira-trigger.mira-open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
     .mira-trigger-close {
       position: absolute; top: -8px; inset-inline-start: -8px; width: 20px; height: 20px;
       border-radius: 50%; background: #6b7280; color: #fff; border: none; font-size: 12px; cursor: pointer;
     }
     .mira-panel {
-      position: fixed; bottom: 88px; width: 320px; height: 440px;
-      background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.2);
-      display: none; flex-direction: column; overflow: hidden; z-index: 999999;
+      position: fixed; bottom: 92px; width: 320px; height: 460px; max-height: calc(100vh - 120px);
+      background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(15,40,90,.25);
+      display: flex; flex-direction: column; overflow: hidden; z-index: 999999;
       font-family: Tahoma, Arial, sans-serif; direction: rtl;
+      opacity: 0; visibility: hidden; transform: translateY(14px) scale(.98); pointer-events: none;
+      transition: opacity .25s ease, transform .3s cubic-bezier(.34,1.56,.64,1), visibility .3s;
     }
-    .mira-panel.mira-open { display: flex; }
+    .mira-panel.mira-open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
     .mira-pos-right.mira-bubble, .mira-pos-right.mira-trigger, .mira-pos-right.mira-panel { right: 20px; }
     .mira-pos-left.mira-bubble, .mira-pos-left.mira-trigger, .mira-pos-left.mira-panel { left: 20px; }
-    .mira-header { background: var(--mira-color, #2563eb); color: #fff; padding: 12px 16px; font-size: 14px; }
-    .mira-messages { flex: 1; overflow-y: auto; padding: 12px; background: #f3f4f6; }
-    .mira-msg { margin-bottom: 8px; max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .mira-msg-visitor { background: var(--mira-color, #2563eb); color: #fff; margin-inline-start: auto; }
-    .mira-msg-agent, .mira-msg-bot { background: #e5e7eb; color: #111827; margin-inline-end: auto; }
-    .mira-typing { font-size: 11px; color: #6b7280; padding: 0 12px 6px; min-height: 16px; }
+    .mira-header {
+      background: var(--mira-gradient, linear-gradient(135deg, #2E6BE6 0%, #17B8A6 100%));
+      color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .mira-header-logo { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mira-header-title { font-size: 14px; font-weight: 700; line-height: 1.3; }
+    .mira-header-sub { font-size: 11px; opacity: .85; }
+    .mira-messages { flex: 1; overflow-y: auto; padding: 12px; background: #f7f9fc; }
+    .mira-msg {
+      margin-bottom: 8px; max-width: 80%; padding: 8px 12px; border-radius: 12px;
+      font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+      animation: mira-msg-in .25s ease-out both;
+    }
+    .mira-msg-visitor { background: var(--mira-color, #2E6BE6); color: #fff; margin-inline-start: auto; border-bottom-left-radius: 4px; }
+    .mira-msg-agent { background: #e8ecf3; color: #111827; margin-inline-end: auto; border-bottom-right-radius: 4px; }
+    .mira-msg-bot { background: #EFFCF9; border: 1px solid #B2EAE0; color: #12504A; margin-inline-end: auto; border-bottom-right-radius: 4px; }
+    .mira-typing { font-size: 11px; color: #6b7280; padding: 0 12px 6px; min-height: 16px; display: flex; align-items: center; gap: 6px; }
+    .mira-dots { display: inline-flex; gap: 3px; }
+    .mira-dots i {
+      width: 5px; height: 5px; border-radius: 50%; background: #9ca3af; display: inline-block;
+      animation: mira-dot 1.2s ease-in-out infinite;
+    }
+    .mira-dots i:nth-child(2) { animation-delay: .15s; }
+    .mira-dots i:nth-child(3) { animation-delay: .3s; }
     .mira-input-row { display: flex; border-top: 1px solid #e5e7eb; }
-    .mira-input { flex: 1; border: none; padding: 10px; font-size: 13px; outline: none; direction: rtl; }
-    .mira-send { border: none; background: var(--mira-color, #2563eb); color: #fff; padding: 0 14px; cursor: pointer; }
+    .mira-input { flex: 1; border: none; padding: 12px; font-size: 13px; outline: none; direction: rtl; font-family: inherit; }
+    .mira-send {
+      border: none; background: var(--mira-color, #2E6BE6); color: #fff; padding: 0 16px;
+      cursor: pointer; font-family: inherit; font-size: 13px; transition: filter .15s ease;
+    }
+    .mira-send:hover { filter: brightness(1.1); }
     .mira-error { color: #b91c1c; font-size: 11px; padding: 4px 12px; }
-    .mira-csat { margin: 8px 0; padding: 10px; border-radius: 10px; background: #fff; border: 1px solid #e5e7eb; font-size: 12px; }
-    .mira-csat-stars { display: flex; gap: 4px; justify-content: center; margin: 6px 0; font-size: 22px; }
-    .mira-csat-star { cursor: pointer; color: #d1d5db; }
-    .mira-csat-star.mira-active { color: #f59e0b; }
-    .mira-csat-submit { width: 100%; margin-top: 6px; border: none; background: var(--mira-color, #2563eb); color: #fff; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .mira-csat { margin: 8px 0; padding: 12px; border-radius: 12px; background: #fff; border: 1px solid #e5e7eb; font-size: 12px; animation: mira-msg-in .25s ease-out both; }
+    .mira-csat-stars { display: flex; gap: 6px; justify-content: center; margin: 8px 0; font-size: 24px; }
+    .mira-csat-star { cursor: pointer; color: #d1d5db; transition: transform .15s ease, color .15s ease; }
+    .mira-csat-star:hover { transform: scale(1.2); }
+    .mira-csat-star.mira-active { color: #F5A623; }
+    .mira-csat-submit {
+      width: 100%; margin-top: 6px; border: none;
+      background: var(--mira-gradient, linear-gradient(135deg, #2E6BE6 0%, #17B8A6 100%));
+      color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px; font-family: inherit;
+    }
+    .mira-csat-submit:disabled { opacity: .5; cursor: default; }
+    @keyframes mira-bubble-in { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+    @keyframes mira-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(46,107,230,.45); }
+      60% { box-shadow: 0 0 0 14px rgba(46,107,230,0); }
+      100% { box-shadow: 0 0 0 0 rgba(46,107,230,0); }
+    }
+    @keyframes mira-msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @keyframes mira-dot { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .mira-bubble, .mira-msg, .mira-csat { animation: none; }
+      .mira-bubble::before { animation: none; }
+      .mira-panel, .mira-trigger, .mira-icon, .mira-bubble, .mira-csat-star { transition: none; }
+      .mira-dots i { animation: none; }
+    }
   `;
   document.head.appendChild(style);
 }
+
+// نشان میرا (قلب داخل حباب گفتگو) — سفید، برای حباب شناور و هدر پنل
+const CHAT_HEART_SVG = `
+  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+    <path d="M12 3C6.9 3 3 6.4 3 10.6c0 2.4 1.2 4.5 3.1 5.9L5.2 20.5l4.2-1.6c.8.2 1.7.3 2.6.3 5.1 0 9-3.4 9-7.6S17.1 3 12 3Z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M12 14.1c-2.3-1.7-3.5-3-3.5-4.4 0-1.1.9-1.8 1.8-1.7.6.1 1.2.5 1.7 1.1.5-.6 1.1-1 1.7-1.1.9-.1 1.8.6 1.8 1.7 0 1.4-1.2 2.7-3.5 4.4Z" fill="#fff"/>
+  </svg>`;
+
+const CLOSE_SVG = `
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+    <path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
 
 export interface WidgetUiOptions {
   color?: string;
@@ -87,7 +160,11 @@ export class WidgetUi {
     this.bubble = document.createElement('button');
     this.bubble.className = `mira-bubble ${positionClass}`;
     this.bubble.setAttribute('aria-label', 'باز کردن گفتگوی پشتیبانی');
-    this.bubble.textContent = '💬';
+    // دو آیکون روی‌هم: نشان چت و ضربدر — با کلاس mira-bubble-open بین‌شان جابه‌جا می‌شویم
+    this.bubble.innerHTML = `
+      <span class="mira-icon mira-icon-chat">${CHAT_HEART_SVG}</span>
+      <span class="mira-icon mira-icon-close">${CLOSE_SVG}</span>
+    `;
 
     this.triggerEl = document.createElement('div');
     this.triggerEl.className = `mira-trigger ${positionClass}`;
@@ -95,7 +172,13 @@ export class WidgetUi {
     this.panel = document.createElement('div');
     this.panel.className = `mira-panel ${positionClass}`;
     this.panel.innerHTML = `
-      <div class="mira-header">پشتیبانی آنلاین</div>
+      <div class="mira-header">
+        <span class="mira-header-logo">${CHAT_HEART_SVG}</span>
+        <span>
+          <span class="mira-header-title">پشتیبانی آنلاین</span><br />
+          <span class="mira-header-sub">میرا — پاسخ‌گوی شما</span>
+        </span>
+      </div>
       <div class="mira-messages"></div>
       <div class="mira-typing"></div>
       <div class="mira-error"></div>
@@ -106,8 +189,10 @@ export class WidgetUi {
     `;
 
     if (options.color) {
+      // رنگ سفارشی سایت: هم رنگ تخت و هم گرادیان با همان رنگ جایگزین می‌شوند
       for (const el of [this.bubble, this.triggerEl, this.panel]) {
         el.style.setProperty('--mira-color', options.color);
+        el.style.setProperty('--mira-gradient', options.color);
       }
     }
 
@@ -131,11 +216,13 @@ export class WidgetUi {
 
   openPanel(): void {
     this.panel.classList.add('mira-open');
+    this.bubble.classList.add('mira-bubble-open');
     this.hideTriggerBubble();
   }
 
   private togglePanel(): void {
-    this.panel.classList.toggle('mira-open');
+    const isOpen = this.panel.classList.toggle('mira-open');
+    this.bubble.classList.toggle('mira-bubble-open', isOpen);
     this.hideTriggerBubble();
   }
 
@@ -162,7 +249,11 @@ export class WidgetUi {
   }
 
   setTypingIndicator(visible: boolean): void {
-    this.typingEl.textContent = visible ? 'در حال تایپ...' : '';
+    if (visible) {
+      this.typingEl.innerHTML = '<span class="mira-dots"><i></i><i></i><i></i></span> در حال تایپ';
+    } else {
+      this.typingEl.textContent = '';
+    }
   }
 
   showError(message: string): void {

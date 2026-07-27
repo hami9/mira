@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Not, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -54,7 +60,12 @@ export class AgentsManagementService {
     return toDto(await this.agentsRepository.save(agent));
   }
 
-  async update(siteId: string, agentId: string, actingAgentId: string, dto: UpdateAgentDto): Promise<AgentDto> {
+  async update(
+    siteId: string,
+    agentId: string,
+    actingAgentId: string,
+    dto: UpdateAgentDto,
+  ): Promise<AgentDto> {
     const agent = await this.findInSite(siteId, agentId);
 
     // ادمین نباید بتواند نقش ادمینِ خودش را بردارد و سایت را بدون ادمین بگذارد
@@ -113,9 +124,10 @@ export class AgentsManagementService {
       ...toDto(agent),
       totalConversations: stats?.totalConversations ?? 0,
       resolvedConversations: stats?.resolvedConversations ?? 0,
-      avgCsatScore: stats?.avgCsatScore !== null && stats?.avgCsatScore !== undefined
-        ? Number(Number(stats.avgCsatScore).toFixed(2))
-        : null,
+      avgCsatScore:
+        stats?.avgCsatScore !== null && stats?.avgCsatScore !== undefined
+          ? Number(Number(stats.avgCsatScore).toFixed(2))
+          : null,
     };
   }
 

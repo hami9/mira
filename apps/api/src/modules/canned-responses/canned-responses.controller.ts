@@ -20,7 +20,10 @@ export class CannedResponsesController {
 
   @Post()
   @RequirePermission('manageCannedResponses')
-  create(@CurrentAgent() agent: AgentAccessTokenPayload, @Body() dto: CreateCannedResponseRequestDto) {
+  create(
+    @CurrentAgent() agent: AgentAccessTokenPayload,
+    @Body() dto: CreateCannedResponseRequestDto,
+  ) {
     return this.service.create(agent.siteId, dto);
   }
 

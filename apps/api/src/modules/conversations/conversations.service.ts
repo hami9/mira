@@ -1,9 +1,18 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { In, Repository } from 'typeorm';
 import { ConversationStatus } from '@mira/shared-types';
-import { ConversationEntity, ConversationReadEntity, CsatRatingEntity } from '../../database/entities';
+import {
+  ConversationEntity,
+  ConversationReadEntity,
+  CsatRatingEntity,
+} from '../../database/entities';
 
 export const CONVERSATION_RESOLVED_EVENT = 'conversation.resolved';
 
@@ -256,15 +265,17 @@ export class ConversationsService {
 
   // نسخه‌ی سبک‌تر برای داخل ChatGateway که خودش قبلاً مالکیت مکالمه رو تأیید کرده
   async touchRead(conversationId: string, agentId: string): Promise<void> {
-    await this.readsRepository.upsert(
-      { conversationId, agentId, lastReadAt: new Date() },
-      ['conversationId', 'agentId'],
-    );
+    await this.readsRepository.upsert({ conversationId, agentId, lastReadAt: new Date() }, [
+      'conversationId',
+      'agentId',
+    ]);
   }
 
   // فراخوانی فقط وقتی محتوای پیام کلیدواژه‌ی فوریت داشته باشه (چک شده در ChatGateway)
   async escalateIfUrgent(conversationId: string): Promise<ConversationEntity | null> {
-    const conversation = await this.conversationsRepository.findOne({ where: { id: conversationId } });
+    const conversation = await this.conversationsRepository.findOne({
+      where: { id: conversationId },
+    });
     if (!conversation || conversation.priority === 'high') {
       return null;
     }

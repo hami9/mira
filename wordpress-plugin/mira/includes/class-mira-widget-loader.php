@@ -37,7 +37,7 @@ class Mira_Widget_Loader {
 		$attributes = array(
 			'data-widget-key' => $widget_key,
 			'data-api-url'    => untrailingslashit( $api_url ),
-			'data-color'      => get_option( 'mira_widget_color', '#2563eb' ),
+			'data-color'      => get_option( 'mira_widget_color', '#2E6BE6' ),
 			'data-position'   => get_option( 'mira_widget_position', 'bottom-right' ),
 		);
 

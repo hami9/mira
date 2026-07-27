@@ -3,15 +3,13 @@ import type { VisitorListItemDto, VisitorStatsDto } from '@mira/shared-types';
 import { apiClient } from '../api';
 
 interface VisitorsOnlinePageProps {
-  onClose: () => void;
   onOpenVisitor: (visitorId: string) => void;
-  onGoToAll: () => void;
 }
 
 const REFRESH_INTERVAL_MS = 15_000;
 
 // صفحه‌ی «چه کسانی همین الان روی سایت هستند» — خودش هر ۱۵ ثانیه تازه می‌شود
-export function VisitorsOnlinePage({ onClose, onOpenVisitor, onGoToAll }: VisitorsOnlinePageProps) {
+export function VisitorsOnlinePage({ onOpenVisitor }: VisitorsOnlinePageProps) {
   const [visitors, setVisitors] = useState<VisitorListItemDto[]>([]);
   const [stats, setStats] = useState<VisitorStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,21 +39,15 @@ export function VisitorsOnlinePage({ onClose, onOpenVisitor, onGoToAll }: Visito
 
   return (
     <div className="mx-auto max-w-4xl overflow-y-auto p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-800">بازدیدکنندگان آنلاین</h1>
-        <div className="flex gap-3 text-sm">
-          <button onClick={onGoToAll} className="text-blue-600">
-            همه‌ی بازدیدکنندگان
-          </button>
-          <button onClick={onClose} className="text-blue-600">
-            بازگشت به داشبورد
-          </button>
-        </div>
-      </div>
+      <h1 className="mb-4 text-lg font-bold text-gray-800">بازدیدکنندگان آنلاین</h1>
 
       {stats && (
         <div className="mb-4 grid grid-cols-3 gap-3">
-          <StatCard label="آنلاین همین الان" value={stats.onlineNow.toLocaleString('fa-IR')} highlight />
+          <StatCard
+            label="آنلاین همین الان"
+            value={stats.onlineNow.toLocaleString('fa-IR')}
+            highlight
+          />
           <StatCard label="بازدید امروز" value={stats.seenToday.toLocaleString('fa-IR')} />
           <StatCard label="کل بازدیدکنندگان" value={stats.totalVisitors.toLocaleString('fa-IR')} />
         </div>
@@ -92,12 +84,10 @@ export function VisitorRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className={visitor.isOnline ? 'text-green-500' : 'text-gray-300'}>●</span>
-          <button onClick={onOpen} className="text-sm font-medium text-blue-700 hover:underline">
+          <button onClick={onOpen} className="text-sm font-medium text-primary-700 hover:underline">
             {visitor.name || visitor.email || `مهمان ${visitor.visitorRef.slice(0, 8)}`}
           </button>
-          <span className="text-[10px] text-gray-400">
-            {visitor.conversationCount} گفتگو
-          </span>
+          <span className="text-[10px] text-gray-400">{visitor.conversationCount} گفتگو</span>
         </div>
         {visitor.currentPageUrl && (
           <div className="mt-1 truncate text-xs text-gray-500" title={visitor.currentPageUrl}>
@@ -131,9 +121,7 @@ export function StatCard({
       }`}
     >
       <div className="text-[11px] text-gray-500">{label}</div>
-      <div
-        className={`mt-1 text-lg font-bold ${highlight ? 'text-green-700' : 'text-gray-800'}`}
-      >
+      <div className={`mt-1 text-lg font-bold ${highlight ? 'text-green-700' : 'text-gray-800'}`}>
         {value}
       </div>
     </div>

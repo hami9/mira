@@ -31,10 +31,9 @@ export class InternalNotesService {
   ): Promise<InternalNoteDto> {
     const note = this.notesRepository.create({ siteId, conversationId, agentId, content });
     const saved = await this.notesRepository.save(note);
-    const agentRow: { fullName: string } | undefined = await this.notesRepository.manager.query(
-      `SELECT "fullName" FROM agents WHERE id = $1`,
-      [agentId],
-    ).then((rows) => rows[0]);
+    const agentRow: { fullName: string } | undefined = await this.notesRepository.manager
+      .query(`SELECT "fullName" FROM agents WHERE id = $1`, [agentId])
+      .then((rows) => rows[0]);
     return toDto(saved, agentRow?.fullName);
   }
 }

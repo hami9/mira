@@ -8,7 +8,11 @@ const publisher = new Redis({
   password: config.redis.password,
 });
 
-export async function publishSocketEvent(room: string, event: string, data: unknown): Promise<void> {
+export async function publishSocketEvent(
+  room: string,
+  event: string,
+  data: unknown,
+): Promise<void> {
   const message: SocketBridgeMessage = { room, event, data };
   await publisher.publish(SOCKET_BRIDGE_CHANNEL, JSON.stringify(message));
 }

@@ -1,0 +1,25 @@
+#!/bin/sh
+# بعد از نصب پکیج mira
+set -e
+
+case "$1" in
+  configure)
+    systemctl daemon-reload >/dev/null 2>&1 || true
+
+    # اگر نصب قبلاً راه‌اندازی شده (ارتقا)، پیوند .env را دوباره برقرار کن
+    if [ -f /etc/mira/mira.env ]; then
+      ln -sfn /etc/mira/mira.env /opt/mira/app/.env
+      mkdir -p /opt/mira/app/backups
+      echo "میرا به‌روزرسانی شد. برای اعمال نسخه‌ی جدید: sudo mira update"
+    else
+      echo ""
+      echo "میرا نصب شد ✔"
+      echo "قدم بعدی (راه‌اندازی اولیه و تولید رمزهای امن):"
+      echo "    sudo mira setup"
+      echo "راهنمای کامل فارسی: /usr/share/doc/mira/INSTALL.fa.md"
+      echo ""
+    fi
+    ;;
+esac
+
+exit 0

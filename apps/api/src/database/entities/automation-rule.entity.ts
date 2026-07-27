@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { AutomationActionType, AutomationTriggerType } from '@mira/shared-types';
 
 // قانون اتوماسیون ساده (فاز ۶): اگر کلیدواژه در پیام بازدیدکننده باشد، یک اکشن روی مکالمه اجرا شود

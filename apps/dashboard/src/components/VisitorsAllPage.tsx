@@ -4,13 +4,11 @@ import { apiClient } from '../api';
 import { VisitorRow } from './VisitorsOnlinePage';
 
 interface VisitorsAllPageProps {
-  onClose: () => void;
   onOpenVisitor: (visitorId: string) => void;
-  onGoToOnline: () => void;
 }
 
 // فهرست کامل بازدیدکنندگان با جست‌وجو در نام/ایمیل/شناسه
-export function VisitorsAllPage({ onClose, onOpenVisitor, onGoToOnline }: VisitorsAllPageProps) {
+export function VisitorsAllPage({ onOpenVisitor }: VisitorsAllPageProps) {
   const [visitors, setVisitors] = useState<VisitorListItemDto[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,17 +27,7 @@ export function VisitorsAllPage({ onClose, onOpenVisitor, onGoToOnline }: Visito
 
   return (
     <div className="mx-auto max-w-4xl overflow-y-auto p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-800">همه‌ی بازدیدکنندگان</h1>
-        <div className="flex gap-3 text-sm">
-          <button onClick={onGoToOnline} className="text-blue-600">
-            فقط آنلاین‌ها
-          </button>
-          <button onClick={onClose} className="text-blue-600">
-            بازگشت به داشبورد
-          </button>
-        </div>
-      </div>
+      <h1 className="mb-4 text-lg font-bold text-gray-800">همه‌ی بازدیدکنندگان</h1>
 
       <input
         value={search}

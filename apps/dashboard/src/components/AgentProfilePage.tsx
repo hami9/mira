@@ -82,7 +82,7 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
   if (!profile) {
     return (
       <div className="mx-auto max-w-2xl p-6">
-        <button onClick={onClose} className="mb-4 text-sm text-blue-600">
+        <button onClick={onClose} className="mb-4 text-sm text-primary-600">
           بازگشت
         </button>
         <p className="text-sm text-gray-400">{error ?? 'در حال بارگذاری پروفایل...'}</p>
@@ -100,7 +100,7 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
         <h1 className="text-lg font-bold text-gray-800">
           {isOwnProfile ? 'پروفایل من' : `پروفایل ${profile.fullName}`}
         </h1>
-        <button onClick={onClose} className="text-sm text-blue-600">
+        <button onClick={onClose} className="text-sm text-primary-600">
           بازگشت
         </button>
       </div>
@@ -125,7 +125,7 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
               className="h-16 w-16 rounded-full object-cover"
             />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-xl font-bold text-primary-700">
               {profile.fullName.charAt(0)}
             </div>
           )}
@@ -133,7 +133,7 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
             <div className="text-base font-bold text-gray-800">{profile.fullName}</div>
             <div className="text-xs text-gray-500">{profile.email}</div>
             <div className="mt-1 flex items-center gap-2 text-[11px]">
-              <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-800">
+              <span className="rounded bg-teal-100 px-1.5 py-0.5 text-teal-800">
                 {ROLE_LABELS[profile.role] ?? profile.role}
               </span>
               {profile.twoFactorEnabled && <span className="text-green-700">🔐 2FA فعال</span>}
@@ -215,7 +215,7 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="mt-3 rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+              className="mt-3 rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-60"
             >
               {saving ? 'در حال ذخیره...' : 'ذخیره پروفایل'}
             </button>
@@ -246,7 +246,7 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
             <button
               onClick={handleChangePassword}
               disabled={changingPassword || !currentPassword || !newPassword}
-              className="mt-3 rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+              className="mt-3 rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-60"
             >
               {changingPassword ? 'در حال تغییر...' : 'تغییر رمز عبور'}
             </button>

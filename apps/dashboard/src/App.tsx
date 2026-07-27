@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { AgentRole, hasPermission, type AgentPermission, type AgentPermissionMap } from '@mira/shared-types';
+import {
+  AgentRole,
+  hasPermission,
+  type AgentPermission,
+  type AgentPermissionMap,
+  type AgentProfileDto,
+} from '@mira/shared-types';
 import { apiClient, ConversationDto, ListConversationsParams } from './api';
 import { connectDashboardSocket } from './socket';
 import { decodeJwtPayload } from './jwt';
 import { LoginPage } from './components/LoginPage';
+import { Sidebar, type SidebarNavKey } from './components/Sidebar';
 import { ConversationList } from './components/ConversationList';
 import { ChatWindow } from './components/ChatWindow';
 import { VisitorInfoPanel } from './components/VisitorInfoPanel';
@@ -37,6 +44,8 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [myPermissions, setMyPermissions] = useState<AgentPermissionMap>({});
+  // پروفایل خودِ اپراتور برای بلوک پایین سایدبار (نام/نقش/آواتار)
+  const [myProfile, setMyProfile] = useState<AgentProfileDto | null>(null);
   const [view, setView] = useState<DashboardView>('inbox');
   // اپراتوری که پروفایلش باز است؛ null یعنی پروفایل خودِ کاربر وارد‌شده
   const [viewedAgentId, setViewedAgentId] = useState<string | null>(null);
@@ -58,10 +67,13 @@ export default function App() {
     filtersRef.current = filters;
   }, [filters]);
 
+  // مجموع نخوانده‌ها هم عنوان تب مرورگر را می‌سازد و هم badge سایدبار را
+  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+
   useEffect(() => {
-    const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-    document.title = totalUnread > 0 ? `(${totalUnread}) داشبورد اپراتور میرا` : 'داشبورد اپراتور میرا';
-  }, [conversations]);
+    document.title =
+      totalUnread > 0 ? `(${totalUnread}) داشبورد اپراتور میرا` : 'داشبورد اپراتور میرا';
+  }, [totalUnread]);
 
   const loadConversations = useCallback(async (currentFilters: ListConversationsParams) => {
     try {
@@ -110,7 +122,6 @@ export default function App() {
       clearInterval(refreshTimer);
     };
     // filters عمداً در dependency نیست: نمی‌خوایم با هر تغییر فیلتر، سوکت قطع/وصل شه
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   function handleLoggedIn(): void {
@@ -123,8 +134,27 @@ export default function App() {
     // این فقط برای نمایش/مخفی‌کردن منوهاست — تصمیم واقعی همیشه سمت سرور گرفته می‌شود.
     apiClient
       .getMyProfile()
-      .then((profile) => setMyPermissions(profile.permissions ?? {}))
+      .then((profile) => {
+        setMyPermissions(profile.permissions ?? {});
+        setMyProfile(profile);
+      })
       .catch(() => setMyPermissions({}));
+  }
+
+  function handleLogout(): void {
+    // توکن‌ها فقط در حافظه‌اند؛ پاک‌کردنشان + ریست state کافی است
+    // (قطع سوکت و تایمر refresh خودکار با cleanup افکت isAuthenticated انجام می‌شود)
+    apiClient.clearTokens();
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setMyPermissions({});
+    setMyProfile(null);
+    setView('inbox');
+    setViewedAgentId(null);
+    setViewedVisitorId(null);
+    setConversations([]);
+    setSelectedConversation(null);
+    setFilters({});
   }
 
   function can(permission: AgentPermission): boolean {
@@ -169,160 +199,177 @@ export default function App() {
     return <LoginPage onLoggedIn={handleLoggedIn} />;
   }
 
-  if (view === 'settings') {
-    return (
-      <SettingsPage
-        onClose={() => setView('inbox')}
-        canManageSiteSettings={can('manageSiteSettings')}
-        canManageKnowledgeBase={can('manageKnowledgeBase')}
-        canManageAutomation={can('manageAutomation')}
-        canManageCannedResponses={can('manageCannedResponses')}
-        canManageWebhooks={can('manageWebhooks')}
-      />
-    );
+  // اگر view پروفایل بازدیدکننده بدون id باشد (حالت غیرمنتظره)، مثل قبل به صندوق ورودی برمی‌گردیم
+  const effectiveView: DashboardView =
+    view === 'visitor-profile' && !viewedVisitorId ? 'inbox' : view;
+
+  function activeSidebarItem(): SidebarNavKey | 'profile' | null {
+    switch (effectiveView) {
+      case 'inbox':
+      case 'settings':
+      case 'reports':
+      case 'agents':
+      case 'visitors-online':
+      case 'visitors-all':
+        return effectiveView;
+      case 'agent-profile':
+        // اگر از فهرست اپراتورها باز شده «اپراتورها» فعال بماند؛ وگرنه یعنی پروفایل خودم
+        return viewedAgentId ? 'agents' : 'profile';
+      case 'visitor-profile':
+        return visitorReturnView === 'visitors-all' ? 'visitors-all' : 'visitors-online';
+      default:
+        return null;
+    }
   }
 
-  if (view === 'reports') {
-    return <ReportsPage onClose={() => setView('inbox')} />;
+  function handleSidebarNavigate(key: SidebarNavKey): void {
+    // پاک‌کردن idهای صفحات جزئیات تا حالت «بازگشت» آن‌ها با ناوبری مستقیم قاطی نشود
+    setViewedAgentId(null);
+    setViewedVisitorId(null);
+    setView(key);
   }
 
-  if (view === 'agents') {
-    return (
-      <AgentsPage
-        onClose={() => setView('inbox')}
-        onOpenProfile={(agentId) => {
-          setViewedAgentId(agentId);
-          setView('agent-profile');
-        }}
-      />
-    );
-  }
+  function renderPage() {
+    if (effectiveView === 'settings') {
+      return (
+        <SettingsPage
+          canManageSiteSettings={can('manageSiteSettings')}
+          canManageKnowledgeBase={can('manageKnowledgeBase')}
+          canManageAutomation={can('manageAutomation')}
+          canManageCannedResponses={can('manageCannedResponses')}
+          canManageWebhooks={can('manageWebhooks')}
+        />
+      );
+    }
 
-  if (view === 'agent-profile') {
-    return (
-      <AgentProfilePage
-        agentId={viewedAgentId}
-        onClose={() => {
-          // اگر از فهرست اپراتورها آمده بودیم به همان‌جا برگردیم، وگرنه به صندوق ورودی
-          setView(viewedAgentId ? 'agents' : 'inbox');
-          setViewedAgentId(null);
-        }}
-      />
-    );
-  }
+    if (effectiveView === 'reports') {
+      return <ReportsPage />;
+    }
 
-  if (view === 'visitors-online') {
-    return (
-      <VisitorsOnlinePage
-        onClose={() => setView('inbox')}
-        onGoToAll={() => setView('visitors-all')}
-        onOpenVisitor={(visitorId) => {
-          setViewedVisitorId(visitorId);
-          setVisitorReturnView('visitors-online');
-          setView('visitor-profile');
-        }}
-      />
-    );
-  }
+    if (effectiveView === 'agents') {
+      return (
+        <AgentsPage
+          onOpenProfile={(agentId) => {
+            setViewedAgentId(agentId);
+            setView('agent-profile');
+          }}
+        />
+      );
+    }
 
-  if (view === 'visitors-all') {
-    return (
-      <VisitorsAllPage
-        onClose={() => setView('inbox')}
-        onGoToOnline={() => setView('visitors-online')}
-        onOpenVisitor={(visitorId) => {
-          setViewedVisitorId(visitorId);
-          setVisitorReturnView('visitors-all');
-          setView('visitor-profile');
-        }}
-      />
-    );
-  }
+    if (effectiveView === 'agent-profile') {
+      return (
+        <AgentProfilePage
+          agentId={viewedAgentId}
+          onClose={() => {
+            // اگر از فهرست اپراتورها آمده بودیم به همان‌جا برگردیم، وگرنه به صندوق ورودی
+            setView(viewedAgentId ? 'agents' : 'inbox');
+            setViewedAgentId(null);
+          }}
+        />
+      );
+    }
 
-  if (view === 'visitor-profile' && viewedVisitorId) {
-    return (
-      <VisitorProfilePage
-        visitorId={viewedVisitorId}
-        onClose={() => {
-          setView(visitorReturnView);
-          setViewedVisitorId(null);
-        }}
-      />
-    );
+    if (effectiveView === 'visitors-online') {
+      return (
+        <VisitorsOnlinePage
+          onOpenVisitor={(visitorId) => {
+            setViewedVisitorId(visitorId);
+            setVisitorReturnView('visitors-online');
+            setView('visitor-profile');
+          }}
+        />
+      );
+    }
+
+    if (effectiveView === 'visitors-all') {
+      return (
+        <VisitorsAllPage
+          onOpenVisitor={(visitorId) => {
+            setViewedVisitorId(visitorId);
+            setVisitorReturnView('visitors-all');
+            setView('visitor-profile');
+          }}
+        />
+      );
+    }
+
+    if (effectiveView === 'visitor-profile' && viewedVisitorId) {
+      return (
+        <VisitorProfilePage
+          visitorId={viewedVisitorId}
+          onClose={() => {
+            setView(visitorReturnView);
+            setViewedVisitorId(null);
+          }}
+        />
+      );
+    }
+
+    return null;
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white p-3 text-sm font-bold text-gray-700">
-        داشبورد اپراتور میرا
-        <div className="flex items-center gap-3">
-          {can('viewVisitors') && (
-            <button
-              onClick={() => setView('visitors-online')}
-              className="text-xs font-normal text-blue-600"
-            >
-              بازدیدکنندگان
-            </button>
-          )}
-          {/* مدیریت اپراتورها عمداً فقط ادمین است و به permission واگذار نمی‌شود */}
-          {isAdmin && (
-            <button
-              onClick={() => setView('agents')}
-              className="text-xs font-normal text-blue-600"
-            >
-              اپراتورها
-            </button>
-          )}
-          {can('viewReports') && (
-            <button
-              onClick={() => setView('reports')}
-              className="text-xs font-normal text-blue-600"
-            >
-              گزارش‌ها
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setViewedAgentId(null);
-              setView('agent-profile');
-            }}
-            className="text-xs font-normal text-blue-600"
-          >
-            پروفایل من
-          </button>
-          {/* تنظیمات برای همه‌ی اپراتورها بازه — غیر-ادمین فقط 2FA حساب خودش رو می‌بینه */}
-          <button
-            onClick={() => setView('settings')}
-            className="text-xs font-normal text-blue-600"
-          >
-            تنظیمات
-          </button>
-        </div>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        <ConversationList
-          conversations={conversations}
-          selectedId={selectedConversation?.id ?? null}
-          filters={filters}
-          onFiltersChange={setFilters}
-          onSelect={handleSelectConversation}
-        />
-        {selectedConversation ? (
-          <>
-            <ChatWindow
-              conversation={selectedConversation}
-              socket={socketRef.current}
-              onConversationUpdated={handleConversationUpdated}
-              onMessageSeen={markConversationSeenLocally}
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <Sidebar
+        activeItem={activeSidebarItem()}
+        unreadCount={totalUnread}
+        showVisitors={can('viewVisitors')}
+        showReports={can('viewReports')}
+        showAgents={isAdmin}
+        profileName={myProfile?.fullName ?? ''}
+        profileRole={myProfile?.role ?? 'agent'}
+        avatarUrl={myProfile?.avatarUrl ?? null}
+        onNavigate={handleSidebarNavigate}
+        onOpenMyProfile={() => {
+          setViewedAgentId(null);
+          setView('agent-profile');
+        }}
+        onLogout={handleLogout}
+      />
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {effectiveView === 'inbox' ? (
+          <div className="flex flex-1 overflow-hidden">
+            <ConversationList
+              conversations={conversations}
+              selectedId={selectedConversation?.id ?? null}
+              filters={filters}
+              onFiltersChange={setFilters}
+              onSelect={handleSelectConversation}
             />
-            <VisitorInfoPanel conversationId={selectedConversation.id} />
-          </>
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
-            یک مکالمه را برای مشاهده انتخاب کنید
+            {selectedConversation ? (
+              <>
+                <ChatWindow
+                  conversation={selectedConversation}
+                  socket={socketRef.current}
+                  onConversationUpdated={handleConversationUpdated}
+                  onMessageSeen={markConversationSeenLocally}
+                />
+                <VisitorInfoPanel conversationId={selectedConversation.id} />
+              </>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-400">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  className="h-12 w-12 text-gray-300"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 10.5h8M8 14h4m-6.7 5.3L3 21l1.2-3.6A8.5 8.5 0 1 1 7.6 20l-2.3-.7Z"
+                  />
+                </svg>
+                یک مکالمه را برای مشاهده انتخاب کنید
+              </div>
+            )}
           </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto">{renderPage()}</div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

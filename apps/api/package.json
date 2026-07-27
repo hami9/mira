@@ -1,6 +1,6 @@
 {
   "name": "@mira/api",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "بک‌اند NestJS و Socket.io gateway برای میرا",
   "main": "dist/main.js",

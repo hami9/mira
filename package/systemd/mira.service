@@ -1,0 +1,19 @@
+# سرویس systemd میرا — کل استک را با Docker Compose بالا می‌آورد
+# فایل‌های compose مورد استفاده در /etc/mira/compose-files تعیین می‌شوند (توسط mira setup)
+[Unit]
+Description=Mira self-hosted live chat platform (Docker Compose)
+Documentation=file:/usr/share/doc/mira/INSTALL.fa.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/mira/app
+ExecStart=/bin/sh -c 'exec docker compose $(cat /etc/mira/compose-files 2>/dev/null || echo "-f docker-compose.yml -f docker-compose.prod.yml") up -d'
+ExecStop=/bin/sh -c 'exec docker compose $(cat /etc/mira/compose-files 2>/dev/null || echo "-f docker-compose.yml -f docker-compose.prod.yml") stop'
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

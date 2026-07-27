@@ -40,7 +40,7 @@ async function seed(): Promise<void> {
         name: SITE_NAME,
         widgetKey: WIDGET_KEY,
         allowedDomains: ALLOWED_DOMAINS,
-        appearance: { color: '#2563eb', position: 'bottom-end' },
+        appearance: { color: '#2E6BE6', position: 'bottom-right' },
         businessHours: null,
       }),
     );

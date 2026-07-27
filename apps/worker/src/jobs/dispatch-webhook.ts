@@ -19,7 +19,12 @@ export async function processDispatchWebhook(data: WebhookDispatchJobData): Prom
   );
   if (result.rows.length === 0) return;
 
-  const body = JSON.stringify({ event: data.event, siteId: data.siteId, data: data.payload, timestamp: new Date().toISOString() });
+  const body = JSON.stringify({
+    event: data.event,
+    siteId: data.siteId,
+    data: data.payload,
+    timestamp: new Date().toISOString(),
+  });
 
   // هر webhook مستقل از بقیه امتحان می‌شه — خطای یکی نباید بقیه رو متوقف کنه یا کل job رو retry کنه
   await Promise.all(result.rows.map((webhook) => deliver(webhook, body)));

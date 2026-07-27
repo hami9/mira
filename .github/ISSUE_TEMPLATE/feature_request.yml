@@ -1,0 +1,30 @@
+name: ✨ درخواست قابلیت
+description: پیشنهاد قابلیت یا بهبود جدید
+title: '[قابلیت] '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: چه مشکلی را حل می‌کند؟
+      description: قابلیت را از زاویه‌ی نیاز واقعی توضیح بده، نه فقط راه‌حل
+      placeholder: به‌عنوان اپراتور/مدیر فروشگاه، می‌خواهم ... تا ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: راه‌حل پیشنهادی
+      placeholder: اگر ایده‌ای برای پیاده‌سازی داری بنویس (اختیاری)
+  - type: dropdown
+    id: component
+    attributes:
+      label: کدام بخش؟
+      options:
+        - داشبورد اپراتور
+        - ویجت چت
+        - API / بک‌اند
+        - Worker / هوش مصنوعی
+        - افزونه‌ی وردپرس
+        - نصب / پکیج دبیان
+        - سایر

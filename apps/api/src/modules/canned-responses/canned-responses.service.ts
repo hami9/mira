@@ -16,10 +16,7 @@ export class CannedResponsesService {
     return this.repository.find({ where: { siteId }, order: { title: 'ASC' } });
   }
 
-  async create(
-    siteId: string,
-    dto: CreateCannedResponseRequestDto,
-  ): Promise<CannedResponseEntity> {
+  async create(siteId: string, dto: CreateCannedResponseRequestDto): Promise<CannedResponseEntity> {
     const entity = this.repository.create({ ...dto, siteId });
     return this.repository.save(entity);
   }

@@ -21,7 +21,11 @@ export class WebhookQueueService implements OnModuleDestroy {
   }
 
   async enqueueDispatch(data: WebhookDispatchJobData): Promise<void> {
-    await this.queue.add('dispatch', data, { attempts: 1, removeOnComplete: true, removeOnFail: 100 });
+    await this.queue.add('dispatch', data, {
+      attempts: 1,
+      removeOnComplete: true,
+      removeOnFail: 100,
+    });
   }
 
   async onModuleDestroy(): Promise<void> {

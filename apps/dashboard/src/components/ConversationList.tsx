@@ -28,8 +28,8 @@ function ConversationRow({
   return (
     <button
       onClick={() => onSelect(conversation)}
-      className={`flex w-full items-start justify-between border-b border-gray-100 p-3 text-right text-sm hover:bg-gray-50 ${
-        selected ? 'bg-blue-50' : ''
+      className={`flex w-full items-start justify-between border-b border-gray-100 p-3 text-right text-sm transition-colors hover:bg-gray-50 ${
+        selected ? 'bg-primary-50 hover:bg-primary-50' : ''
       } ${isUrgent ? 'border-r-4 border-r-red-500' : ''}`}
     >
       <div>
@@ -43,7 +43,7 @@ function ConversationRow({
         </div>
       </div>
       {hasUnread && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-green-600 px-1.5 text-[11px] font-bold text-white">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-500 px-1.5 text-[11px] font-bold text-white">
           {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
         </span>
       )}
@@ -95,7 +95,7 @@ export function ConversationList({
 
         {unanswered.length > 0 && (
           <>
-            <div className="bg-green-50 px-3 py-1.5 text-xs font-bold text-green-800">
+            <div className="bg-accent-50 px-3 py-1.5 text-xs font-bold text-accent-700">
               بدون پاسخ ({unanswered.length})
             </div>
             {unanswered.map((conversation) => (

@@ -7,7 +7,10 @@ export interface ChatMessage {
   content: string;
 }
 
-const openaiClient = new OpenAI({ apiKey: config.ai.openaiApiKey, baseURL: config.ai.openaiBaseUrl });
+const openaiClient = new OpenAI({
+  apiKey: config.ai.openaiApiKey,
+  baseURL: config.ai.openaiBaseUrl,
+});
 const anthropicClient = new Anthropic({ apiKey: config.ai.anthropicApiKey });
 
 // یک تابع واحد که بر اساس AI_PROVIDER بین OpenAI-compatible (شامل Gemini از طریق baseURL) و

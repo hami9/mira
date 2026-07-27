@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ConversationStatus } from '@mira/shared-types';
 import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
@@ -70,6 +80,10 @@ export class ConversationsController {
   @HttpCode(202)
   async suggestReply(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
     await this.conversationsService.findByIdForSite(id, agent.siteId);
-    await this.aiQueue.enqueueSuggestReply({ siteId: agent.siteId, conversationId: id, agentId: agent.sub });
+    await this.aiQueue.enqueueSuggestReply({
+      siteId: agent.siteId,
+      conversationId: id,
+      agentId: agent.sub,
+    });
   }
 }

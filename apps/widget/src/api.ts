@@ -29,7 +29,11 @@ export class WidgetApi {
     );
   }
 
-  async submitCsat(visitorToken: string, conversationId: string, dto: SubmitCsatDto): Promise<void> {
+  async submitCsat(
+    visitorToken: string,
+    conversationId: string,
+    dto: SubmitCsatDto,
+  ): Promise<void> {
     await this.postNoContent(`/v1/widget/conversations/${conversationId}/csat`, dto, visitorToken);
   }
 

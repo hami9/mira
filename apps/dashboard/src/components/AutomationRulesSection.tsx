@@ -56,7 +56,8 @@ export function AutomationRulesSection() {
     <section className="mb-6 rounded border border-gray-200 bg-white p-4">
       <h2 className="mb-1 text-sm font-bold text-gray-700">قوانین اتوماسیون</h2>
       <p className="mb-3 text-xs text-gray-500">
-        اگر پیام بازدیدکننده یکی از کلیدواژه‌ها را داشته باشد، اکشن انتخابی خودکار روی مکالمه اجرا می‌شود.
+        اگر پیام بازدیدکننده یکی از کلیدواژه‌ها را داشته باشد، اکشن انتخابی خودکار روی مکالمه اجرا
+        می‌شود.
       </p>
 
       {rules.length === 0 && <p className="mb-3 text-xs text-gray-400">قانونی تعریف نشده است.</p>}
@@ -71,12 +72,13 @@ export function AutomationRulesSection() {
               {!rule.enabled && <span className="mr-2 text-gray-400">(غیرفعال)</span>}
             </div>
             <div className="text-gray-500">
-              اگر پیام شامل: <span className="font-mono">{rule.triggerValue}</span> ← {ACTION_LABELS[rule.actionType]}
+              اگر پیام شامل: <span className="font-mono">{rule.triggerValue}</span> ←{' '}
+              {ACTION_LABELS[rule.actionType]}
               {rule.actionValue ? `: ${rule.actionValue}` : ''}
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <button onClick={() => handleToggle(rule)} className="text-blue-600">
+            <button onClick={() => handleToggle(rule)} className="text-primary-600">
               {rule.enabled ? 'غیرفعال' : 'فعال'}
             </button>
             <button onClick={() => handleDelete(rule.id)} className="text-red-600">
@@ -121,7 +123,7 @@ export function AutomationRulesSection() {
         <button
           onClick={handleAdd}
           disabled={saving}
-          className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+          className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
         >
           {saving ? 'در حال افزودن...' : 'افزودن قانون'}
         </button>

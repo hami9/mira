@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { WebhookEventType } from '@mira/shared-types';
 
 // تنظیمات وب‌هوک هر سایت — برای امضای درخواست خروجی (HMAC-SHA256) استفاده می‌شه، نه احراز هویت ورودی

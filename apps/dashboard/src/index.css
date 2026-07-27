@@ -1,7 +1,57 @@
+/* فونت وزیرمتن — self-host از پکیج npm (بدون CDN تا آفلاین/داخل ایران هم کار کند) */
+@import 'vazirmatn/Vazirmatn-font-face.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: Tahoma, Arial, sans-serif;
+  font-family: Vazirmatn, Tahoma, Arial, sans-serif;
+  @apply bg-gray-50 text-gray-800 antialiased;
+}
+
+/* اسکرول‌بار باریک هماهنگ با برند */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c3d9fa transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c3d9fa;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #9abff5;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  /* دکمه‌ی اصلی برند */
+  .btn-primary {
+    @apply rounded-lg bg-primary-600 text-white transition-colors hover:bg-primary-700 disabled:opacity-60;
+  }
+  /* کارت استاندارد */
+  .card {
+    @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+  }
+  /* ورودی استاندارد با حلقه‌ی فوکوس برند */
+  .input-base {
+    @apply rounded-lg border border-gray-300 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100;
+  }
+}
+
+/* احترام به کاربرانی که حرکت کمتر می‌خواهند */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

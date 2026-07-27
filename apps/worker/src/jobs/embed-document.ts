@@ -21,7 +21,9 @@ export async function processEmbedDocument(data: AiEmbedDocumentJobData): Promis
     const embeddings = await embedTexts(chunks);
 
     // idempotent: اگه قبلاً chunk داشته (re-embed دستی)، اول پاکش کن
-    await pool.query(`DELETE FROM knowledge_base_chunks WHERE "documentId" = $1`, [data.documentId]);
+    await pool.query(`DELETE FROM knowledge_base_chunks WHERE "documentId" = $1`, [
+      data.documentId,
+    ]);
 
     for (let i = 0; i < chunks.length; i++) {
       const vectorLiteral = `[${embeddings[i].join(',')}]`;
@@ -40,5 +42,8 @@ export async function processEmbedDocument(data: AiEmbedDocumentJobData): Promis
 }
 
 async function setStatus(documentId: string, status: 'ready' | 'failed'): Promise<void> {
-  await pool.query(`UPDATE knowledge_base_documents SET status = $1 WHERE id = $2`, [status, documentId]);
+  await pool.query(`UPDATE knowledge_base_documents SET status = $1 WHERE id = $2`, [
+    status,
+    documentId,
+  ]);
 }

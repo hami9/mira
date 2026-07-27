@@ -12,7 +12,10 @@ const WEEKDAY_MAP: Record<string, Weekday> = {
 
 // روز هفته و دقیقه‌ی سپری‌شده از نیمه‌شب رو به وقت تهران (نه UTC سرور) استخراج می‌کنه —
 // چون تصمیم «داخل ساعت کاری هستیم یا نه» باید بر اساس منطقه‌زمانی کسب‌وکار گرفته بشه
-function getTehranWeekdayAndMinutes(date: Date): { weekday: Weekday; minutesSinceMidnight: number } {
+function getTehranWeekdayAndMinutes(date: Date): {
+  weekday: Weekday;
+  minutesSinceMidnight: number;
+} {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Tehran',
     weekday: 'short',

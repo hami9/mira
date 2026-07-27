@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🔒 گزارش آسیب‌پذیری امنیتی
+    url: https://github.com/hami9/mira/security/advisories/new
+    about: مشکلات امنیتی را این‌جا خصوصی گزارش کن، نه در issue عمومی (جزئیات در SECURITY.md)

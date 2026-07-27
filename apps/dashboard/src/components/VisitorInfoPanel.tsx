@@ -30,7 +30,11 @@ export function VisitorInfoPanel({ conversationId }: VisitorInfoPanelProps) {
   }, [conversationId]);
 
   if (!info) {
-    return <div className="w-64 border-r border-gray-200 bg-white p-3 text-xs text-gray-400">در حال بارگذاری...</div>;
+    return (
+      <div className="w-64 border-r border-gray-200 bg-white p-3 text-xs text-gray-400">
+        در حال بارگذاری...
+      </div>
+    );
   }
 
   return (
@@ -65,7 +69,9 @@ export function VisitorInfoPanel({ conversationId }: VisitorInfoPanelProps) {
       {customerContext?.found && (
         <div className="space-y-1">
           <div>نام مشتری: {customerContext.customerName ?? '—'}</div>
-          <div>مجموع خرید: {formatCurrency(customerContext.totalSpent, customerContext.currency)}</div>
+          <div>
+            مجموع خرید: {formatCurrency(customerContext.totalSpent, customerContext.currency)}
+          </div>
           <div>وضعیت آخرین سفارش: {customerContext.lastOrderStatus ?? '—'}</div>
           {customerContext.currentCart && customerContext.currentCart.itemsCount > 0 && (
             <div className="rounded bg-amber-50 p-1.5 text-amber-800">
@@ -79,8 +85,7 @@ export function VisitorInfoPanel({ conversationId }: VisitorInfoPanelProps) {
               <ul className="space-y-1">
                 {customerContext.recentOrders.map((order) => (
                   <li key={order.id}>
-                    #{order.id} — {order.status} —{' '}
-                    {formatCurrency(order.total, order.currency)}
+                    #{order.id} — {order.status} — {formatCurrency(order.total, order.currency)}
                   </li>
                 ))}
               </ul>

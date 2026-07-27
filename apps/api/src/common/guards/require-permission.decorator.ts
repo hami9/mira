@@ -1,4 +1,12 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetadata, UseGuards, applyDecorators } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  SetMetadata,
+  UseGuards,
+  applyDecorators,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,7 +35,9 @@ export class PermissionGuard implements CanActivate {
     ]);
     if (!required) return true;
 
-    const request = context.switchToHttp().getRequest<Request & { agent?: AgentAccessTokenPayload }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { agent?: AgentAccessTokenPayload }>();
     const tokenAgent = request.agent;
     if (!tokenAgent) {
       throw new ForbiddenException('احراز هویت نامعتبر است');

@@ -1,0 +1,62 @@
+# CI میرا — با هر push و pull request اجرا می‌شود
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+jobs:
+  lint-and-build:
+    name: لینت و بیلد همه‌ی workspaceها
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: نصب وابستگی‌ها
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: بررسی فرمت (Prettier)
+        run: npm run format:check
+
+      # ترتیب مهم است: shared-types باید قبل از بقیه build شود (اسکریپت ریشه رعایت می‌کند)
+      - name: بیلد همه‌ی workspaceها
+        run: npm run build
+
+      - name: 'گزارش حجم ویجت (هدف: gzip زیر 50KB)'
+        run: |
+          SIZE=$(gzip -c apps/widget/dist/widget.js | wc -c)
+          echo "حجم gzip ویجت: ${SIZE} بایت"
+          if [ "$SIZE" -gt 51200 ]; then
+            echo "::error::حجم gzip ویجت از سقف 50KB گذشت"
+            exit 1
+          fi
+
+      - name: آپلود خروجی ویجت
+        uses: actions/upload-artifact@v4
+        with:
+          name: widget-dist
+          path: apps/widget/dist/widget.js
+
+  build-deb:
+    name: ساخت پکیج دبیان
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ساخت .deb
+        run: bash package/build-deb.sh
+
+      - name: آپلود پکیج
+        uses: actions/upload-artifact@v4
+        with:
+          name: mira-deb
+          path: package/dist/*.deb

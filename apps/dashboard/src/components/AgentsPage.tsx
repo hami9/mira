@@ -12,7 +12,6 @@ import {
 import { apiClient } from '../api';
 
 interface AgentsPageProps {
-  onClose: () => void;
   onOpenProfile: (agentId: string) => void;
 }
 
@@ -23,7 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
   offline: 'آفلاین',
 };
 
-export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
+export function AgentsPage({ onOpenProfile }: AgentsPageProps) {
   const [agents, setAgents] = useState<AgentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,12 +134,7 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
 
   return (
     <div className="mx-auto max-w-4xl overflow-y-auto p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-800">مدیریت اپراتورها و دسترسی‌ها</h1>
-        <button onClick={onClose} className="text-sm text-blue-600">
-          بازگشت به داشبورد
-        </button>
-      </div>
+      <h1 className="mb-4 text-lg font-bold text-gray-800">مدیریت اپراتورها و دسترسی‌ها</h1>
 
       {error && (
         <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">
@@ -151,7 +145,7 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
       <div className="mb-4">
         <button
           onClick={() => setShowForm((prev) => !prev)}
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white"
+          className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-4 py-2 text-sm text-white"
         >
           {showForm ? 'بستن فرم' : '+ افزودن اپراتور جدید'}
         </button>
@@ -233,14 +227,14 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onOpenProfile(agent.id)}
-                    className="text-sm font-bold text-blue-700 hover:underline"
+                    className="text-sm font-bold text-primary-700 hover:underline"
                   >
                     {agent.fullName}
                   </button>
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] ${
                       agent.role === 'admin'
-                        ? 'bg-purple-100 text-purple-800'
+                        ? 'bg-teal-100 text-teal-800'
                         : 'bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -276,11 +270,11 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                   onClick={() =>
                     setEditingPermissionsFor((prev) => (prev === agent.id ? null : agent.id))
                   }
-                  className="text-blue-600"
+                  className="text-primary-600"
                 >
                   دسترسی‌ها
                   {agent.role !== 'admin' && (
-                    <span className="mr-1 rounded bg-blue-100 px-1 text-[10px] text-blue-800">
+                    <span className="mr-1 rounded bg-primary-100 px-1 text-[10px] text-primary-800">
                       {countGranted(agent)}
                     </span>
                   )}
@@ -307,7 +301,7 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                           key={preset.name}
                           onClick={() => handleApplyPreset(agent, preset.permissions)}
                           title={preset.description}
-                          className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] text-blue-800 hover:bg-blue-100"
+                          className="rounded border border-primary-200 bg-primary-50 px-2 py-1 text-[11px] text-primary-800 hover:bg-primary-100"
                         >
                           {preset.name}
                         </button>
@@ -329,7 +323,7 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                           {group.permissions.map((permission) => (
                             <label
                               key={permission}
-                              className="flex cursor-pointer items-start gap-2 rounded bg-white p-2 text-xs text-gray-700 hover:bg-blue-50"
+                              className="flex cursor-pointer items-start gap-2 rounded bg-white p-2 text-xs text-gray-700 hover:bg-primary-50"
                             >
                               <input
                                 type="checkbox"
@@ -350,8 +344,8 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                     ))}
 
                     <p className="text-[10px] text-gray-500">
-                      تغییرات بلافاصله ذخیره و اعمال می‌شوند — نیازی به خروج و ورود دوباره‌ی اپراتور نیست.
-                      «مدیریت اپراتورها» عمداً قابل واگذاری نیست و همیشه فقط دست ادمین است.
+                      تغییرات بلافاصله ذخیره و اعمال می‌شوند — نیازی به خروج و ورود دوباره‌ی اپراتور
+                      نیست. «مدیریت اپراتورها» عمداً قابل واگذاری نیست و همیشه فقط دست ادمین است.
                     </p>
                   </>
                 )}

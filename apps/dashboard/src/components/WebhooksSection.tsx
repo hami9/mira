@@ -95,12 +95,15 @@ export function WebhooksSection() {
         <div className="flex gap-2">
           <button
             onClick={handleGenerateApiKey}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white"
+            className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white"
           >
             {apiKeyStatus?.hasKey ? 'ساخت کلید جدید (کلید قبلی باطل می‌شود)' : 'ساخت کلید API'}
           </button>
           {apiKeyStatus?.hasKey && (
-            <button onClick={handleRevokeApiKey} className="rounded px-3 py-1.5 text-xs text-red-600">
+            <button
+              onClick={handleRevokeApiKey}
+              className="rounded px-3 py-1.5 text-xs text-red-600"
+            >
               باطل کردن کلید
             </button>
           )}
@@ -115,7 +118,9 @@ export function WebhooksSection() {
           <code className="font-mono">sha256=HMAC(secret, body)</code> است.
         </p>
 
-        {webhooks.length === 0 && <p className="mb-3 text-xs text-gray-400">وب‌هوکی ثبت نشده است.</p>}
+        {webhooks.length === 0 && (
+          <p className="mb-3 text-xs text-gray-400">وب‌هوکی ثبت نشده است.</p>
+        )}
         {webhooks.map((webhook) => (
           <div key={webhook.id} className="mb-2 border-b border-gray-100 pb-2 text-xs">
             <div className="flex items-start justify-between">
@@ -131,11 +136,12 @@ export function WebhooksSection() {
                     .join('، ')}
                 </div>
                 <div className="mt-1 text-gray-500">
-                  secret: <code className="break-all font-mono text-gray-700">{webhook.secret}</code>
+                  secret:{' '}
+                  <code className="break-all font-mono text-gray-700">{webhook.secret}</code>
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
-                <button onClick={() => handleToggle(webhook)} className="text-blue-600">
+                <button onClick={() => handleToggle(webhook)} className="text-primary-600">
                   {webhook.enabled ? 'غیرفعال' : 'فعال'}
                 </button>
                 <button onClick={() => handleDelete(webhook.id)} className="text-red-600">
@@ -168,7 +174,7 @@ export function WebhooksSection() {
           <button
             onClick={handleAdd}
             disabled={saving || events.length === 0}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+            className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
           >
             {saving ? 'در حال افزودن...' : 'افزودن وب‌هوک'}
           </button>

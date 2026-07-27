@@ -38,15 +38,27 @@ export class AiQueueService implements OnModuleDestroy {
 
   async enqueueBotReply(data: AiBotReplyJobData): Promise<void> {
     // اگه ربات جواب نده مشکلی نیست (مکالمه دست‌نخورده برای اپراتور می‌مونه)، پس retry زیاد لازم نیست
-    await this.botReplyQueue.add('reply', data, { attempts: 1, removeOnComplete: true, removeOnFail: 100 });
+    await this.botReplyQueue.add('reply', data, {
+      attempts: 1,
+      removeOnComplete: true,
+      removeOnFail: 100,
+    });
   }
 
   async enqueueEmbedDocument(data: AiEmbedDocumentJobData): Promise<void> {
-    await this.embedDocumentQueue.add('embed', data, { attempts: 2, removeOnComplete: true, removeOnFail: 50 });
+    await this.embedDocumentQueue.add('embed', data, {
+      attempts: 2,
+      removeOnComplete: true,
+      removeOnFail: 50,
+    });
   }
 
   async enqueueSuggestReply(data: AiSuggestReplyJobData): Promise<void> {
-    await this.suggestReplyQueue.add('suggest', data, { attempts: 1, removeOnComplete: true, removeOnFail: 50 });
+    await this.suggestReplyQueue.add('suggest', data, {
+      attempts: 1,
+      removeOnComplete: true,
+      removeOnFail: 50,
+    });
   }
 
   async enqueueSummarizeConversation(data: AiSummarizeConversationJobData): Promise<void> {

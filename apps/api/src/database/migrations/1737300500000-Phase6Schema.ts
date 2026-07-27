@@ -19,7 +19,9 @@ export class Phase6Schema1737300500000 implements MigrationInterface {
         "updatedAt" timestamptz NOT NULL DEFAULT now()
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_automation_rules_site" ON "automation_rules" ("siteId")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_automation_rules_site" ON "automation_rules" ("siteId")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "internal_notes" (
@@ -31,7 +33,9 @@ export class Phase6Schema1737300500000 implements MigrationInterface {
         "createdAt" timestamptz NOT NULL DEFAULT now()
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_internal_notes_conversation" ON "internal_notes" ("conversationId")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_internal_notes_conversation" ON "internal_notes" ("conversationId")`,
+    );
 
     await queryRunner.query(`
       CREATE TABLE "webhooks" (

@@ -28,10 +28,14 @@ const workers = [
     connection,
     prefix: config.queuePrefix,
   }),
-  new Worker(AI_QUEUE_NAMES.SummarizeConversation, (job) => processSummarizeConversation(job.data), {
-    connection,
-    prefix: config.queuePrefix,
-  }),
+  new Worker(
+    AI_QUEUE_NAMES.SummarizeConversation,
+    (job) => processSummarizeConversation(job.data),
+    {
+      connection,
+      prefix: config.queuePrefix,
+    },
+  ),
   new Worker(WEBHOOK_QUEUE_NAME, (job) => processDispatchWebhook(job.data), {
     connection,
     prefix: config.queuePrefix,
@@ -39,7 +43,9 @@ const workers = [
 ];
 
 for (const worker of workers) {
-  worker.on('completed', (job) => console.log(`[worker] ${job.queueName} تکمیل شد — job ${job.id}`));
+  worker.on('completed', (job) =>
+    console.log(`[worker] ${job.queueName} تکمیل شد — job ${job.id}`),
+  );
   worker.on('failed', (job, err) =>
     console.error(`[worker] ${job?.queueName} شکست خورد — job ${job?.id}:`, err.message),
   );

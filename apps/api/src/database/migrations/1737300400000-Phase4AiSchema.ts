@@ -8,7 +8,9 @@ export class Phase4AiSchema1737300400000 implements MigrationInterface {
     // بعد پیش‌فرض جدول InitSchema (1536) مخصوص embedding مدل‌های OpenAI بود؛ چون پرووایدر
     // واقعی این استقرار Gemini (مدل text-embedding-004) با بعد ۷۶۸ است، ستون رو منطبق می‌کنیم.
     // جدول تا این لحظه خالیه (فاز ۴ تازه شروع می‌شه) پس تغییر بعد بدون از دست رفتن داده‌ست.
-    await queryRunner.query(`ALTER TABLE "knowledge_base_chunks" ALTER COLUMN "embedding" TYPE vector(768)`);
+    await queryRunner.query(
+      `ALTER TABLE "knowledge_base_chunks" ALTER COLUMN "embedding" TYPE vector(768)`,
+    );
 
     await queryRunner.query(`
       ALTER TABLE "knowledge_base_documents"
@@ -47,6 +49,8 @@ export class Phase4AiSchema1737300400000 implements MigrationInterface {
         DROP COLUMN "content",
         DROP COLUMN "status"
     `);
-    await queryRunner.query(`ALTER TABLE "knowledge_base_chunks" ALTER COLUMN "embedding" TYPE vector(1536)`);
+    await queryRunner.query(
+      `ALTER TABLE "knowledge_base_chunks" ALTER COLUMN "embedding" TYPE vector(1536)`,
+    );
   }
 }

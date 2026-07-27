@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- favicon میرا: قلب سفید روی گرادیان برند -->
+  <defs>
+    <linearGradient id="fg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2E6BE6" />
+      <stop offset="1" stop-color="#17B8A6" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#fg)" />
+  <path
+    d="M32 47 C 21.5 38.5, 15 31, 15 22.5 C 15 15.5, 20.5 11.5, 26 12.5 C 28.8 13, 31 15, 32 17.5 C 33 15, 35.2 13, 38 12.5 C 43.5 11.5, 49 15.5, 49 22.5 C 49 31, 42.5 38.5, 32 47 Z"
+    fill="#FFFFFF" />
+</svg>

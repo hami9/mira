@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 200" role="img" aria-label="نشان میرا">
+  <!-- نشان میرا: دو حباب گفتگو (آبی و فیروزه‌ای) که در میانه یک قلب می‌سازند -->
+  <defs>
+    <linearGradient id="miraBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5F9DF3" />
+      <stop offset="1" stop-color="#2455C4" />
+    </linearGradient>
+    <linearGradient id="miraTeal" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3ECDBB" />
+      <stop offset="0.55" stop-color="#17B8A6" />
+      <stop offset="1" stop-color="#2E6BE6" />
+    </linearGradient>
+    <linearGradient id="miraHeart" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2E6BE6" />
+      <stop offset="0.55" stop-color="#17B8A6" />
+      <stop offset="1" stop-color="#F5A623" />
+    </linearGradient>
+  </defs>
+
+  <!-- حباب راست (فیروزه‌ای) -->
+  <g>
+    <path d="M200 141 C 208 156, 214 166, 224 175 C 206 173, 190 166, 178 155 Z" fill="#0F9887" />
+    <circle cx="164" cy="94" r="56" fill="none" stroke="url(#miraTeal)" stroke-width="26" />
+  </g>
+
+  <!-- حباب چپ (آبی) -->
+  <g>
+    <path d="M56 141 C 48 156, 42 166, 32 175 C 50 173, 66 166, 78 155 Z" fill="#2455C4" />
+    <circle cx="92" cy="94" r="56" fill="none" stroke="url(#miraBlue)" stroke-width="26" />
+  </g>
+
+  <!-- قلب میانی -->
+  <path
+    d="M128 142 C 105 124, 91 108, 91 89 C 91 74, 103 65, 115 67 C 121 68, 126 72, 128 78 C 130 72, 135 68, 141 67 C 153 65, 165 74, 165 89 C 165 108, 151 124, 128 142 Z"
+    fill="#FFFFFF" stroke="url(#miraHeart)" stroke-width="11" stroke-linejoin="round" />
+</svg>

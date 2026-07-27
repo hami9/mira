@@ -8,8 +8,8 @@ case "$1" in
     # (حذف کامل داده‌ها: docker compose down -v — عمداً خودکار انجام نمی‌شود)
     rm -rf /etc/mira
     rm -f /opt/mira/app/.env
-    echo "تنظیمات میرا پاک شد. داده‌های دیتابیس در volumeهای داکر باقی است؛"
-    echo "برای حذف کامل: docker volume ls | grep mira"
+    echo "Mira configuration purged. The database data remains in the Docker volumes;"
+    echo "to remove it completely: docker volume ls | grep mira"
     ;;
 esac
 

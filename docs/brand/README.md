@@ -1,61 +1,74 @@
-# راهنمای برند میرا
+# Mira brand guide
 
-هویت بصری میرا از لوگوی آن گرفته شده: **دو حباب گفتگو** (آبی و فیروزه‌ای) که در هم تنیده‌اند و در میانه‌شان یک **قلب** شکل می‌گیرد — گفت‌وگویی که به رابطه‌ی گرم با مشتری می‌رسد. لمس نارنجی روی قلب، نقطه‌ی تمایز و «انسانی بودن» برند است.
+**English** · [فارسی](README.fa.md)
 
-## فایل‌های لوگو
+Mira's visual identity comes from its logo: **two interlocking speech bubbles** (blue and
+teal) that form a **heart** where they meet — a conversation that turns into a warm
+relationship with the customer. The orange touch on the heart is the brand's point of
+difference, its "human" note.
 
-| فایل                                      | کاربرد                                                                   |
-| ----------------------------------------- | ------------------------------------------------------------------------ |
-| `mira-logo.jpg`                           | لوگوی اصلی (نشان + واژه‌نگار MIRA) — برای شبکه‌های اجتماعی و اسناد       |
-| `mira-logo.svg`                           | نشان وکتوری — برای وب، اندازه‌ی دلخواه                                   |
-| `mira-logo-animated.svg`                  | نشان انیمیشنی (ترسیم حلقه‌ها، پرش و تپش قلب، شناوری) — README و صفحات وب |
-| `../../apps/dashboard/public/favicon.svg` | آیکون تب مرورگر داشبورد                                                  |
+## Logo files
 
-> نسخه‌ی React نشان در `apps/dashboard/src/components/MiraLogo.tsx` است و نسخه‌ی
-> درون‌خطی ویجت داخل `apps/widget/src/ui.ts` — هر سه از یک هندسه پیروی می‌کنند.
+| File                                      | Use                                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `mira-logo.jpg`                           | The primary logo (mark + MIRA wordmark) — for social media and documents                    |
+| `mira-logo.svg`                           | The vector mark — for the web, at any size                                                  |
+| `mira-logo-animated.svg`                  | The animated mark (rings drawing in, the heart popping and beating) — READMEs and web pages |
+| `../../apps/dashboard/public/favicon.svg` | The dashboard's browser tab icon                                                            |
 
-## پالت رنگ
+> The React version of the mark lives in `apps/dashboard/src/components/MiraLogo.tsx` and the
+> widget's inline version in `apps/widget/src/ui.ts` — all three follow the same geometry.
 
-| نقش                  | نام توکن      | کد        | توضیح                               |
-| -------------------- | ------------- | --------- | ----------------------------------- |
-| رنگ اصلی (آبی لوگو)  | `primary-600` | `#2E6BE6` | دکمه‌ها، لینک‌ها، حباب پیام اپراتور |
-| آبی تیره‌ی واژه‌نگار | `primary-800` | `#23479C` | تیترهای برند، متن روی زمینه‌ی روشن  |
-| فیروزه‌ای (حباب دوم) | `teal-500`    | `#17B8A6` | هوش مصنوعی، Copilot، پاسخ ربات      |
-| نارنجی قلب           | `accent-500`  | `#F5A623` | نشان نخوانده، ستاره‌ی CSAT، تأکید   |
-| خطا                  | `red-600`     | `#DC2626` | پیام خطا                            |
-| موفق/آنلاین          | `green-600`   | `#16A34A` | وضعیت آنلاین، عملیات موفق           |
+## Colour palette
 
-اسکیل کامل `primary` / `teal` / `accent` (سایه‌های ۵۰ تا ۹۵۰) در
-`apps/dashboard/tailwind.config.js` تعریف شده — همیشه از توکن‌ها استفاده کن، نه کد رنگ خام.
+| Role                      | Token         | Hex       | Notes                                         |
+| ------------------------- | ------------- | --------- | --------------------------------------------- |
+| Primary (the logo's blue) | `primary-600` | `#2E6BE6` | Buttons, links, the operator's message bubble |
+| Dark blue of the wordmark | `primary-800` | `#23479C` | Brand headings, text on a light background    |
+| Teal (the second bubble)  | `teal-500`    | `#17B8A6` | AI, Copilot, bot replies                      |
+| Heart orange              | `accent-500`  | `#F5A623` | Unread badge, CSAT stars, emphasis            |
+| Error                     | `red-600`     | `#DC2626` | Error messages                                |
+| Success/online            | `green-600`   | `#16A34A` | Online status, successful operations          |
 
-### گرادیان برند
+The full `primary` / `teal` / `accent` scales (shades 50 through 950) are defined in
+`apps/dashboard/tailwind.config.js` — always use the tokens, never a raw hex value.
+
+### Brand gradient
 
 ```css
 background: linear-gradient(135deg, #2e6be6 0%, #17b8a6 100%);
 ```
 
-جاهای مجاز: هدر ویجت، حباب شناور ویجت، پس‌زمینه‌ی صفحه‌ی ورود، هدر صفحه‌ی تنظیمات افزونه‌ی وردپرس.
-روی سطح‌های بزرگ متن‌دار (کارت‌ها، جدول‌ها) از گرادیان استفاده نکن.
+Allowed places: the widget header, the widget's floating bubble, the login page background,
+the header of the WordPress plugin settings page. Do not use the gradient behind large
+bodies of text (cards, tables).
 
-## تایپوگرافی
+## Typography
 
-- **داشبورد:** فونت [وزیرمتن (Vazirmatn)](https://github.com/rastikerdar/vazirmatn) — self-host از پکیج npm، بدون CDN (برای کارکرد آفلاین/داخل ایران). fallback: Tahoma.
-- **ویجت:** عمداً فونت سیستم (`Tahoma, Arial, sans-serif`) — ویجت داخل سایت مشتری تزریق می‌شود و نباید فونت اضافه بارگذاری کند.
-- اعداد فارسی در UI با `toLocaleString('fa-IR')`.
+- **Dashboard:** the [Vazirmatn](https://github.com/rastikerdar/vazirmatn) font — self-hosted
+  from an npm package, no CDN (so it works offline and on restricted networks).
+  Fallback: Tahoma.
+- **Widget:** deliberately a system font stack (`Tahoma, Arial, sans-serif`) — the widget is
+  injected into the customer's website and must not load an extra font.
+- Persian digits in the UI come from `toLocaleString('fa-IR')`.
 
-## حرکت (Motion)
+## Motion
 
-- انیمیشن‌ها **ظریف و کوتاه**‌اند: ۱۵۰ تا ۴۰۰ میلی‌ثانیه برای تعامل‌ها؛ فقط لوگو و حباب ویجت انیمیشن دوره‌ای آرام دارند.
-- هر انیمیشنی باید به `prefers-reduced-motion: reduce` احترام بگذارد (در ویجت و لوگوی انیمیشنی رعایت شده).
-- منحنی‌ها: ورود `cubic-bezier(0.34, 1.56, 0.64, 1)` (پرش کوچک)، بقیه `ease-out`.
+- Animations are **subtle and short**: 150–400 ms for interactions; only the logo and the
+  widget bubble have a slow, repeating animation.
+- Every animation must respect `prefers-reduced-motion: reduce` (honoured in the widget and
+  in the animated logo).
+- Curves: entrance `cubic-bezier(0.34, 1.56, 0.64, 1)` (a small overshoot), everything else
+  `ease-out`.
 
-## قواعد استفاده از لوگو
+## Logo usage rules
 
-- نشان را نچرخان، رنگ‌هایش را عوض نکن و کشیده/فشرده نکن.
-- حداقل فضای امن اطراف نشان: به اندازه‌ی ¼ عرض خودش.
-- روی زمینه‌ی تیره از همین نشان استفاده کن (کنتراست کافی دارد)؛ نسخه‌ی تک‌رنگ فعلاً تعریف نشده.
+- Do not rotate the mark, change its colours, or stretch/squash it.
+- Minimum clear space around the mark: a quarter of its own width.
+- Use the same mark on a dark background (it has enough contrast); a single-colour version
+  is not defined yet.
 
-## پیش‌نمایش
+## Preview
 
-فایل [`preview.html`](preview.html) همه‌ی توکن‌ها و کامپوننت‌های پایه را یک‌جا نشان می‌دهد —
-در مرورگر بازش کن.
+[`preview.html`](preview.html) shows every token and base component in one place — open it
+in a browser.

@@ -1,13 +1,13 @@
 {
   "name": "@mira/api",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/hami9/mira.git"
   },
-  "description": "بک‌اند NestJS و Socket.io gateway برای میرا",
+  "description": "NestJS backend and Socket.io gateway for Mira",
   "main": "dist/main.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",

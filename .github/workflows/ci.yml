@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint-and-build:
-    name: لینت و بیلد همه‌ی workspaceها
+    name: Lint and build all workspaces
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,44 +18,44 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: نصب وابستگی‌ها
+      - name: Install dependencies
         run: npm ci
 
       - name: ESLint
         run: npm run lint
 
-      - name: بررسی فرمت (Prettier)
+      - name: Check formatting (Prettier)
         run: npm run format:check
 
       # ترتیب مهم است: shared-types باید قبل از بقیه build شود (اسکریپت ریشه رعایت می‌کند)
-      - name: بیلد همه‌ی workspaceها
+      - name: Build all workspaces
         run: npm run build
 
-      - name: 'گزارش حجم ویجت (هدف: gzip زیر 50KB)'
+      - name: 'Widget size report (budget: 50KB gzip)'
         run: |
           SIZE=$(gzip -c apps/widget/dist/widget.js | wc -c)
-          echo "حجم gzip ویجت: ${SIZE} بایت"
+          echo "Widget gzip size: ${SIZE} bytes"
           if [ "$SIZE" -gt 51200 ]; then
-            echo "::error::حجم gzip ویجت از سقف 50KB گذشت"
+            echo "::error::Widget gzip size exceeded the 50KB budget"
             exit 1
           fi
 
-      - name: آپلود خروجی ویجت
+      - name: Upload widget bundle
         uses: actions/upload-artifact@v4
         with:
           name: widget-dist
           path: apps/widget/dist/widget.js
 
   build-deb:
-    name: ساخت پکیج دبیان
+    name: Build Debian package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: ساخت .deb
+      - name: Build .deb
         run: bash package/build-deb.sh
 
-      - name: آپلود پکیج
+      - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           name: mira-deb

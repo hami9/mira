@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   publish:
-    name: 'ساخت و انتشار: ${{ matrix.image }}'
+    name: 'Build and publish: ${{ matrix.image }}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,14 +32,14 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: ورود به GHCR
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: تگ‌ها و برچسب‌های ایمیج
+      - name: Image tags and labels
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -53,7 +53,7 @@ jobs:
             org.opencontainers.image.description=Mira self-hosted live chat — ${{ matrix.image }}
             org.opencontainers.image.licenses=AGPL-3.0
 
-      - name: ساخت و push
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .

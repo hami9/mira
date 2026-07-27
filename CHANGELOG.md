@@ -5,6 +5,53 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.1.0] — 2026-07-27
+
+English is now the canonical language of every surface a visitor sees, with a Persian
+mirror alongside it. The product itself stays Persian-first — this release changes
+documentation and tooling, not the UI.
+
+### Fixed
+
+- **The WooCommerce integration never worked, from the very first commit.** The API sent a
+  header named `X-میرا-Api-Key`; a non-ASCII header name is invalid, so `fetch` threw
+  before sending and **no request ever reached WordPress**. The function's own `catch`
+  swallowed the error and returned `null`, so the dashboard reported "not configured or
+  customer not found" — making a hard failure indistinguishable from an unconfigured site.
+  The header is now `X-Mira-Api-Key`, matching what the plugin reads. Verified against a
+  mock server implementing the plugin's `hash_equals` auth: the request now returns HTTP
+  200 with the customer's data.
+
+### Added
+
+- `package/INSTALL.md` — the installation guide in English; both it and the Persian
+  `INSTALL.fa.md` ship inside the `.deb`
+- `docs/fa.html` — the Persian landing page, with a language switcher on both pages
+- Persian mirrors kept under the `.fa.md` suffix: `AGENTS.fa.md`, `CONTRIBUTING.fa.md`,
+  `SECURITY.fa.md`, `CHANGELOG.fa.md`, `package/README.fa.md`, `docs/brand/README.fa.md`
+
+### Changed
+
+- `README`, `AGENTS`, `CONTRIBUTING`, `SECURITY`, `CHANGELOG`, the brand guide and the
+  package docs are English at their canonical names; `CODE_OF_CONDUCT.md` is reordered
+  English first
+- Every user-visible GitHub surface is English: workflow, job and step names (shown in the
+  public Actions tab), the issue forms, the PR template, and **the title and body of every
+  GitHub Release** — release notes are now read from the English `CHANGELOG.md`
+- The `mira` CLI, `install.sh`, `build-deb.sh`, the Debian maintainer scripts and the backup
+  loop print English, following Debian command-line convention; `.env.example` comments are
+  English
+- `docs/index.html` (the GitHub Pages entry point) is the English landing page
+- The design-system preview is `dir="ltr"` with the Persian specimens explicitly marked
+  `dir="rtl"` — English text inside the RTL container rendered with punctuation on the
+  wrong side
+- Package `description` fields and the brand SVG `aria-label`s are English
+- The language policy is now written down in `CONTRIBUTING.md`, `AGENTS.md` and `CLAUDE.md`:
+  documentation and public surfaces English (canonical) with a `.fa.md` mirror; code
+  comments, product UI and user-facing error messages Persian; commit messages English
+- Corrected a false claim in the phase-3 test checklist: the WooCommerce order panel had
+  only been verified at the WordPress endpoint with curl, never end to end through Mira
+
 ## [1.0.2] — 2026-07-27
 
 ### Changed

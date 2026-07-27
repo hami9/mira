@@ -1,0 +1,17 @@
+Package: mira
+Version: __VERSION__
+Section: web
+Priority: optional
+Architecture: all
+Depends: bash (>= 4.0), openssl, curl, ca-certificates
+Recommends: docker-ce | docker.io
+Maintainer: hami9 <ghostmasterar@gmail.com>
+Homepage: https://github.com/hami9/mira
+Description: Mira self-hosted live chat platform with AI
+ Self-hosted Persian live-chat support platform (Goftino alternative)
+ for WordPress/WooCommerce stores: realtime chat widget, operator
+ dashboard, AI bot with RAG, reports, automations and webhooks.
+ .
+ The stack runs in Docker Compose. After installing this package run
+ "sudo mira setup" and then "sudo mira start". Full Persian guide:
+ /usr/share/doc/mira/INSTALL.fa.md

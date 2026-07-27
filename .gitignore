@@ -34,3 +34,6 @@ apps/widget/dist/
 # دیتای دیتابیس/مینیو در حالت توسعه محلی (اگر bind-mount شد)
 infra/postgres/data/
 infra/minio/data/
+
+# خروجی ساخت پکیج دبیان
+package/dist/

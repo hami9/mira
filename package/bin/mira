@@ -1,0 +1,403 @@
+#!/usr/bin/env bash
+# ابزار خط فرمان میرا — مدیریت نصب و اجرای پلتفرم چت پشتیبانی میرا روی سرور لینوکس
+# نصب‌شده توسط پکیج mira (یا install.sh). راهنمای کامل: /usr/share/doc/mira/INSTALL.fa.md
+set -euo pipefail
+
+APP_DIR="/opt/mira/app"
+ETC_DIR="/etc/mira"
+ENV_FILE="$ETC_DIR/mira.env"
+COMPOSE_FILES_FILE="$ETC_DIR/compose-files"
+
+# رنگ‌ها فقط وقتی خروجی ترمینال است
+if [ -t 1 ]; then
+  C_GREEN=$'\033[32m'; C_RED=$'\033[31m'; C_YELLOW=$'\033[33m'; C_BOLD=$'\033[1m'; C_OFF=$'\033[0m'
+else
+  C_GREEN=''; C_RED=''; C_YELLOW=''; C_BOLD=''; C_OFF=''
+fi
+
+ok()   { echo "${C_GREEN}✔${C_OFF} $*"; }
+warn() { echo "${C_YELLOW}!${C_OFF} $*"; }
+err()  { echo "${C_RED}✘${C_OFF} $*" >&2; }
+die()  { err "$*"; exit 1; }
+
+need_root() {
+  [ "$(id -u)" = "0" ] || die "این دستور به دسترسی root نیاز دارد — با sudo اجرا کن: sudo mira ${1:-}"
+}
+
+compose_files() {
+  if [ -f "$COMPOSE_FILES_FILE" ]; then
+    cat "$COMPOSE_FILES_FILE"
+  else
+    echo "-f docker-compose.yml -f docker-compose.prod.yml"
+  fi
+}
+
+compose() {
+  # shellcheck disable=SC2046
+  (cd "$APP_DIR" && docker compose $(compose_files) "$@")
+}
+
+have_docker() {
+  command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1
+}
+
+rand_hex() { openssl rand -hex 32; }
+rand_pass() { openssl rand -base64 18 | tr -d '/+=' | cut -c1-16; }
+
+ask() {
+  # ask "پرسش" "پیش‌فرض"
+  local prompt="$1" default="${2:-}" answer
+  if [ -n "$default" ]; then
+    read -r -p "$prompt [$default]: " answer
+    echo "${answer:-$default}"
+  else
+    while true; do
+      read -r -p "$prompt: " answer
+      [ -n "$answer" ] && { echo "$answer"; return; }
+      warn "این مقدار اجباری است."
+    done
+  fi
+}
+
+install_docker_prompt() {
+  warn "Docker روی این سرور نصب نیست (یا افزونه‌ی compose ندارد)."
+  read -r -p "همین حالا با اسکریپت رسمی get.docker.com نصب شود؟ (y/n) " yn
+  case "$yn" in
+    y|Y)
+      curl -fsSL https://get.docker.com | sh
+      systemctl enable --now docker
+      ok "Docker نصب و فعال شد."
+      ;;
+    *)
+      die "بدون Docker نمی‌توان ادامه داد. بعد از نصب Docker دوباره «sudo mira setup» را اجرا کن."
+      ;;
+  esac
+}
+
+cmd_setup() {
+  need_root setup
+  [ -d "$APP_DIR" ] || die "پوشه‌ی $APP_DIR پیدا نشد — اول پکیج mira را نصب کن."
+  command -v openssl >/dev/null 2>&1 || die "openssl لازم است (apt install openssl)."
+
+  have_docker || install_docker_prompt
+
+  local mode="production"
+  if [ "${1:-}" = "--local" ]; then mode="local"; fi
+
+  echo
+  echo "${C_BOLD}راه‌اندازی میرا — حالت: $mode${C_OFF}"
+  echo "پاسخ هر پرسش را وارد کن (مقدار داخل [] یعنی پیش‌فرض)."
+  echo
+
+  local app_domain="" dashboard_domain="" acme_email="" public_api_url="" cors_origins=""
+  local node_env="production"
+
+  if [ "$mode" = "production" ]; then
+    echo "— دو رکورد DNS نوع A باید از قبل به IP این سرور اشاره کنند —"
+    app_domain=$(ask "دامنه‌ی API و ویجت (مثل chat.example.com)")
+    dashboard_domain=$(ask "دامنه‌ی داشبورد اپراتور (مثل panel.example.com)")
+    acme_email=$(ask "ایمیل برای گواهی SSL (Let's Encrypt)")
+    public_api_url="https://$app_domain"
+    cors_origins="https://$dashboard_domain"
+    echo "-f docker-compose.yml -f docker-compose.prod.yml" > "$COMPOSE_FILES_FILE.tmp"
+  else
+    # حالت local: بدون Caddy/SSL — برای تست روی شبکه‌ی داخلی
+    app_domain="chat.example.com"
+    dashboard_domain="panel.example.com"
+    acme_email="admin@example.com"
+    public_api_url="http://localhost:3000"
+    cors_origins="http://localhost:5173"
+    node_env="development"
+    echo "-f docker-compose.yml" > "$COMPOSE_FILES_FILE.tmp"
+  fi
+
+  local admin_email admin_name site_name widget_domains
+  admin_email=$(ask "ایمیل حساب ادمین داشبورد")
+  admin_name=$(ask "نام ادمین" "مدیر سیستم")
+  site_name=$(ask "نام سایت/فروشگاه" "فروشگاه من")
+  if [ "$mode" = "production" ]; then
+    widget_domains=$(ask "دامنه‌(های) سایتی که ویجت رویش نصب می‌شود (با کاما جدا کن)" "https://shop.example.com")
+  else
+    widget_domains="http://localhost:3000"
+  fi
+
+  echo
+  echo "در حال تولید رمزها و کلیدهای تصادفی امن..."
+  local pg_pass jwt_access jwt_refresh widget_secret s3_secret wp_api_key widget_key admin_pass
+  pg_pass=$(rand_hex)
+  jwt_access=$(rand_hex)
+  jwt_refresh=$(rand_hex)
+  widget_secret=$(rand_hex)
+  s3_secret=$(rand_hex)
+  wp_api_key=$(rand_hex)
+  widget_key=$(openssl rand -hex 16)
+  admin_pass=$(rand_pass)
+
+  mkdir -p "$ETC_DIR"
+  # فایل env — تنها منبع حقیقت تنظیمات؛ compose هم interpolation و هم env_file را از همین می‌خواند
+  cat > "$ENV_FILE.tmp" <<EOF
+# تنظیمات میرا — تولیدشده توسط «mira setup» در $(date -u +%Y-%m-%dT%H:%M:%SZ)
+# این فایل حاوی رمزهاست؛ دسترسی فقط root (chmod 600). تغییر دستی: بعدش «sudo mira restart»
+
+# ---------- عمومی ----------
+NODE_ENV=$node_env
+API_PORT=3000
+PUBLIC_API_URL=$public_api_url
+DASHBOARD_URL=https://$dashboard_domain
+CORS_ALLOWED_ORIGINS=$cors_origins
+
+# ---------- PostgreSQL ----------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=kgchat
+POSTGRES_USER=kgchat
+POSTGRES_PASSWORD=$pg_pass
+DATABASE_URL=postgresql://kgchat:$pg_pass@postgres:5432/kgchat
+
+# ---------- Redis ----------
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# ---------- MinIO / S3 ----------
+S3_ENDPOINT=http://minio:9000
+S3_REGION=us-east-1
+S3_BUCKET=mira-attachments
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=$s3_secret
+S3_FORCE_PATH_STYLE=true
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=$s3_secret
+
+# ---------- JWT ----------
+JWT_ACCESS_SECRET=$jwt_access
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_SECRET=$jwt_refresh
+JWT_REFRESH_EXPIRES_IN=7d
+
+# ---------- توکن ویجت ----------
+WIDGET_TOKEN_SECRET=$widget_secret
+WIDGET_TOKEN_EXPIRES_IN=1h
+
+# ---------- هوش مصنوعی (بعداً از همین‌جا تنظیم کن) ----------
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-5
+AI_MAX_TOKENS_PER_CONVERSATION=20000
+
+# ---------- افزونه وردپرس ----------
+WORDPRESS_API_KEY=$wp_api_key
+
+# ---------- صف ----------
+QUEUE_PREFIX=mira
+
+# ---------- پروداکشن (Caddy/SSL) ----------
+APP_DOMAIN=$app_domain
+DASHBOARD_DOMAIN=$dashboard_domain
+ACME_EMAIL=$acme_email
+
+# ---------- حساب ادمین اولیه (seed — فقط بار اول اثر دارد) ----------
+SEED_ADMIN_EMAIL=$admin_email
+SEED_ADMIN_NAME=$admin_name
+SEED_ADMIN_PASSWORD=$admin_pass
+SEED_SITE_NAME=$site_name
+SEED_WIDGET_KEY=$widget_key
+SEED_ALLOWED_DOMAINS=$widget_domains
+EOF
+
+  mv "$ENV_FILE.tmp" "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  mv "$COMPOSE_FILES_FILE.tmp" "$COMPOSE_FILES_FILE"
+  ln -sfn "$ENV_FILE" "$APP_DIR/.env"
+  mkdir -p "$APP_DIR/backups"
+
+  systemctl daemon-reload 2>/dev/null || true
+
+  echo
+  ok "تنظیمات در $ENV_FILE ذخیره شد."
+  echo
+  echo "${C_BOLD}================= اطلاعات ورود ادمین =================${C_OFF}"
+  echo "  آدرس داشبورد:  ${C_BOLD}https://$dashboard_domain${C_OFF}"
+  echo "  ایمیل:         ${C_BOLD}$admin_email${C_OFF}"
+  echo "  رمز عبور:      ${C_BOLD}$admin_pass${C_OFF}"
+  echo "  کلید ویجت:     ${C_BOLD}$widget_key${C_OFF}"
+  echo "  کلید API وردپرس: ${C_BOLD}$wp_api_key${C_OFF}"
+  echo "${C_BOLD}======================================================${C_OFF}"
+  warn "این اطلاعات را همین حالا در جای امنی ذخیره کن — رمز عبور هیچ‌جای دیگری نمایش داده نمی‌شود."
+  echo
+  echo "قدم بعدی:  ${C_BOLD}sudo mira start${C_OFF}   (بار اول چند دقیقه طول می‌کشد — ایمیج‌ها ساخته می‌شوند)"
+}
+
+cmd_start() {
+  need_root start
+  [ -f "$ENV_FILE" ] || die "هنوز راه‌اندازی نشده — اول «sudo mira setup» را اجرا کن."
+  have_docker || die "Docker در دسترس نیست."
+  echo "در حال ساخت ایمیج‌ها و بالا آوردن سرویس‌ها (بار اول چند دقیقه طول می‌کشد)..."
+  compose up -d --build
+  systemctl enable mira >/dev/null 2>&1 || true
+  ok "میرا بالا آمد. وضعیت: «mira status»"
+}
+
+cmd_stop() {
+  need_root stop
+  compose stop
+  ok "سرویس‌ها متوقف شدند."
+}
+
+cmd_restart() {
+  need_root restart
+  compose up -d
+  ok "سرویس‌ها دوباره بالا آمدند."
+}
+
+cmd_status() {
+  [ -f "$ENV_FILE" ] || die "هنوز راه‌اندازی نشده — «sudo mira setup»."
+  compose ps
+  echo
+  # سلامت API از داخل شبکه‌ی داکر (پورت api در پروداکشن روی هاست باز نیست)
+  if compose exec -T api wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1; then
+    ok "API سالم است (/health پاسخ داد)."
+  else
+    warn "API هنوز پاسخ نمی‌دهد — اگر تازه start کرده‌ای چند لحظه صبر کن؛ وگرنه «mira logs api» را ببین."
+  fi
+}
+
+cmd_logs() {
+  compose logs --tail 100 -f "${1:-}"
+}
+
+cmd_update() {
+  need_root update
+  echo "برای دریافت نسخه‌ی جدید، پکیج را از GitHub Releases بگیر و نصب کن:"
+  echo "  sudo dpkg -i mira_<version>_all.deb"
+  echo "سپس این دستور ایمیج‌ها را بازسازی و سرویس‌ها را به‌روز می‌کند"
+  echo "(مایگریشن‌های دیتابیس خودکار و بدون از دست رفتن داده اجرا می‌شوند):"
+  read -r -p "همین حالا بازسازی و ری‌استارت انجام شود؟ (y/n) " yn
+  case "$yn" in
+    y|Y)
+      compose build --pull
+      compose up -d
+      ok "به‌روزرسانی انجام شد."
+      ;;
+    *) echo "لغو شد." ;;
+  esac
+}
+
+cmd_backup() {
+  need_root backup
+  [ -f "$ENV_FILE" ] || die "هنوز راه‌اندازی نشده."
+  local out="$APP_DIR/backups/mira-manual-$(date -u +%Y%m%d-%H%M%S).sql.gz"
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  docker exec mira_postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > "$out"
+  ok "بک‌آپ ساخته شد: $out"
+}
+
+cmd_restore() {
+  need_root restore
+  local file="${1:-}"
+  [ -n "$file" ] || die "مسیر فایل بک‌آپ را بده: sudo mira restore /opt/mira/app/backups/mira-....sql.gz"
+  [ -f "$file" ] || die "فایل پیدا نشد: $file"
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  warn "بازگردانی، داده‌های فعلی را بازنویسی می‌کند."
+  read -r -p "ادامه می‌دهی؟ (y/n) " yn
+  case "$yn" in
+    y|Y)
+      gunzip -c "$file" | docker exec -i mira_postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+      ok "بازگردانی انجام شد."
+      ;;
+    *) echo "لغو شد." ;;
+  esac
+}
+
+cmd_doctor() {
+  echo "${C_BOLD}بررسی سلامت نصب میرا${C_OFF}"
+  echo
+
+  if have_docker; then
+    ok "Docker + Compose: $(docker compose version --short 2>/dev/null || echo '?')"
+  else
+    err "Docker یا افزونه‌ی compose در دسترس نیست."
+  fi
+
+  if [ -d "$APP_DIR" ]; then ok "پوشه‌ی برنامه: $APP_DIR"; else err "پوشه‌ی $APP_DIR وجود ندارد."; fi
+
+  if [ -f "$ENV_FILE" ]; then
+    ok "فایل تنظیمات: $ENV_FILE"
+    # shellcheck disable=SC1090
+    . "$ENV_FILE"
+    if [ -z "${SEED_ADMIN_PASSWORD:-}" ] && [ "${NODE_ENV:-}" = "production" ]; then
+      err "SEED_ADMIN_PASSWORD خالی است — در production باعث حلقه‌ی ری‌استارت api می‌شود. «mira setup» را دوباره اجرا کن."
+    fi
+    for d in "${APP_DOMAIN:-}" "${DASHBOARD_DOMAIN:-}"; do
+      if [ -n "$d" ] && [ "$d" != "chat.example.com" ] && [ "$d" != "panel.example.com" ]; then
+        if getent hosts "$d" >/dev/null 2>&1; then
+          ok "DNS دامنه‌ی $d قابل resolve است."
+        else
+          warn "DNS دامنه‌ی $d resolve نشد — رکورد A را بررسی کن."
+        fi
+      fi
+    done
+  else
+    warn "فایل تنظیمات وجود ندارد — «sudo mira setup» را اجرا کن."
+  fi
+
+  if [ -L "$APP_DIR/.env" ] || [ -f "$APP_DIR/.env" ]; then
+    ok "پیوند .env داخل پوشه‌ی برنامه برقرار است."
+  else
+    warn ".env داخل $APP_DIR نیست (بعد از setup ساخته می‌شود)."
+  fi
+
+  if have_docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^mira_api$'; then
+    if docker exec mira_api wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1; then
+      ok "کانتینر api در حال اجرا و سالم است."
+    else
+      warn "کانتینر api بالا است ولی /health پاسخ نداد — «mira logs api» را ببین."
+    fi
+  else
+    warn "کانتینر api در حال اجرا نیست."
+  fi
+}
+
+cmd_help() {
+  cat <<'EOF'
+میرا — ابزار مدیریت سرور
+کاربرد: mira <دستور>
+
+دستورها:
+  setup [--local]   راه‌اندازی اولیه: تولید تنظیمات و رمزهای امن (production یا local)
+  start             ساخت ایمیج‌ها و بالا آوردن همه‌ی سرویس‌ها + فعال‌سازی شروع خودکار
+  stop              توقف سرویس‌ها
+  restart           اعمال تغییرات تنظیمات و بالا آوردن دوباره
+  status            وضعیت کانتینرها و سلامت API
+  logs [سرویس]      دیدن لاگ زنده (api، worker، dashboard، postgres، caddy، ...)
+  update            بازسازی ایمیج‌ها بعد از نصب نسخه‌ی جدید پکیج
+  backup            بک‌آپ فوری دیتابیس در /opt/mira/app/backups
+  restore <فایل>    بازگردانی دیتابیس از فایل بک‌آپ
+  doctor            عیب‌یابی: داکر، DNS، تنظیمات، سلامت سرویس‌ها
+  help              همین راهنما
+
+راهنمای کامل نصب: /usr/share/doc/mira/INSTALL.fa.md
+حذف کامل: sudo systemctl stop mira && sudo apt remove mira
+EOF
+}
+
+case "${1:-help}" in
+  setup)   shift; cmd_setup "$@" ;;
+  start)   cmd_start ;;
+  stop)    cmd_stop ;;
+  restart) cmd_restart ;;
+  status)  cmd_status ;;
+  logs)    shift || true; cmd_logs "${1:-}" ;;
+  update)  cmd_update ;;
+  backup)  cmd_backup ;;
+  restore) shift || true; cmd_restore "${1:-}" ;;
+  doctor)  cmd_doctor ;;
+  help|--help|-h) cmd_help ;;
+  *) err "دستور ناشناخته: $1"; cmd_help; exit 1 ;;
+esac

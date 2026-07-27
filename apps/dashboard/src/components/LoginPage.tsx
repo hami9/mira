@@ -70,9 +70,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
             </div>
             {content}
           </div>
-          <p className="mt-4 text-center text-[11px] text-white/70">
-            گفت‌وگویی که به قلب می‌رسد ♥
-          </p>
+          <p className="mt-4 text-center text-[11px] text-white/70">گفت‌وگویی که به قلب می‌رسد ♥</p>
         </div>
       </div>
     );

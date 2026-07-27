@@ -2,12 +2,7 @@ import type { ReactNode } from 'react';
 import { MiraLogo } from './MiraLogo';
 
 export type SidebarNavKey =
-  | 'inbox'
-  | 'visitors-online'
-  | 'visitors-all'
-  | 'reports'
-  | 'agents'
-  | 'settings';
+  'inbox' | 'visitors-online' | 'visitors-all' | 'reports' | 'agents' | 'settings';
 
 interface SidebarProps {
   activeItem: SidebarNavKey | 'profile' | null;
@@ -26,51 +21,113 @@ interface SidebarProps {
 /* آیکون‌های خطی سبک — درون‌خطی تا وابستگی جدیدی اضافه نشود */
 function IconChat() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10.5h8M8 14h4m-6.7 5.3L3 21l1.2-3.6A8.5 8.5 0 1 1 7.6 20l-2.3-.7Z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 10.5h8M8 14h4m-6.7 5.3L3 21l1.2-3.6A8.5 8.5 0 1 1 7.6 20l-2.3-.7Z"
+      />
     </svg>
   );
 }
 function IconPulse() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l2.5-6 4 12L16 12h5" />
     </svg>
   );
 }
 function IconUsers() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 19a4 4 0 0 0-8 0m12 0a4 4 0 0 0-3-3.87M9 7a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm9-2.13a3 3 0 0 1 0 5.66M4 19a4 4 0 0 1 3-3.87m-1-9.26a3 3 0 0 0 0 5.66" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16 19a4 4 0 0 0-8 0m12 0a4 4 0 0 0-3-3.87M9 7a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm9-2.13a3 3 0 0 1 0 5.66M4 19a4 4 0 0 1 3-3.87m-1-9.26a3 3 0 0 0 0 5.66"
+      />
     </svg>
   );
 }
 function IconChart() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 20V10m6 10V4m6 16v-7m4 7H2" />
     </svg>
   );
 }
 function IconTeam() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0 2c-4 0-7 2-7 4.5V20h14v-1.5c0-2.5-3-4.5-7-4.5Z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0 2c-4 0-7 2-7 4.5V20h14v-1.5c0-2.5-3-4.5-7-4.5Z"
+      />
     </svg>
   );
 }
 function IconGear() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.3 4.3a2 2 0 0 1 3.4 0l.5.9a2 2 0 0 0 2.2.9l1-.2a2 2 0 0 1 1.7 3l-.6.8a2 2 0 0 0 0 2.4l.6.8a2 2 0 0 1-1.7 3l-1-.2a2 2 0 0 0-2.2.9l-.5.9a2 2 0 0 1-3.4 0l-.5-.9a2 2 0 0 0-2.2-.9l-1 .2a2 2 0 0 1-1.7-3l.6-.8a2 2 0 0 0 0-2.4l-.6-.8a2 2 0 0 1 1.7-3l1 .2a2 2 0 0 0 2.2-.9l.5-.9Z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5 shrink-0"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.3 4.3a2 2 0 0 1 3.4 0l.5.9a2 2 0 0 0 2.2.9l1-.2a2 2 0 0 1 1.7 3l-.6.8a2 2 0 0 0 0 2.4l.6.8a2 2 0 0 1-1.7 3l-1-.2a2 2 0 0 0-2.2.9l-.5.9a2 2 0 0 1-3.4 0l-.5-.9a2 2 0 0 0-2.2-.9l-1 .2a2 2 0 0 1-1.7-3l.6-.8a2 2 0 0 0 0-2.4l-.6-.8a2 2 0 0 1 1.7-3l1 .2a2 2 0 0 0 2.2-.9l.5-.9Z"
+      />
       <circle cx="12" cy="12" r="2.6" />
     </svg>
   );
 }
 function IconLogout() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H4m0 0 3.5-3.5M4 12l3.5 3.5M10 4h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-4 w-4 shrink-0"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 12H4m0 0 3.5-3.5M4 12l3.5 3.5M10 4h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7"
+      />
     </svg>
   );
 }
@@ -186,7 +243,10 @@ export function Sidebar({
             activeItem === 'profile' ? 'bg-primary-50' : 'hover:bg-gray-50'
           }`}
         >
-          <button onClick={onOpenMyProfile} className="flex min-w-0 flex-1 items-center gap-2 text-right">
+          <button
+            onClick={onOpenMyProfile}
+            className="flex min-w-0 flex-1 items-center gap-2 text-right"
+          >
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
             ) : (

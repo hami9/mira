@@ -1,4 +1,9 @@
-import { AiBotReplyJobData, MessageSenderType, SocketEvent, containsHumanRequestKeywords } from '@mira/shared-types';
+import {
+  AiBotReplyJobData,
+  MessageSenderType,
+  SocketEvent,
+  containsHumanRequestKeywords,
+} from '@mira/shared-types';
 import { pool } from '../db';
 import { chatCompletion, ChatMessage } from '../ai/chat';
 import { embedTexts } from '../ai/embeddings';
@@ -154,7 +159,11 @@ async function getMessage(messageId: string): Promise<{ content: string } | null
   return result.rows[0] ?? null;
 }
 
-async function postBotMessage(siteId: string, conversationId: string, content: string): Promise<void> {
+async function postBotMessage(
+  siteId: string,
+  conversationId: string,
+  content: string,
+): Promise<void> {
   const result = await pool.query(
     `INSERT INTO messages ("siteId", "conversationId", "senderType", content)
      VALUES ($1, $2, 'bot', $3)

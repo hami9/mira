@@ -140,7 +140,9 @@ class ApiClient {
   }
 
   async getCustomerContext(conversationId: string): Promise<CustomerContextDto> {
-    return this.authedGet<CustomerContextDto>(`/v1/conversations/${conversationId}/customer-context`);
+    return this.authedGet<CustomerContextDto>(
+      `/v1/conversations/${conversationId}/customer-context`,
+    );
   }
 
   async listCannedResponses(): Promise<CannedResponseDto[]> {
@@ -232,7 +234,9 @@ class ApiClient {
   }
 
   async createInternalNote(conversationId: string, content: string): Promise<InternalNoteDto> {
-    return this.authedPost<InternalNoteDto>(`/v1/conversations/${conversationId}/notes`, { content });
+    return this.authedPost<InternalNoteDto>(`/v1/conversations/${conversationId}/notes`, {
+      content,
+    });
   }
 
   // ---- وب‌هوک (فاز ۶) ----
@@ -337,7 +341,9 @@ class ApiClient {
     return this.authedGet<VisitorStatsDto>('/v1/visitors/stats');
   }
 
-  async listVisitors(params: { online?: boolean; search?: string } = {}): Promise<VisitorListItemDto[]> {
+  async listVisitors(
+    params: { online?: boolean; search?: string } = {},
+  ): Promise<VisitorListItemDto[]> {
     const query = new URLSearchParams();
     if (params.online) query.set('online', 'true');
     if (params.search) query.set('search', params.search);

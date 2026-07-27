@@ -43,7 +43,11 @@ export function VisitorsOnlinePage({ onOpenVisitor }: VisitorsOnlinePageProps) {
 
       {stats && (
         <div className="mb-4 grid grid-cols-3 gap-3">
-          <StatCard label="آنلاین همین الان" value={stats.onlineNow.toLocaleString('fa-IR')} highlight />
+          <StatCard
+            label="آنلاین همین الان"
+            value={stats.onlineNow.toLocaleString('fa-IR')}
+            highlight
+          />
           <StatCard label="بازدید امروز" value={stats.seenToday.toLocaleString('fa-IR')} />
           <StatCard label="کل بازدیدکنندگان" value={stats.totalVisitors.toLocaleString('fa-IR')} />
         </div>
@@ -83,9 +87,7 @@ export function VisitorRow({
           <button onClick={onOpen} className="text-sm font-medium text-primary-700 hover:underline">
             {visitor.name || visitor.email || `مهمان ${visitor.visitorRef.slice(0, 8)}`}
           </button>
-          <span className="text-[10px] text-gray-400">
-            {visitor.conversationCount} گفتگو
-          </span>
+          <span className="text-[10px] text-gray-400">{visitor.conversationCount} گفتگو</span>
         </div>
         {visitor.currentPageUrl && (
           <div className="mt-1 truncate text-xs text-gray-500" title={visitor.currentPageUrl}>
@@ -119,9 +121,7 @@ export function StatCard({
       }`}
     >
       <div className="text-[11px] text-gray-500">{label}</div>
-      <div
-        className={`mt-1 text-lg font-bold ${highlight ? 'text-green-700' : 'text-gray-800'}`}
-      >
+      <div className={`mt-1 text-lg font-bold ${highlight ? 'text-green-700' : 'text-gray-800'}`}>
         {value}
       </div>
     </div>

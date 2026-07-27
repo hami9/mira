@@ -5,12 +5,12 @@
 
 **توزیع‌های پشتیبانی‌شده:**
 
-| توزیع | روش نصب |
-|---|---|
-| دبیان ۱۲ (Bookworm) و ۱۳ (Trixie) | پکیج `.deb` ✅ (توصیه‌شده) |
-| اوبونتو ۲۲.۰۴ / ۲۴.۰۴ و جدیدتر | پکیج `.deb` ✅ |
-| AlmaLinux / Rocky / Fedora | اسکریپت `install.sh` |
-| هر توزیع دیگری با systemd و Docker | اسکریپت `install.sh` |
+| توزیع                              | روش نصب                    |
+| ---------------------------------- | -------------------------- |
+| دبیان ۱۲ (Bookworm) و ۱۳ (Trixie)  | پکیج `.deb` ✅ (توصیه‌شده) |
+| اوبونتو ۲۲.۰۴ / ۲۴.۰۴ و جدیدتر     | پکیج `.deb` ✅             |
+| AlmaLinux / Rocky / Fedora         | اسکریپت `install.sh`       |
+| هر توزیع دیگری با systemd و Docker | اسکریپت `install.sh`       |
 
 > کل استک میرا داخل Docker اجرا می‌شود؛ بنابراین تفاوت توزیع‌ها فقط در «روش نصب پکیج» است،
 > نه در اجرای خود برنامه — روی همه یکسان و قابل اتکا کار می‌کند.
@@ -57,12 +57,12 @@ sudo dpkg -i mira_*_all.deb || sudo apt -f install
 
 پکیج این‌ها را نصب می‌کند:
 
-| مسیر | محتوا |
-|---|---|
-| `/opt/mira/app` | سورس کامل میرا (ایمیج‌ها روی همین سرور build می‌شوند) |
-| `/usr/bin/mira` | ابزار مدیریت (setup/start/status/logs/backup/...) |
-| `/usr/lib/systemd/system/mira.service` | سرویس systemd (شروع خودکار بعد از ریبوت) |
-| `/usr/share/doc/mira/INSTALL.fa.md` | همین راهنما |
+| مسیر                                   | محتوا                                                 |
+| -------------------------------------- | ----------------------------------------------------- |
+| `/opt/mira/app`                        | سورس کامل میرا (ایمیج‌ها روی همین سرور build می‌شوند) |
+| `/usr/bin/mira`                        | ابزار مدیریت (setup/start/status/logs/backup/...)     |
+| `/usr/lib/systemd/system/mira.service` | سرویس systemd (شروع خودکار بعد از ریبوت)              |
+| `/usr/share/doc/mira/INSTALL.fa.md`    | همین راهنما                                           |
 
 ### راه‌اندازی اولیه
 
@@ -71,6 +71,7 @@ sudo mira setup
 ```
 
 این دستور تعاملی:
+
 - دامنه‌ها، ایمیل SSL و ایمیل ادمین را می‌پرسد
 - **همه‌ی رمزها و کلیدها را به‌صورت تصادفی امن تولید می‌کند** (رمز دیتابیس، JWT، کلید ویجت،
   کلید API وردپرس و رمز ادمین)
@@ -85,6 +86,7 @@ sudo mira status     # وضعیت کانتینرها + سلامت API
 ```
 
 بعد از سبز شدن همه‌چیز:
+
 - داشبورد اپراتور: `https://panel.example.com`
 - بررسی سلامت API: `https://chat.example.com/health`
 
@@ -172,14 +174,14 @@ cd /opt/mira/app && sudo docker compose down -v
 
 ## ۹. عیب‌یابی
 
-| علامت | علت محتمل | راه‌حل |
-|---|---|---|
-| `mira start` طولانی شد | build اولیه‌ی ایمیج‌هاست | طبیعی است (۵–۱۵ دقیقه بار اول) |
-| کانتینر `mira_api` مدام ری‌استارت می‌شود | `SEED_ADMIN_PASSWORD` خالی در production | `sudo mira doctor` — سپس `sudo mira setup` دوباره |
-| گواهی SSL صادر نمی‌شود | DNS هنوز propagate نشده یا پورت ۸۰/۴۴۳ بسته است | `sudo mira doctor` و `sudo mira logs caddy` |
-| ویجت روی سایت لود نمی‌شود | دامنه‌ی سایت در دامنه‌های مجاز نیست | دامنه را در داشبورد یا `SEED_ALLOWED_DOMAINS` اضافه کن |
-| لاگین داشبورد برای همیشه هنگ می‌کند | اتصال مرده‌ی pool دیتابیس | `sudo mira restart` — اگر تکرار شد `mira logs api` |
-| «no space left on device» هنگام build | دیسک پر | `docker system prune -a` و فضای بیشتر |
+| علامت                                    | علت محتمل                                       | راه‌حل                                                 |
+| ---------------------------------------- | ----------------------------------------------- | ------------------------------------------------------ |
+| `mira start` طولانی شد                   | build اولیه‌ی ایمیج‌هاست                        | طبیعی است (۵–۱۵ دقیقه بار اول)                         |
+| کانتینر `mira_api` مدام ری‌استارت می‌شود | `SEED_ADMIN_PASSWORD` خالی در production        | `sudo mira doctor` — سپس `sudo mira setup` دوباره      |
+| گواهی SSL صادر نمی‌شود                   | DNS هنوز propagate نشده یا پورت ۸۰/۴۴۳ بسته است | `sudo mira doctor` و `sudo mira logs caddy`            |
+| ویجت روی سایت لود نمی‌شود                | دامنه‌ی سایت در دامنه‌های مجاز نیست             | دامنه را در داشبورد یا `SEED_ALLOWED_DOMAINS` اضافه کن |
+| لاگین داشبورد برای همیشه هنگ می‌کند      | اتصال مرده‌ی pool دیتابیس                       | `sudo mira restart` — اگر تکرار شد `mira logs api`     |
+| «no space left on device» هنگام build    | دیسک پر                                         | `docker system prune -a` و فضای بیشتر                  |
 
 اگر مشکل حل نشد، خروجی این‌ها را در issue گیت‌هاب بگذار:
 

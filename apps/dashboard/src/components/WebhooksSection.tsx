@@ -100,7 +100,10 @@ export function WebhooksSection() {
             {apiKeyStatus?.hasKey ? 'ساخت کلید جدید (کلید قبلی باطل می‌شود)' : 'ساخت کلید API'}
           </button>
           {apiKeyStatus?.hasKey && (
-            <button onClick={handleRevokeApiKey} className="rounded px-3 py-1.5 text-xs text-red-600">
+            <button
+              onClick={handleRevokeApiKey}
+              className="rounded px-3 py-1.5 text-xs text-red-600"
+            >
               باطل کردن کلید
             </button>
           )}
@@ -115,7 +118,9 @@ export function WebhooksSection() {
           <code className="font-mono">sha256=HMAC(secret, body)</code> است.
         </p>
 
-        {webhooks.length === 0 && <p className="mb-3 text-xs text-gray-400">وب‌هوکی ثبت نشده است.</p>}
+        {webhooks.length === 0 && (
+          <p className="mb-3 text-xs text-gray-400">وب‌هوکی ثبت نشده است.</p>
+        )}
         {webhooks.map((webhook) => (
           <div key={webhook.id} className="mb-2 border-b border-gray-100 pb-2 text-xs">
             <div className="flex items-start justify-between">
@@ -131,7 +136,8 @@ export function WebhooksSection() {
                     .join('، ')}
                 </div>
                 <div className="mt-1 text-gray-500">
-                  secret: <code className="break-all font-mono text-gray-700">{webhook.secret}</code>
+                  secret:{' '}
+                  <code className="break-all font-mono text-gray-700">{webhook.secret}</code>
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">

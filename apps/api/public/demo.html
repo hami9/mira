@@ -1,11 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <title>صفحه دمو ویجت میرا</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: Tahoma, Arial, sans-serif;
         background: #f7f9fc;
@@ -20,9 +22,21 @@
         padding: 40px 24px 48px;
         text-align: center;
       }
-      header svg { display: block; margin: 0 auto 10px; }
-      header h1 { margin: 0; font-size: 24px; }
-      header p { margin: 8px auto 0; max-width: 480px; font-size: 14px; opacity: 0.92; line-height: 1.8; }
+      header svg {
+        display: block;
+        margin: 0 auto 10px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      header p {
+        margin: 8px auto 0;
+        max-width: 480px;
+        font-size: 14px;
+        opacity: 0.92;
+        line-height: 1.8;
+      }
       main {
         flex: 1;
         max-width: 760px;
@@ -41,7 +55,11 @@
         font-size: 14px;
         line-height: 1.9;
       }
-      .card h2 { margin: 0 0 8px; font-size: 15px; color: #23479c; }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        color: #23479c;
+      }
       code {
         background: #f0f6fe;
         color: #2455c4;
@@ -51,7 +69,10 @@
         direction: ltr;
         display: inline-block;
       }
-      .hint { color: #6b7280; font-size: 12px; }
+      .hint {
+        color: #6b7280;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -64,35 +85,46 @@
             <stop offset="1" stop-color="#dceafe" stop-opacity=".9" />
           </linearGradient>
         </defs>
-        <path d="M200 141 C 208 156, 214 166, 224 175 C 206 173, 190 166, 178 155 Z" fill="url(#dB)" />
+        <path
+          d="M200 141 C 208 156, 214 166, 224 175 C 206 173, 190 166, 178 155 Z"
+          fill="url(#dB)"
+        />
         <circle cx="164" cy="94" r="56" fill="none" stroke="url(#dB)" stroke-width="26" />
         <path d="M56 141 C 48 156, 42 166, 32 175 C 50 173, 66 166, 78 155 Z" fill="url(#dB)" />
         <circle cx="92" cy="94" r="56" fill="none" stroke="url(#dB)" stroke-width="26" />
-        <path d="M128 142 C 105 124, 91 108, 91 89 C 91 74, 103 65, 115 67 C 121 68, 126 72, 128 78 C 130 72, 135 68, 141 67 C 153 65, 165 74, 165 89 C 165 108, 151 124, 128 142 Z" fill="#2e6be6" stroke="#fff" stroke-width="11" stroke-linejoin="round" />
+        <path
+          d="M128 142 C 105 124, 91 108, 91 89 C 91 74, 103 65, 115 67 C 121 68, 126 72, 128 78 C 130 72, 135 68, 141 67 C 153 65, 165 74, 165 89 C 165 108, 151 124, 128 142 Z"
+          fill="#2e6be6"
+          stroke="#fff"
+          stroke-width="11"
+          stroke-linejoin="round"
+        />
       </svg>
       <h1>فروشگاه نمونه KG Kala</h1>
-      <p>این صفحه برای تست ویجت لایو چت میراست — حباب گفتگو را از گوشه‌ی پایین باز کنید و یک پیام بفرستید.</p>
+      <p>
+        این صفحه برای تست ویجت لایو چت میراست — حباب گفتگو را از گوشه‌ی پایین باز کنید و یک پیام
+        بفرستید.
+      </p>
     </header>
     <main>
       <div class="card">
         <h2>ویجت چطور به این صفحه اضافه شده؟</h2>
         فقط با یک تگ اسکریپت:
         <br />
-        <code>&lt;script src="/widget-dist/widget.js" data-widget-key="..."&gt;&lt;/script&gt;</code>
+        <code
+          >&lt;script src="/widget-dist/widget.js" data-widget-key="..."&gt;&lt;/script&gt;</code
+        >
         <div class="hint">
-          رنگ سفارشی با <code>data-color</code> و موقعیت با <code>data-position</code> قابل تنظیم است؛
-          بدون تنظیم رنگ، گرادیان برند میرا اعمال می‌شود.
+          رنگ سفارشی با <code>data-color</code> و موقعیت با <code>data-position</code> قابل تنظیم
+          است؛ بدون تنظیم رنگ، گرادیان برند میرا اعمال می‌شود.
         </div>
       </div>
       <div class="card">
         <h2>چه چیزهایی را می‌توانید تست کنید؟</h2>
-        ارسال و دریافت لحظه‌ای پیام، نشانگر «در حال تایپ»، پیام خودکار خارج از ساعت کاری،
-        پاسخ ربات هوش مصنوعی (در صورت فعال بودن)، و کارت امتیازدهی بعد از حل شدن گفتگو.
+        ارسال و دریافت لحظه‌ای پیام، نشانگر «در حال تایپ»، پیام خودکار خارج از ساعت کاری، پاسخ ربات
+        هوش مصنوعی (در صورت فعال بودن)، و کارت امتیازدهی بعد از حل شدن گفتگو.
       </div>
     </main>
-    <script
-      src="/widget-dist/widget.js"
-      data-widget-key="kgkala-demo-key"
-    ></script>
+    <script src="/widget-dist/widget.js" data-widget-key="kgkala-demo-key"></script>
   </body>
 </html>

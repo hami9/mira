@@ -4,9 +4,7 @@ import { VisitorTokenPayload } from '../token/token.service';
 
 export const CurrentVisitor = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): VisitorTokenPayload => {
-    const request = ctx
-      .switchToHttp()
-      .getRequest<Request & { visitor: VisitorTokenPayload }>();
+    const request = ctx.switchToHttp().getRequest<Request & { visitor: VisitorTokenPayload }>();
     return request.visitor;
   },
 );

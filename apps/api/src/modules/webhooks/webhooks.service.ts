@@ -13,7 +13,10 @@ export class WebhooksService {
   ) {}
 
   async listForSite(siteId: string): Promise<WebhookDto[]> {
-    const webhooks = await this.webhooksRepository.find({ where: { siteId }, order: { createdAt: 'ASC' } });
+    const webhooks = await this.webhooksRepository.find({
+      where: { siteId },
+      order: { createdAt: 'ASC' },
+    });
     return webhooks.map(toDto);
   }
 

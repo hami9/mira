@@ -1,4 +1,10 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { BusinessHours, TriggerMessageConfig } from '@mira/shared-types';
 
 // هر ردیف این جدول یک سایت/کسب‌وکار متصل‌شده به میرا است (پایه چندمستأجری بودن سیستم)

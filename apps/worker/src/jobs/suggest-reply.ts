@@ -25,7 +25,11 @@ export async function processSuggestReply(data: AiSuggestReplyJobData): Promise<
   if (!suggestion) return;
 
   const payload: AiSuggestionPayload = { conversationId: data.conversationId, suggestion };
-  await publishSocketEvent(`conversation:${data.conversationId}`, SocketEvent.AiReplySuggested, payload);
+  await publishSocketEvent(
+    `conversation:${data.conversationId}`,
+    SocketEvent.AiReplySuggested,
+    payload,
+  );
 }
 
 async function getTranscript(conversationId: string): Promise<string> {

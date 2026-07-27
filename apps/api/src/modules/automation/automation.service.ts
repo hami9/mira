@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AutomationRuleDto, CreateAutomationRuleDto, UpdateAutomationRuleDto } from '@mira/shared-types';
+import {
+  AutomationRuleDto,
+  CreateAutomationRuleDto,
+  UpdateAutomationRuleDto,
+} from '@mira/shared-types';
 import { AutomationRuleEntity } from '../../database/entities';
 import { ConversationsService } from '../conversations/conversations.service';
 
@@ -14,7 +18,10 @@ export class AutomationService {
   ) {}
 
   async listForSite(siteId: string): Promise<AutomationRuleDto[]> {
-    const rules = await this.rulesRepository.find({ where: { siteId }, order: { createdAt: 'ASC' } });
+    const rules = await this.rulesRepository.find({
+      where: { siteId },
+      order: { createdAt: 'ASC' },
+    });
     return rules.map(toDto);
   }
 
@@ -31,7 +38,11 @@ export class AutomationService {
     return toDto(await this.rulesRepository.save(rule));
   }
 
-  async update(siteId: string, id: string, dto: UpdateAutomationRuleDto): Promise<AutomationRuleDto> {
+  async update(
+    siteId: string,
+    id: string,
+    dto: UpdateAutomationRuleDto,
+  ): Promise<AutomationRuleDto> {
     const rule = await this.rulesRepository.findOne({ where: { id, siteId } });
     if (!rule) {
       throw new NotFoundException('قانون اتوماسیون پیدا نشد');
@@ -49,7 +60,11 @@ export class AutomationService {
   }
 
   // روی هر پیام تازه‌ی بازدیدکننده اجرا می‌شه (مسیر زنده‌ی چت) — فقط کلیدواژه‌ست، پس ارزون و فوری‌ست
-  async evaluateAndApply(siteId: string, conversationId: string, messageContent: string): Promise<void> {
+  async evaluateAndApply(
+    siteId: string,
+    conversationId: string,
+    messageContent: string,
+  ): Promise<void> {
     const rules = await this.rulesRepository.find({ where: { siteId, enabled: true } });
     if (rules.length === 0) return;
 

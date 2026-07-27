@@ -1,11 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import {
-  VisitorListItemDto,
-  VisitorProfileDto,
-  VisitorStatsDto,
-} from '@mira/shared-types';
+import { VisitorListItemDto, VisitorProfileDto, VisitorStatsDto } from '@mira/shared-types';
 import { parseUserAgent } from '../../common/user-agent/parse-user-agent.util';
 
 // «آنلاین» یعنی در این بازه فعالیتی داشته — ویجت با هر page-view و هر پیام lastSeenAt را تازه می‌کند
@@ -46,7 +42,9 @@ export class VisitorsDirectoryService {
     }
     if (options.search) {
       params.push(`%${options.search}%`);
-      filters.push(`(v.name ILIKE $${params.length} OR v.email ILIKE $${params.length} OR v."visitorRef" ILIKE $${params.length})`);
+      filters.push(
+        `(v.name ILIKE $${params.length} OR v.email ILIKE $${params.length} OR v."visitorRef" ILIKE $${params.length})`,
+      );
     }
     params.push(limit);
 

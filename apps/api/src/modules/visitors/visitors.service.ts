@@ -58,7 +58,12 @@ export class VisitorsService {
     return visitor;
   }
 
-  async recordPageView(siteId: string, visitorId: string, url: string, title?: string): Promise<void> {
+  async recordPageView(
+    siteId: string,
+    visitorId: string,
+    url: string,
+    title?: string,
+  ): Promise<void> {
     const pageView = this.pageViewsRepository.create({
       siteId,
       visitorId,

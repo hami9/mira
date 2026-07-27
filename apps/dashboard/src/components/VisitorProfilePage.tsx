@@ -36,8 +36,7 @@ export function VisitorProfilePage({ visitorId, onClose }: VisitorProfilePagePro
     );
   }
 
-  const displayName =
-    profile.name || profile.email || `مهمان ${profile.visitorRef.slice(0, 8)}`;
+  const displayName = profile.name || profile.email || `مهمان ${profile.visitorRef.slice(0, 8)}`;
 
   return (
     <div className="mx-auto max-w-3xl overflow-y-auto p-6">

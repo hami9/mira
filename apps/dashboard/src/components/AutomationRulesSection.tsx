@@ -56,7 +56,8 @@ export function AutomationRulesSection() {
     <section className="mb-6 rounded border border-gray-200 bg-white p-4">
       <h2 className="mb-1 text-sm font-bold text-gray-700">قوانین اتوماسیون</h2>
       <p className="mb-3 text-xs text-gray-500">
-        اگر پیام بازدیدکننده یکی از کلیدواژه‌ها را داشته باشد، اکشن انتخابی خودکار روی مکالمه اجرا می‌شود.
+        اگر پیام بازدیدکننده یکی از کلیدواژه‌ها را داشته باشد، اکشن انتخابی خودکار روی مکالمه اجرا
+        می‌شود.
       </p>
 
       {rules.length === 0 && <p className="mb-3 text-xs text-gray-400">قانونی تعریف نشده است.</p>}
@@ -71,7 +72,8 @@ export function AutomationRulesSection() {
               {!rule.enabled && <span className="mr-2 text-gray-400">(غیرفعال)</span>}
             </div>
             <div className="text-gray-500">
-              اگر پیام شامل: <span className="font-mono">{rule.triggerValue}</span> ← {ACTION_LABELS[rule.actionType]}
+              اگر پیام شامل: <span className="font-mono">{rule.triggerValue}</span> ←{' '}
+              {ACTION_LABELS[rule.actionType]}
               {rule.actionValue ? `: ${rule.actionValue}` : ''}
             </div>
           </div>

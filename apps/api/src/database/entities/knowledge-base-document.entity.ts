@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { KnowledgeDocumentStatus } from '@mira/shared-types';
 
 // یک سند پایگاه دانش (فعلاً فقط متن مستقیم — نه فایل/URL) که برای پاسخ ربات RAG استفاده می‌شه

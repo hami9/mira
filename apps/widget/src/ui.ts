@@ -250,8 +250,7 @@ export class WidgetUi {
 
   setTypingIndicator(visible: boolean): void {
     if (visible) {
-      this.typingEl.innerHTML =
-        '<span class="mira-dots"><i></i><i></i><i></i></span> در حال تایپ';
+      this.typingEl.innerHTML = '<span class="mira-dots"><i></i><i></i><i></i></span> در حال تایپ';
     } else {
       this.typingEl.textContent = '';
     }

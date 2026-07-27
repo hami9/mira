@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { AiSuggestionPayload, MessagePayload, MessageSenderType, SocketEvent } from '@mira/shared-types';
+import {
+  AiSuggestionPayload,
+  MessagePayload,
+  MessageSenderType,
+  SocketEvent,
+} from '@mira/shared-types';
 import { apiClient, ConversationDto } from '../api';
 import { ConversationMeta } from './ConversationMeta';
 import { CannedResponsesPicker } from './CannedResponsesPicker';
@@ -21,7 +26,12 @@ const SENDER_LABELS: Record<string, string> = {
   bot: 'ربات',
 };
 
-export function ChatWindow({ conversation, socket, onConversationUpdated, onMessageSeen }: ChatWindowProps) {
+export function ChatWindow({
+  conversation,
+  socket,
+  onConversationUpdated,
+  onMessageSeen,
+}: ChatWindowProps) {
   const [messages, setMessages] = useState<MessagePayload[]>([]);
   const [draft, setDraft] = useState('');
   const [isVisitorTyping, setIsVisitorTyping] = useState(false);
@@ -96,7 +106,10 @@ export function ChatWindow({ conversation, socket, onConversationUpdated, onMess
     try {
       await apiClient.suggestReply(conversation.id);
       // اگه worker جواب ندیم (کلید AI تنظیم نشده، خطای مدل و ...)، اسپینر برای همیشه گیر نکنه
-      suggestionTimeoutRef.current = setTimeout(() => setSuggestingReply(false), SUGGESTION_TIMEOUT_MS);
+      suggestionTimeoutRef.current = setTimeout(
+        () => setSuggestingReply(false),
+        SUGGESTION_TIMEOUT_MS,
+      );
     } catch {
       setSuggestingReply(false);
     }

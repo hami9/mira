@@ -33,10 +33,7 @@ export class AgentsController {
   }
 
   @Patch('me')
-  updateMyProfile(
-    @CurrentAgent() agent: AgentAccessTokenPayload,
-    @Body() dto: UpdateMyProfileDto,
-  ) {
+  updateMyProfile(@CurrentAgent() agent: AgentAccessTokenPayload, @Body() dto: UpdateMyProfileDto) {
     return this.agentsService.updateMyProfile(agent.sub, dto);
   }
 

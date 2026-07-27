@@ -162,10 +162,7 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
               display={temperature.toFixed(2)}
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                label="حداکثر طول پاسخ (توکن)"
-                hint="سقف طول هر پاسخ ربات — کنترل هزینه."
-              >
+              <Field label="حداکثر طول پاسخ (توکن)" hint="سقف طول هر پاسخ ربات — کنترل هزینه.">
                 <input
                   type="number"
                   min={100}

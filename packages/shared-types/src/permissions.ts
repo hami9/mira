@@ -49,14 +49,24 @@ export const PERMISSION_DESCRIPTIONS: Record<AgentPermission, string> = {
 
 // گروه‌بندی فقط برای نمایش مرتب‌تر در UI است و روی منطق دسترسی اثری ندارد
 export const PERMISSION_GROUPS: { title: string; permissions: AgentPermission[] }[] = [
-  { title: 'گفتگو و بازدیدکنندگان', permissions: ['resolveConversations', 'viewVisitors', 'deleteVisitorData'] },
+  {
+    title: 'گفتگو و بازدیدکنندگان',
+    permissions: ['resolveConversations', 'viewVisitors', 'deleteVisitorData'],
+  },
   { title: 'گزارش‌ها', permissions: ['viewReports', 'exportData'] },
-  { title: 'محتوا و اتوماسیون', permissions: ['manageCannedResponses', 'manageKnowledgeBase', 'manageAutomation'] },
+  {
+    title: 'محتوا و اتوماسیون',
+    permissions: ['manageCannedResponses', 'manageKnowledgeBase', 'manageAutomation'],
+  },
   { title: 'تنظیمات و یکپارچه‌سازی', permissions: ['manageSiteSettings', 'manageWebhooks'] },
 ];
 
 // الگوهای آماده تا ادمین مجبور نباشد هر بار ده تیک را دستی بزند
-export const PERMISSION_PRESETS: { name: string; description: string; permissions: AgentPermission[] }[] = [
+export const PERMISSION_PRESETS: {
+  name: string;
+  description: string;
+  permissions: AgentPermission[];
+}[] = [
   {
     name: 'اپراتور پایه',
     description: 'فقط پاسخ‌دادن و بستن مکالمه',
@@ -65,7 +75,13 @@ export const PERMISSION_PRESETS: { name: string; description: string; permission
   {
     name: 'اپراتور ارشد',
     description: 'مکالمات، بازدیدکنندگان، پاسخ آماده و گزارش‌ها',
-    permissions: ['resolveConversations', 'viewVisitors', 'manageCannedResponses', 'viewReports', 'exportData'],
+    permissions: [
+      'resolveConversations',
+      'viewVisitors',
+      'manageCannedResponses',
+      'viewReports',
+      'exportData',
+    ],
   },
   {
     name: 'سرپرست تیم',

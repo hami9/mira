@@ -81,7 +81,9 @@ async function main(): Promise<void> {
       },
       onTypingChange: (isTyping) => {
         if (!conversationId || !socket) return;
-        socket.emit(isTyping ? SocketEvent.TypingStart : SocketEvent.TypingStop, { conversationId });
+        socket.emit(isTyping ? SocketEvent.TypingStart : SocketEvent.TypingStop, {
+          conversationId,
+        });
       },
     },
     { color: config.color, position: config.position },

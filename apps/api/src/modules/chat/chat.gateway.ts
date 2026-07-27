@@ -177,7 +177,9 @@ export class ChatGateway
       conversation = await this.conversationsService.reopenIfResolved(conversation);
       this.broadcastConversationStatus(conversation.id, conversation.siteId, conversation.status);
     }
-    const rateLimitKey = isAgent ? `ws-msg-agent:${data.agentId}` : `ws-msg-visitor:${data.visitorId}`;
+    const rateLimitKey = isAgent
+      ? `ws-msg-agent:${data.agentId}`
+      : `ws-msg-visitor:${data.visitorId}`;
     const allowed = await this.rateLimiter.consume(rateLimitKey, isAgent ? 60 : 20, 10);
     if (!allowed) {
       this.emitError(client, 'ارسال پیام بیش از حد مجاز است، لحظه‌ای صبر کنید');
@@ -273,7 +275,11 @@ export class ChatGateway
   // این event رو منتشر می‌کنه (بدون وابستگی حلقوی ماژول) و اینجا به Socket.io ترجمه می‌شه
   @OnEvent(CONVERSATION_RESOLVED_EVENT)
   async handleConversationResolvedEvent(event: ConversationResolvedEvent): Promise<void> {
-    this.broadcastConversationStatus(event.conversationId, event.siteId, ConversationStatus.RESOLVED);
+    this.broadcastConversationStatus(
+      event.conversationId,
+      event.siteId,
+      ConversationStatus.RESOLVED,
+    );
 
     // وب‌هوک conversation.resolved (فاز ۶)
     await this.webhookQueue.enqueueDispatch({

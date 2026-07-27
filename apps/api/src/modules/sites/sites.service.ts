@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes, createHash } from 'node:crypto';
-import { GeneratedApiKeyDto, PublicApiKeyStatusDto, UpdateSiteSettingsDto } from '@mira/shared-types';
+import {
+  GeneratedApiKeyDto,
+  PublicApiKeyStatusDto,
+  UpdateSiteSettingsDto,
+} from '@mira/shared-types';
 import { SiteEntity } from '../../database/entities';
 
 const API_KEY_PREFIX = 'mira_';
@@ -67,7 +71,10 @@ export class SitesService {
   }
 
   async revokeApiKey(siteId: string): Promise<void> {
-    await this.sitesRepository.update({ id: siteId }, { apiKeyHash: null, apiKeyPrefix: null, apiKeyCreatedAt: null });
+    await this.sitesRepository.update(
+      { id: siteId },
+      { apiKeyHash: null, apiKeyPrefix: null, apiKeyCreatedAt: null },
+    );
   }
 
   async getApiKeyStatus(siteId: string): Promise<PublicApiKeyStatusDto> {

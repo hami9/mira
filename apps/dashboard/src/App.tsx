@@ -71,7 +71,8 @@ export default function App() {
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   useEffect(() => {
-    document.title = totalUnread > 0 ? `(${totalUnread}) داشبورد اپراتور میرا` : 'داشبورد اپراتور میرا';
+    document.title =
+      totalUnread > 0 ? `(${totalUnread}) داشبورد اپراتور میرا` : 'داشبورد اپراتور میرا';
   }, [totalUnread]);
 
   const loadConversations = useCallback(async (currentFilters: ListConversationsParams) => {
@@ -121,7 +122,6 @@ export default function App() {
       clearInterval(refreshTimer);
     };
     // filters عمداً در dependency نیست: نمی‌خوایم با هر تغییر فیلتر، سوکت قطع/وصل شه
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   function handleLoggedIn(): void {
@@ -349,8 +349,18 @@ export default function App() {
               </>
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-400">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="h-12 w-12 text-gray-300">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10.5h8M8 14h4m-6.7 5.3L3 21l1.2-3.6A8.5 8.5 0 1 1 7.6 20l-2.3-.7Z" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  className="h-12 w-12 text-gray-300"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 10.5h8M8 14h4m-6.7 5.3L3 21l1.2-3.6A8.5 8.5 0 1 1 7.6 20l-2.3-.7Z"
+                  />
                 </svg>
                 یک مکالمه را برای مشاهده انتخاب کنید
               </div>

@@ -10,7 +10,9 @@ const SYSTEM_PROMPT =
 
 // نه‌بلادرنگ عمداً: مکالمه از قبل resolve شده، پس اپراتور همین الان منتظر این نتیجه نیست —
 // دفعه‌ی بعد که این مکالمه رو باز کنه خلاصه از دیتابیس آماده است
-export async function processSummarizeConversation(data: AiSummarizeConversationJobData): Promise<void> {
+export async function processSummarizeConversation(
+  data: AiSummarizeConversationJobData,
+): Promise<void> {
   const transcript = await getTranscript(data.conversationId);
   if (!transcript) return;
 
@@ -23,7 +25,10 @@ export async function processSummarizeConversation(data: AiSummarizeConversation
   ]);
   if (!summary) return;
 
-  await pool.query(`UPDATE conversations SET summary = $1 WHERE id = $2`, [summary, data.conversationId]);
+  await pool.query(`UPDATE conversations SET summary = $1 WHERE id = $2`, [
+    summary,
+    data.conversationId,
+  ]);
 }
 
 async function getTranscript(conversationId: string): Promise<string> {

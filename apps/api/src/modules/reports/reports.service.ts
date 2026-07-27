@@ -117,7 +117,8 @@ export class ReportsService {
 
   async exportAgentPerformanceCsv(siteId: string, range: DateRange): Promise<string> {
     const rows = await this.getAgentPerformance(siteId, range);
-    const header = 'اپراتور,تعداد گفتگوی رسیدگی‌شده,میانگین زمان اولین پاسخ (دقیقه),میانگین امتیاز CSAT';
+    const header =
+      'اپراتور,تعداد گفتگوی رسیدگی‌شده,میانگین زمان اولین پاسخ (دقیقه),میانگین امتیاز CSAT';
     const lines = rows.map((row) =>
       [
         csvEscape(row.agentName),

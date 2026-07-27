@@ -31,7 +31,7 @@ jobs:
       - name: بیلد همه‌ی workspaceها
         run: npm run build
 
-      - name: گزارش حجم ویجت (هدف: gzip زیر ۵۰KB)
+      - name: 'گزارش حجم ویجت (هدف: gzip زیر 50KB)'
         run: |
           SIZE=$(gzip -c apps/widget/dist/widget.js | wc -c)
           echo "حجم gzip ویجت: ${SIZE} بایت"

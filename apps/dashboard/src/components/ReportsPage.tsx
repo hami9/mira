@@ -78,7 +78,10 @@ export function ReportsPage() {
       {!loading && overview && (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard label="تعداد گفتگو" value={overview.totalConversations.toLocaleString('fa-IR')} />
+            <StatCard
+              label="تعداد گفتگو"
+              value={overview.totalConversations.toLocaleString('fa-IR')}
+            />
             <StatCard
               label="میانگین اولین پاسخ"
               value={
@@ -89,7 +92,9 @@ export function ReportsPage() {
             />
             <StatCard
               label="میانگین امتیاز CSAT"
-              value={overview.csat.average !== null ? `${overview.csat.average.toFixed(2)} / ۵` : '—'}
+              value={
+                overview.csat.average !== null ? `${overview.csat.average.toFixed(2)} / ۵` : '—'
+              }
             />
             <StatCard
               label="رضایت مثبت (۴-۵ ستاره)"
@@ -108,7 +113,11 @@ export function ReportsPage() {
             ) : (
               <div className="flex h-32 items-end gap-1 overflow-x-auto">
                 {overview.dailyCounts.map((day) => (
-                  <div key={day.date} className="flex flex-col items-center" title={`${day.date}: ${day.count}`}>
+                  <div
+                    key={day.date}
+                    className="flex flex-col items-center"
+                    title={`${day.date}: ${day.count}`}
+                  >
                     <div
                       className="w-4 rounded-t bg-primary-500"
                       style={{ height: `${Math.max(4, (day.count / maxDailyCount) * 100)}px` }}

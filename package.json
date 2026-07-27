@@ -1,7 +1,16 @@
 {
   "name": "mira",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hami9/mira.git"
+  },
+  "homepage": "https://github.com/hami9/mira",
+  "bugs": {
+    "url": "https://github.com/hami9/mira/issues"
+  },
   "description": "پلتفرم لایو چت پشتیبانی خودمیزبان با هوش مصنوعی (جایگزین گفتینو)",
   "workspaces": [
     "apps/*",

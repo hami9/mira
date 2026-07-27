@@ -18,6 +18,7 @@ docker compose up -d --build
 ```
 
 - داشبورد: `http://localhost:5173` — ورود: `admin@kgkala.test` / `ChangeMe123!`
+  (⚠️ فقط پیش‌فرض توسعه؛ در `NODE_ENV=production` بدون `SEED_ADMIN_PASSWORD` اصلاً seed اجرا نمی‌شود)
 - دموی ویجت: `http://localhost:3000/demo.html`
 
 lint/format روی host (فقط Node ۲۰+ لازم دارد):

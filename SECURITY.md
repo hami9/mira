@@ -1,32 +1,36 @@
-# سیاست امنیتی میرا
+# Security Policy
 
-## گزارش آسیب‌پذیری
+**English** · [فارسی](SECURITY.fa.md)
 
-اگر آسیب‌پذیری امنیتی پیدا کردی، **لطفاً issue عمومی نساز.**
+## Reporting a Vulnerability
 
-راه گزارش خصوصی:
+If you find a security vulnerability, **please do not open a public issue.**
 
-1. **GitHub Security Advisory** (ترجیحی): از
-   [این‌جا](https://github.com/hami9/mira/security/advisories/new) گزارش خصوصی ثبت کن.
-2. در صورت عدم دسترسی، در گیت‌هاب به نگه‌دارنده ([@hami9](https://github.com/hami9))
-   پیام بده و بخواه یک کانال خصوصی باز شود. **جزئیات آسیب‌پذیری را در issue عمومی ننویس.**
+Private reporting channels:
 
-در گزارش، این‌ها را بنویس: نسخه‌ی آسیب‌پذیر، مراحل بازتولید، اثر (چه داده‌ای/دسترسی‌ای
-در خطر است) و در صورت امکان پیشنهاد رفع. ظرف چند روز کاری پاسخ می‌گیری.
+1. **GitHub Security Advisory** (preferred): file a private report
+   [here](https://github.com/hami9/mira/security/advisories/new).
+2. If that is unavailable, message the maintainer on GitHub
+   ([@hami9](https://github.com/hami9)) and ask for a private channel.
+   **Do not put vulnerability details in a public issue.**
 
-## دامنه
+Please include: the affected version, reproduction steps, the impact (what data or
+access is at risk) and, if you have one, a suggested fix. You will get a response
+within a few business days.
 
-گزارش‌های مربوط به این‌ها بیشترین اهمیت را دارند:
+## Scope
 
-- نشت داده بین سایت‌ها (شکستن ایزوله‌ی چندمستأجری `siteId`)
-- دور زدن احراز هویت/دسترسی (JWT، PermissionGuard، ‏2FA)
-- تزریق (XSS از طریق پیام چت، SQL injection)
-- افشای سکرت‌ها در لاگ یا خروجی API
-- آسیب‌پذیری در ویجت embed شده روی سایت مشتری
+Reports in these areas matter most:
 
-## نسخه‌های پشتیبانی‌شده
+- Cross-tenant data leaks (breaking `siteId` multi-tenant isolation)
+- Authentication / authorization bypass (JWT, `PermissionGuard`, 2FA)
+- Injection (XSS through chat messages, SQL injection)
+- Secrets exposed in logs or API responses
+- Vulnerabilities in the widget embedded on a customer's website
 
-| نسخه  | وضعیت                      |
-| ----- | -------------------------- |
-| 1.x   | ✅ دریافت اصلاحیه‌ی امنیتی |
-| < 1.0 | ❌                         |
+## Supported Versions
+
+| Version | Status                     |
+| ------- | -------------------------- |
+| 1.x     | ✅ receives security fixes |
+| < 1.0   | ❌                         |

@@ -1,114 +1,128 @@
-# تاریخچه‌ی تغییرات میرا
+# Changelog
 
-قالب بر اساس [Keep a Changelog](https://keepachangelog.com/fa/) و نسخه‌بندی بر اساس
-[SemVer](https://semver.org/lang/fa/).
+**English** · [فارسی](CHANGELOG.fa.md)
 
-## [1.0.2] — ۱۴۰۵/۰۵/۰۵ (2026-07-27)
+Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
+[SemVer](https://semver.org/).
 
-### تغییر
+## [1.0.2] — 2026-07-27
 
-- فیلد `Maintainer` پکیج دبیان به ایمیل واقعی نگه‌دارنده برگشت. در نسخه‌ی ۱.۰.۱ از سر
-  احتیاط آدرس `noreply` گیت‌هاب گذاشته شده بود، ولی این فیلد در استاندارد دبیان **راه
-  تماس کاربران با نگه‌دارنده‌ی پکیج** است و با `noreply` عملاً غیرقابل‌استفاده می‌شد.
-  حالا با ایمیل داخل متادیتای کامیت‌ها هم یکدست است.
+### Changed
 
-## [1.0.1] — ۱۴۰۵/۰۵/۰۵ (2026-07-27)
+- The Debian package `Maintainer` field is back to the maintainer's real email address.
+  Version 1.0.1 replaced it with a GitHub `noreply` address out of caution, but in the
+  Debian standard this field is **how users reach the package maintainer** — a `noreply`
+  address made it useless. It now also matches the email in the commit metadata.
 
-آماده‌سازی مخزن برای انتشار عمومی.
+## [1.0.1] — 2026-07-27
 
-### افزوده
+Preparing the repository to go public.
 
-- **README دوزبانه**: `README.md` انگلیسی (چهره‌ی عمومی پروژه) و `README.fa.md` فارسی
-  (مستندات کامل) با نوار جابه‌جایی زبان
-- **اسکرین‌شات‌های واقعی محصول** در `docs/screenshots/` (داشبورد، ویجت، ورود، دیزاین‌سیستم)
-  با فرمت WebP — مجموعاً ~۱۷۶ کیلوبایت
-- **لندینگ GitHub Pages** در `docs/index.html` — self-contained، بدون هیچ درخواست خارجی،
-  آماده برای اتصال دامنه‌ی اختصاصی در آینده
-- `CODE_OF_CONDUCT.md` (دوزبانه)، `.editorconfig`
-- فیلدهای `license` و `repository` در همه‌ی package.jsonها
+### Added
 
-### تغییر
+- **Bilingual README**: `README.md` in English (the project's public face) and
+  `README.fa.md` in Persian (the full documentation), with a language switcher
+- **Real product screenshots** in `docs/screenshots/` (dashboard, widget, login, design
+  system) as WebP — ~176 KB in total
+- **GitHub Pages landing page** at `docs/index.html` — self-contained, no external
+  requests, ready for a custom domain later
+- `CODE_OF_CONDUCT.md` (bilingual), `.editorconfig`
+- `license` and `repository` fields in every `package.json`
 
-- تگ ریلیزهای فازی (`0.0.1` تا `0.0.7`) به کامیت واقعی همان فاز منتقل شدند
-  (قبلاً چون از رابط وب ساخته شده بودند، همگی به HEAD وقتِ ساخت اشاره می‌کردند)
-- ایمیل نگه‌دارنده در پکیج دبیان به آدرس noreply گیت‌هاب تغییر کرد
-- `.claude/` به `.gitignore` مخزن اضافه شد (قبلاً فقط با gitignore سراسری ماشین محافظت می‌شد)
-- اعتبارنامه‌های نمونه‌ی توسعه در README و CONTRIBUTING صراحتاً «فقط توسعه» برچسب خوردند
-- ارجاع مرده‌ی `promt/` در AGENTS.md اصلاح شد
+### Changed
 
-### امنیت
+- Phase release tags (`0.0.1` through `0.0.7`) now point at the actual commit for each
+  phase (created through the web UI, they all pointed at whatever HEAD was at the time)
+- Debian package maintainer email changed to a GitHub noreply address
+- `.claude/` added to the repository `.gitignore` (previously covered only by the
+  machine's global gitignore)
+- Sample development credentials in the README and CONTRIBUTING are now explicitly
+  labelled "development only"
 
-- `/demo.html` دیگر در `NODE_ENV=production` سرو نمی‌شود (سرو `widget-dist` دست‌نخورده
-  باقی می‌ماند) — تا هیچ استقرار واقعی یک صفحه‌ی دموی عمومی با کلید ویجت نمونه باز نگذارد
-- ممیزی کامل تاریخچه‌ی گیت پیش از عمومی‌سازی: **هیچ سکرتی هرگز کامیت نشده بود**
+### Security
 
-## [1.0.0] — ۱۴۰۵/۰۵/۰۵ (2026-07-27)
+- `/demo.html` is no longer served when `NODE_ENV=production` (serving `widget-dist` is
+  untouched) — so no real deployment leaves a public demo page with a sample widget key
+- Full audit of the git history before going public: **no secret was ever committed**
 
-اولین نسخه‌ی رسمی و قابل انتشار: میرا از «کد کامل ولی بدون هویت و بدون مسیر نصب» به یک
-محصول با برند، پکیج نصب و انتشار خودکار رسید.
+## [1.0.0] — 2026-07-27
 
-### هویت بصری و UI/UX
+The first official, publishable release: Mira went from "complete code with no identity
+and no installation path" to a product with a brand, an installation package and
+automated releases.
 
-- هویت برند کامل بر اساس لوگوی میرا: پالت (آبی `#2E6BE6`، فیروزه‌ای `#17B8A6`،
-  نارنجی `#F5A623`) به‌صورت توکن در `tailwind.config.js`، لوگوی وکتوری و
-  **لوگوی انیمیشنی SVG**، راهنمای برند و صفحه‌ی پیش‌نمایش دیزاین‌سیستم (`docs/brand/`)
-- بازطراحی کامل داشبورد: پوسته‌ی جدید با سایدبار (آیکون‌های درون‌خطی، نشان نخوانده،
-  بلوک پروفایل)، فونت وزیرمتن (self-host از npm، بدون CDN)، صفحه‌ی ورود جدید با
-  گرادیان برند و لوگوی انیمیشنی، اولین دکمه‌ی خروج، favicon
-- بازطراحی ویجت: نشان SVG برند به‌جای ایموجی، گرادیان، انیمیشن‌های ورود/باز شدن/تایپ،
-  تفکیک بصری پیام ربات، رعایت `prefers-reduced-motion` — حجم gzip ‏~۲۱KB (سقف ۵۰KB)
-- بازطراحی صفحه‌ی تنظیمات افزونه‌ی وردپرس: هدر برند، کارت‌بندی بخش‌ها،
-  انتخاب‌گر رنگ واقعی به‌جای فیلد متنی
+### Visual identity and UI/UX
 
-### نصب و استقرار
+- Complete brand identity based on the Mira logo: the palette (blue `#2E6BE6`, teal
+  `#17B8A6`, orange `#F5A623`) as tokens in `tailwind.config.js`, a vector logo and an
+  **animated SVG logo**, a brand guide and a design-system preview page (`docs/brand/`)
+- Full dashboard redesign: a new shell with a sidebar (inline icons, unread badge,
+  profile block), the Vazirmatn font (self-hosted from npm, no CDN), a new login page
+  with the brand gradient and the animated logo, the first logout button, a favicon
+- Widget redesign: a brand SVG mark instead of an emoji, gradient, entry/open/typing
+  animations, visually distinct bot messages, `prefers-reduced-motion` support —
+  ~21 KB gzip (50 KB budget)
+- WordPress plugin settings page redesign: brand header, sections as cards, a real colour
+  picker instead of a text field
 
-- **پکیج دبیان** (`mira_<version>_all.deb`) + ابزار خط فرمان `mira`
-  (setup/start/stop/restart/status/logs/update/backup/restore/doctor) + سرویس systemd
-- `mira setup` همه‌ی رمزها و کلیدها را تصادفی و امن تولید می‌کند، در
-  `/etc/mira/mira.env` با `chmod 600` می‌گذارد و فقط یک‌بار نمایش می‌دهد
-- راهنمای کامل نصب فارسی برای دبیان ۱۲/۱۳، اوبونتو و توزیع‌های RHEL-based:
-  `package/INSTALL.fa.md` (+ `install.sh` برای توزیع‌های غیر deb)
-- **داشبورد پروداکشن دیگر Vite dev server نیست** — باندل استاتیک با nginx
+### Installation and deployment
 
-### انتشار ایمیج‌های Docker
+- **Debian package** (`mira_<version>_all.deb`) + the `mira` command-line tool
+  (setup/start/stop/restart/status/logs/update/backup/restore/doctor) + a systemd service
+- `mira setup` generates every password and key randomly and securely, stores them in
+  `/etc/mira/mira.env` with `chmod 600`, and displays them exactly once
+- A complete installation guide for Debian 12/13, Ubuntu and RHEL-based distributions
+  (+ `install.sh` for non-deb distributions)
+- **The production dashboard is no longer a Vite dev server** — a static bundle on nginx
 
-- انتشار خودکار سه ایمیج در GitHub Container Registry با هر push به `main` و هر tag:
-  `ghcr.io/hami9/mira-api`، `ghcr.io/hami9/mira-worker`، `ghcr.io/hami9/mira-dashboard`
-- ایمیج داشبورد روی هر دامنه‌ای کار می‌کند: آدرس API به‌جای زمان build، **زمان اجرا**
-  از `config.js` خوانده می‌شود (اسکریپت entrypoint در ایمیج nginx)
-- گزینه‌ی «ایمیج آماده» در `mira setup` — نصب بدون build و در چند دقیقه
-  (پیش‌فرض همچنان build از سورس، چون دسترسی ghcr از هر سروری تضمینی نیست)
+### Docker image publishing
 
-### زیرساخت مخزن
+- Three images published automatically to the GitHub Container Registry on every push to
+  `main` and every tag: `ghcr.io/hami9/mira-api`, `ghcr.io/hami9/mira-worker`,
+  `ghcr.io/hami9/mira-dashboard`
+- The dashboard image works on any domain: the API URL is read at **runtime** from
+  `config.js` instead of being baked in at build time (an entrypoint script in the nginx
+  image)
+- A "prebuilt image" option in `mira setup` — install in minutes with no build
+  (building from source stays the default, since ghcr access is not guaranteed from
+  every server)
 
-- لایسنس **AGPL-3.0** (افزونه‌ی وردپرس طبق الزام اکوسیستم: GPLv2+)
-- CI (لینت/فرمت/بیلد همه‌ی workspaceها/سقف حجم ویجت/ساخت deb) و Release خودکار با هر tag
-- قالب‌های issue/PR فارسی، dependabot، ‏CONTRIBUTING، ‏SECURITY، ‏CHANGELOG و README برنددار
+### Repository infrastructure
 
-### رفع باگ
+- **AGPL-3.0** license (the WordPress plugin is GPLv2+, as that ecosystem requires)
+- CI (lint/format/build of every workspace/widget size budget/deb build) and an automated
+  Release on every tag
+- Issue and PR templates, dependabot, CONTRIBUTING, SECURITY, CHANGELOG and a branded
+  README
 
-- `vite build` روی پکیج workspace با خروجی CJS می‌شکست (`"SocketEvent" is not exported`)
-  — با `build.commonjsOptions` رفع شد؛ **build پروداکشن داشبورد تا این نسخه هرگز اجرا نشده بود**
-- `seed.ts` مقدار `position: 'bottom-end'` می‌نوشت که ویجت نمی‌فهمد
-  (فقط `bottom-left`/`bottom-right`) — به مقدار معتبر و رنگ برند اصلاح شد
-- حذف ایمیل توسعه‌ی هاردکدشده از فرم ورود داشبورد
-- رفع دو خطای قدیمی ESLint و یکدست‌سازی فرمت کل ریپو
-  (`format:check` سراسری تا این نسخه هرگز pass نمی‌شد)
+### Fixed
 
-## [0.1.0] — پیش از ۱.۰.۰
+- `vite build` broke on a workspace package with CJS output
+  (`"SocketEvent" is not exported`) — fixed with `build.commonjsOptions`; **the dashboard
+  production build had never been run before this release**
+- `seed.ts` wrote `position: 'bottom-end'`, a value the widget does not understand (only
+  `bottom-left` / `bottom-right`) — corrected to a valid value and the brand colour
+- Removed a hardcoded development email from the dashboard login form
+- Fixed two long-standing ESLint errors and reformatted the whole repository
+  (a repo-wide `format:check` had never passed before this release)
 
-نسخه‌ی پایه‌ی محصول — فازهای ۰ تا ۷ نقشه‌راه (بدون هویت بصری و بدون پکیج نصب).
+## [0.1.0] — before 1.0.0
 
-> این نسخه به‌صورت تجمیعی تگ نخورد؛ هر فاز جداگانه منتشر شد:
-> [`0.0.1`](https://github.com/hami9/mira/releases/tag/0.0.1) (هسته چت زنده) تا
-> [`0.0.7`](https://github.com/hami9/mira/releases/tag/0.0.7) (سخت‌سازی و استقرار).
+The base product — phases 0 through 7 of the roadmap (no visual identity, no
+installation package).
 
-- چت زنده (Socket.io) با ویجت قابل‌embed و داشبورد اپراتور چندمستأجری
-- پاسخ آماده، CSAT، دپارتمان/برچسب، ساعت کاری، اعلان صوتی/مرورگری، نشان تعداد نخوانده
-- افزونه‌ی وردپرس/ووکامرس: تزریق ویجت، پیش‌فرم خودکار، اطلاعات سفارش مشتری کنار گفتگو،
-  پیام محرک سبد رهاشده
-- هوش مصنوعی: ربات پاسخ‌گو با RAG، ‏Copilot پیشنهاد پاسخ، خلاصه‌سازی، escalation،
-  handoff به انسان (OpenAI-compatible/Gemini/Anthropic)
-- گزارش‌گیری (آمار، زمان اولین پاسخ، CSAT، خروجی CSV) و اتوماسیون + وب‌هوک با امضای HMAC
-- امنیت: 2FA، دسترسی نقش‌محور زنده از دیتابیس، rate limit، ‏CSP، idempotency پیام،
-  بک‌آپ روزانه و SSL خودکار با Caddy
+> This version was never tagged as a whole; each phase was released separately:
+> [`0.0.1`](https://github.com/hami9/mira/releases/tag/0.0.1) (live chat core) through
+> [`0.0.7`](https://github.com/hami9/mira/releases/tag/0.0.7) (hardening and deployment).
+
+- Live chat (Socket.io) with an embeddable widget and a multi-tenant operator dashboard
+- Canned responses, CSAT, departments/tags, business hours, sound/browser notifications,
+  unread badge
+- WordPress/WooCommerce plugin: widget injection, automatic pre-fill, customer order
+  information next to the conversation, abandoned-cart trigger message
+- AI: an answering bot with RAG, a reply-suggestion Copilot, summarisation, escalation,
+  hand-off to a human (OpenAI-compatible/Gemini/Anthropic)
+- Reporting (statistics, first-response time, CSAT, CSV export), automation and
+  HMAC-signed webhooks
+- Security: 2FA, role-based permissions read live from the database, rate limiting, CSP,
+  message idempotency, daily backups and automatic SSL via Caddy

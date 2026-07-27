@@ -22,7 +22,6 @@ const KB_STATUS_LABELS: Record<string, string> = {
 };
 
 interface SettingsPageProps {
-  onClose: () => void;
   canManageSiteSettings: boolean;
   canManageKnowledgeBase: boolean;
   canManageAutomation: boolean;
@@ -49,7 +48,6 @@ function defaultBusinessHours(): BusinessHours {
 }
 
 export function SettingsPage({
-  onClose,
   canManageSiteSettings,
   canManageKnowledgeBase,
   canManageAutomation,
@@ -178,12 +176,7 @@ export function SettingsPage({
   if (!hasAnySettingsAccess) {
     return (
       <div className="mx-auto max-w-2xl overflow-y-auto p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-800">تنظیمات حساب من</h1>
-          <button onClick={onClose} className="text-sm text-blue-600">
-            بازگشت به داشبورد
-          </button>
-        </div>
+        <h1 className="mb-4 text-lg font-bold text-gray-800">تنظیمات حساب من</h1>
         <TwoFactorSection />
       </div>
     );
@@ -195,12 +188,7 @@ export function SettingsPage({
 
   return (
     <div className="mx-auto max-w-2xl overflow-y-auto p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-800">تنظیمات {settings.name}</h1>
-        <button onClick={onClose} className="text-sm text-blue-600">
-          بازگشت به داشبورد
-        </button>
-      </div>
+      <h1 className="mb-4 text-lg font-bold text-gray-800">تنظیمات {settings.name}</h1>
 
       <TwoFactorSection />
 
@@ -276,7 +264,7 @@ export function SettingsPage({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="mt-4 rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+          className="mt-4 rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-60"
         >
           {saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات'}
         </button>
@@ -316,7 +304,7 @@ export function SettingsPage({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="mt-3 rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+          className="mt-3 rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-4 py-2 text-sm text-white disabled:opacity-60"
         >
           {saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات'}
         </button>
@@ -331,7 +319,7 @@ export function SettingsPage({
       <section className="mb-6 rounded border border-gray-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-700">پایگاه دانش (منبع پاسخ ربات)</h2>
-          <button onClick={refreshKnowledgeDocuments} className="text-xs text-blue-600">
+          <button onClick={refreshKnowledgeDocuments} className="text-xs text-primary-600">
             به‌روزرسانی لیست
           </button>
         </div>
@@ -374,7 +362,7 @@ export function SettingsPage({
           <button
             onClick={handleAddKnowledgeDocument}
             disabled={kbSaving}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+            className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
           >
             {kbSaving ? 'در حال افزودن...' : 'افزودن سند'}
           </button>
@@ -430,7 +418,7 @@ export function SettingsPage({
           />
           <button
             onClick={handleAddCannedResponse}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white"
+            className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white"
           >
             افزودن پاسخ آماده
           </button>

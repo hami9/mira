@@ -28,7 +28,7 @@ export function VisitorProfilePage({ visitorId, onClose }: VisitorProfilePagePro
   if (!profile) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <button onClick={onClose} className="mb-4 text-sm text-blue-600">
+        <button onClick={onClose} className="mb-4 text-sm text-primary-600">
           بازگشت
         </button>
         <p className="text-sm text-gray-400">{error ?? 'در حال بارگذاری...'}</p>
@@ -43,7 +43,7 @@ export function VisitorProfilePage({ visitorId, onClose }: VisitorProfilePagePro
     <div className="mx-auto max-w-3xl overflow-y-auto p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-bold text-gray-800">پروفایل بازدیدکننده</h1>
-        <button onClick={onClose} className="text-sm text-blue-600">
+        <button onClick={onClose} className="text-sm text-primary-600">
           بازگشت
         </button>
       </div>

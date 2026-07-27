@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react';
 import type { AgentPerformanceDto, ReportsOverviewDto } from '@mira/shared-types';
 import { apiClient } from '../api';
 
-interface ReportsPageProps {
-  onClose: () => void;
-}
-
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -16,7 +12,7 @@ function defaultFrom(): string {
   return isoDate(date);
 }
 
-export function ReportsPage({ onClose }: ReportsPageProps) {
+export function ReportsPage() {
   const [from, setFrom] = useState(defaultFrom());
   const [to, setTo] = useState(isoDate(new Date()));
   const [overview, setOverview] = useState<ReportsOverviewDto | null>(null);
@@ -47,12 +43,7 @@ export function ReportsPage({ onClose }: ReportsPageProps) {
 
   return (
     <div className="mx-auto max-w-3xl overflow-y-auto p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-800">گزارش‌گیری</h1>
-        <button onClick={onClose} className="text-sm text-blue-600">
-          بازگشت به داشبورد
-        </button>
-      </div>
+      <h1 className="mb-4 text-lg font-bold text-gray-800">گزارش‌گیری</h1>
 
       <div className="mb-4 flex flex-wrap items-end gap-3 rounded border border-gray-200 bg-white p-3 text-xs">
         <div>
@@ -119,7 +110,7 @@ export function ReportsPage({ onClose }: ReportsPageProps) {
                 {overview.dailyCounts.map((day) => (
                   <div key={day.date} className="flex flex-col items-center" title={`${day.date}: ${day.count}`}>
                     <div
-                      className="w-4 rounded-t bg-blue-500"
+                      className="w-4 rounded-t bg-primary-500"
                       style={{ height: `${Math.max(4, (day.count / maxDailyCount) * 100)}px` }}
                     />
                   </div>

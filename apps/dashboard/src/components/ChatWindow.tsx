@@ -119,20 +119,29 @@ export function ChatWindow({ conversation, socket, onConversationUpdated, onMess
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`mb-2 max-w-[70%] rounded-lg px-3 py-2 text-sm ${
+            className={`mb-2 max-w-[70%] animate-slide-up rounded-xl px-3 py-2 text-sm ${
               message.senderType === MessageSenderType.AGENT
-                ? 'mr-auto bg-blue-600 text-white'
-                : 'ml-auto bg-gray-200 text-gray-800'
+                ? 'mr-auto rounded-br-md bg-primary-600 text-white shadow-sm'
+                : message.senderType === MessageSenderType.BOT
+                  ? 'ml-auto rounded-bl-md border border-teal-200 bg-teal-50 text-teal-900'
+                  : 'ml-auto rounded-bl-md bg-gray-200 text-gray-800'
             }`}
           >
-            <div className="mb-1 text-[10px] opacity-70">{SENDER_LABELS[message.senderType]}</div>
+            <div className="mb-1 text-[10px] opacity-70">
+              {message.senderType === MessageSenderType.BOT ? '✦ ' : ''}
+              {SENDER_LABELS[message.senderType]}
+            </div>
             <div className="whitespace-pre-wrap break-words">{message.content}</div>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
       <div className="h-5 px-4 text-xs text-gray-500">
-        {isVisitorTyping ? 'بازدیدکننده در حال تایپ است...' : ''}
+        {isVisitorTyping ? (
+          <span className="animate-pulse-soft">بازدیدکننده در حال تایپ است...</span>
+        ) : (
+          ''
+        )}
       </div>
       <InternalNotesPanel conversationId={conversation.id} />
       <div className="flex items-stretch border-t border-gray-200">
@@ -141,7 +150,7 @@ export function ChatWindow({ conversation, socket, onConversationUpdated, onMess
           onClick={handleSuggestReply}
           disabled={suggestingReply}
           title="پیشنهاد پاسخ با هوش مصنوعی"
-          className="px-3 text-xs text-purple-600 hover:bg-purple-50 disabled:opacity-60"
+          className="px-3 text-xs text-teal-600 hover:bg-teal-50 disabled:opacity-60"
         >
           {suggestingReply ? '...' : '✨ پیشنهاد پاسخ'}
         </button>
@@ -150,9 +159,12 @@ export function ChatWindow({ conversation, socket, onConversationUpdated, onMess
           onChange={(e) => handleDraftChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="پاسخ خود را بنویسید..."
-          className="flex-1 p-3 text-sm outline-none"
+          className="flex-1 bg-white p-3 text-sm outline-none"
         />
-        <button onClick={handleSend} className="bg-blue-600 px-4 text-sm font-medium text-white">
+        <button
+          onClick={handleSend}
+          className="bg-primary-600 px-5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+        >
           ارسال
         </button>
       </div>

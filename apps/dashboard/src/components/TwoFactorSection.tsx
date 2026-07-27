@@ -91,7 +91,7 @@ export function TwoFactorSection() {
         <button
           onClick={handleStartSetup}
           disabled={busy}
-          className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+          className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
         >
           {busy ? 'در حال آماده‌سازی...' : 'فعال‌سازی 2FA'}
         </button>
@@ -119,7 +119,7 @@ export function TwoFactorSection() {
             <button
               onClick={handleConfirm}
               disabled={busy || code.trim().length !== 6}
-              className="rounded bg-blue-600 px-3 py-1.5 text-white disabled:opacity-60"
+              className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-white disabled:opacity-60"
             >
               تأیید و فعال‌سازی
             </button>

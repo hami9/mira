@@ -63,7 +63,7 @@ export function ConversationMeta({ conversation, onUpdated }: ConversationMetaPr
         </button>
       </div>
       {conversation.summary && (
-        <div className="border-t border-gray-100 bg-purple-50 px-2 py-1 text-xs text-purple-800">
+        <div className="border-t border-gray-100 bg-teal-50 px-2 py-1 text-xs text-teal-800">
           ✨ خلاصه: {conversation.summary}
         </div>
       )}

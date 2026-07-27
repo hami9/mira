@@ -95,7 +95,7 @@ export function WebhooksSection() {
         <div className="flex gap-2">
           <button
             onClick={handleGenerateApiKey}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white"
+            className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white"
           >
             {apiKeyStatus?.hasKey ? 'ساخت کلید جدید (کلید قبلی باطل می‌شود)' : 'ساخت کلید API'}
           </button>
@@ -135,7 +135,7 @@ export function WebhooksSection() {
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
-                <button onClick={() => handleToggle(webhook)} className="text-blue-600">
+                <button onClick={() => handleToggle(webhook)} className="text-primary-600">
                   {webhook.enabled ? 'غیرفعال' : 'فعال'}
                 </button>
                 <button onClick={() => handleDelete(webhook.id)} className="text-red-600">
@@ -168,7 +168,7 @@ export function WebhooksSection() {
           <button
             onClick={handleAdd}
             disabled={saving || events.length === 0}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+            className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
           >
             {saving ? 'در حال افزودن...' : 'افزودن وب‌هوک'}
           </button>

@@ -76,7 +76,7 @@ export function AutomationRulesSection() {
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <button onClick={() => handleToggle(rule)} className="text-blue-600">
+            <button onClick={() => handleToggle(rule)} className="text-primary-600">
               {rule.enabled ? 'غیرفعال' : 'فعال'}
             </button>
             <button onClick={() => handleDelete(rule.id)} className="text-red-600">
@@ -121,7 +121,7 @@ export function AutomationRulesSection() {
         <button
           onClick={handleAdd}
           disabled={saving}
-          className="rounded bg-blue-600 px-3 py-1.5 text-xs text-white disabled:opacity-60"
+          className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
         >
           {saving ? 'در حال افزودن...' : 'افزودن قانون'}
         </button>

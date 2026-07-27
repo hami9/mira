@@ -53,24 +53,24 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
   }
 
   return (
-    <section className="mb-6 overflow-hidden rounded-lg border border-purple-200 bg-white">
-      <div className="flex items-center justify-between border-b border-purple-100 bg-purple-50 px-4 py-3">
+    <section className="mb-6 overflow-hidden rounded-lg border border-teal-200 bg-white">
+      <div className="flex items-center justify-between border-b border-teal-100 bg-teal-50 px-4 py-3">
         <div className="flex items-center gap-3">
           {botAvatarUrl ? (
             <img src={botAvatarUrl} alt={botName} className="h-10 w-10 rounded-full object-cover" />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200 text-lg">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-200 text-lg">
               🤖
             </div>
           )}
           <div>
-            <div className="text-sm font-bold text-purple-900">{botName || 'دستیار میرا'}</div>
-            <div className="text-[11px] text-purple-700">
+            <div className="text-sm font-bold text-teal-900">{botName || 'دستیار میرا'}</div>
+            <div className="text-[11px] text-teal-700">
               {enabled ? 'فعال — به مکالمات بدون اپراتور پاسخ می‌دهد' : 'غیرفعال'}
             </div>
           </div>
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-purple-900">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-teal-900">
           <input
             type="checkbox"
             checked={enabled}
@@ -213,7 +213,7 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded bg-purple-600 px-4 py-2 text-sm text-white disabled:opacity-60"
+            className="rounded bg-teal-600 px-4 py-2 text-sm text-white disabled:opacity-60"
           >
             {saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات هوش مصنوعی'}
           </button>
@@ -283,7 +283,7 @@ function SliderField({
     <div>
       <div className="mb-1 flex items-center justify-between">
         <label className="text-xs text-gray-600">{label}</label>
-        <span className="rounded bg-purple-100 px-2 py-0.5 font-mono text-xs text-purple-800">
+        <span className="rounded bg-teal-100 px-2 py-0.5 font-mono text-xs text-teal-800">
           {display}
         </span>
       </div>
@@ -294,7 +294,7 @@ function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-purple-600"
+        className="w-full accent-teal-600"
       />
       <p className="mt-1 text-[11px] text-gray-400">{hint}</p>
     </div>

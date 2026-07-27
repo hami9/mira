@@ -92,6 +92,20 @@ sudo mira status     # وضعیت کانتینرها + سلامت API
 
 گواهی SSL خودکار توسط Caddy گرفته و تمدید می‌شود — نه certbot لازم است نه cron.
 
+### نصب خیلی سریع‌تر با ایمیج آماده (اختیاری)
+
+ایمیج‌های Docker میرا با هر نسخه به‌صورت خودکار در
+[GitHub Packages](https://github.com/hami9?tab=packages&repo_name=mira) ‏(ghcr.io) منتشر می‌شوند:
+`mira-api`، `mira-worker`، `mira-dashboard`.
+
+هنگام `mira setup` اگر گزینه‌ی **«ایمیج آماده از GHCR»** را انتخاب کنی، `mira start` به‌جای
+build چند دقیقه‌ای از سورس، ایمیج‌ها را در ۱–۲ دقیقه pull می‌کند و به RAM کمتری هم نیاز دارد.
+نسخه‌ی ایمیج را می‌توانی با `MIRA_IMAGE_TAG` در `/etc/mira/mira.env` قفل کنی (پیش‌فرض `latest`).
+
+> ⚠️ دسترسی به `ghcr.io` از بعضی سرورهای داخل ایران ممکن است محدود/مسدود باشد.
+> اگر `mira start` در مرحله‌ی pull گیر کرد، دوباره `sudo mira setup` را اجرا کن و
+> گزینه‌ی ۱ (build از سورس) را انتخاب کن — این مسیر به هیچ registry خارجی وابسته نیست.
+
 ---
 
 ## ۳. نصب روی AlmaLinux / Rocky / Fedora / سایر توزیع‌ها

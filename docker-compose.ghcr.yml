@@ -1,0 +1,20 @@
+# لایه‌ی «ایمیج آماده» — به‌جای build از سورس، ایمیج‌های منتشرشده در GHCR استفاده می‌شوند:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml up -d --no-build
+# نسخه‌ی ایمیج با MIRA_IMAGE_TAG در .env قابل قفل‌کردن است (پیش‌فرض: latest).
+# توجه: دسترسی به ghcr.io از بعضی سرورهای داخل ایران ممکن است محدود باشد؛
+# در آن صورت همان مسیر پیش‌فرض build از سورس را استفاده کن.
+name: mira
+
+services:
+  api:
+    image: ghcr.io/hami9/mira-api:${MIRA_IMAGE_TAG:-latest}
+
+  worker:
+    image: ghcr.io/hami9/mira-worker:${MIRA_IMAGE_TAG:-latest}
+
+  dashboard:
+    image: ghcr.io/hami9/mira-dashboard:${MIRA_IMAGE_TAG:-latest}
+    environment:
+      # آدرس API در زمان اجرا داخل config.js تزریق می‌شود (ایمیج برای همه‌ی دامنه‌ها یکی است)
+      VITE_API_URL: ${PUBLIC_API_URL}

@@ -41,6 +41,11 @@ have_docker() {
   command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1
 }
 
+# آیا نصب روی حالت «ایمیج آماده از GHCR» تنظیم شده؟ (به‌جای build از سورس)
+uses_ghcr() {
+  [ -f "$COMPOSE_FILES_FILE" ] && grep -q 'ghcr' "$COMPOSE_FILES_FILE"
+}
+
 rand_hex() { openssl rand -hex 32; }
 rand_pass() { openssl rand -base64 18 | tr -d '/+=' | cut -c1-16; }
 
@@ -99,7 +104,18 @@ cmd_setup() {
     acme_email=$(ask "ایمیل برای گواهی SSL (Let's Encrypt)")
     public_api_url="https://$app_domain"
     cors_origins="https://$dashboard_domain"
-    echo "-f docker-compose.yml -f docker-compose.prod.yml" > "$COMPOSE_FILES_FILE.tmp"
+
+    # منبع ایمیج‌های Docker: build از سورس (پیش‌فرض) یا ایمیج آماده از GHCR
+    echo
+    echo "منبع ایمیج‌های Docker:"
+    echo "  1) build از سورس روی همین سرور (پیش‌فرض — بدون وابستگی به ghcr.io)"
+    echo "  2) ایمیج آماده از GHCR (نصب خیلی سریع‌تر؛ نیازمند دسترسی سرور به ghcr.io)"
+    read -r -p "انتخاب (1/2) [1]: " image_source
+    if [ "${image_source:-1}" = "2" ]; then
+      echo "-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml" > "$COMPOSE_FILES_FILE.tmp"
+    else
+      echo "-f docker-compose.yml -f docker-compose.prod.yml" > "$COMPOSE_FILES_FILE.tmp"
+    fi
   else
     # حالت local: بدون Caddy/SSL — برای تست روی شبکه‌ی داخلی
     app_domain="chat.example.com"
@@ -236,8 +252,14 @@ cmd_start() {
   need_root start
   [ -f "$ENV_FILE" ] || die "هنوز راه‌اندازی نشده — اول «sudo mira setup» را اجرا کن."
   have_docker || die "Docker در دسترس نیست."
-  echo "در حال ساخت ایمیج‌ها و بالا آوردن سرویس‌ها (بار اول چند دقیقه طول می‌کشد)..."
-  compose up -d --build
+  if uses_ghcr; then
+    echo "در حال دریافت ایمیج‌های آماده از GHCR و بالا آوردن سرویس‌ها..."
+    compose pull
+    compose up -d --no-build
+  else
+    echo "در حال ساخت ایمیج‌ها و بالا آوردن سرویس‌ها (بار اول چند دقیقه طول می‌کشد)..."
+    compose up -d --build
+  fi
   systemctl enable mira >/dev/null 2>&1 || true
   ok "میرا بالا آمد. وضعیت: «mira status»"
 }
@@ -276,11 +298,17 @@ cmd_update() {
   echo "  sudo dpkg -i mira_<version>_all.deb"
   echo "سپس این دستور ایمیج‌ها را بازسازی و سرویس‌ها را به‌روز می‌کند"
   echo "(مایگریشن‌های دیتابیس خودکار و بدون از دست رفتن داده اجرا می‌شوند):"
-  read -r -p "همین حالا بازسازی و ری‌استارت انجام شود؟ (y/n) " yn
+  read -r -p "همین حالا به‌روزرسانی انجام شود؟ (y/n) " yn
   case "$yn" in
     y|Y)
-      compose build --pull
-      compose up -d
+      if uses_ghcr; then
+        # حالت ایمیج آماده: فقط تگ جدید pull می‌شود، build ای در کار نیست
+        compose pull
+        compose up -d --no-build
+      else
+        compose build --pull
+        compose up -d
+      fi
       ok "به‌روزرسانی انجام شد."
       ;;
     *) echo "لغو شد." ;;

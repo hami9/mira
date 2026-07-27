@@ -24,4 +24,6 @@ RUN npm run build -w packages/shared-types && npm run build -w apps/dashboard
 FROM nginx:1.27-alpine
 COPY apps/dashboard/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/dashboard/dist /usr/share/nginx/html
+# تزریق آدرس API در زمان اجرا (env ‏VITE_API_URL) — تا ایمیج ازپیش‌ساخته روی هر دامنه‌ای کار کند
+COPY --chmod=755 apps/dashboard/docker-entrypoint.d/10-mira-config.sh /docker-entrypoint.d/10-mira-config.sh
 EXPOSE 80

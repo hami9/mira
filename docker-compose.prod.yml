@@ -65,8 +65,11 @@ services:
       context: .
       dockerfile: apps/dashboard/Dockerfile.prod
       args:
-        # آدرس API در زمان build داخل باندل می‌نشیند
+        # آدرس API در زمان build داخل باندل می‌نشیند (مسیر build از سورس)
         VITE_API_URL: ${PUBLIC_API_URL}
+    environment:
+      # همان آدرس در زمان اجرا هم تزریق می‌شود (config.js) — لازمه‌ی ایمیج ازپیش‌ساخته‌ی GHCR
+      VITE_API_URL: ${PUBLIC_API_URL}
     ports: !override []
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:80/']

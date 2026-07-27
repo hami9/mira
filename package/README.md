@@ -22,3 +22,17 @@ bash package/build-deb.sh
 
 در CI هم با هر tag نسخه (`v*`)، همین پکیج ساخته و به GitHub Release پیوست می‌شود
 (workflow ‏`.github/workflows/release.yml`).
+
+## ایمیج‌های آماده (GHCR)
+
+ایمیج‌های Docker سه سرویس با هر push به `main` و هر tag نسخه، خودکار در
+GitHub Container Registry منتشر می‌شوند (workflow ‏`docker-publish.yml`):
+
+```
+ghcr.io/hami9/mira-api
+ghcr.io/hami9/mira-worker
+ghcr.io/hami9/mira-dashboard
+```
+
+استفاده روی سرور: در `mira setup` گزینه‌ی «ایمیج آماده از GHCR» — یا دستی با
+لایه‌ی `docker-compose.ghcr.yml`. جزئیات در [`INSTALL.fa.md`](INSTALL.fa.md).

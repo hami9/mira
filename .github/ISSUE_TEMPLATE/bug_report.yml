@@ -1,0 +1,52 @@
+name: 🐛 گزارش باگ
+description: چیزی درست کار نمی‌کند
+title: '[باگ] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ممنون که وقت می‌گذاری! لطفاً پیش از ثبت، issueهای باز را جست‌وجو کن تا تکراری نباشد.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: چه اتفاقی افتاد؟
+      description: توضیح کامل مشکل + رفتار مورد انتظار
+      placeholder: وقتی ... را انجام می‌دهم، ... می‌شود؛ در حالی که انتظار داشتم ...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: مراحل بازتولید
+      placeholder: |
+        ۱. برو به ...
+        ۲. کلیک کن روی ...
+        ۳. خطای ... ظاهر می‌شود
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: کدام بخش؟
+      options:
+        - داشبورد اپراتور
+        - ویجت چت
+        - API / بک‌اند
+        - Worker / هوش مصنوعی
+        - افزونه‌ی وردپرس
+        - نصب / پکیج دبیان
+        - سایر
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: لاگ‌ها
+      description: 'خروجی مرتبط از: sudo mira logs api (رمز/توکن را حذف کن!)'
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: محیط
+      placeholder: 'مثلاً: دبیان ۱۲، Docker 27، نصب با پکیج deb نسخه 1.0.0'

@@ -6,8 +6,11 @@ export interface LoginRequestDto {
 }
 
 export interface LoginResponseDto {
-  accessToken: string;
-  refreshToken: string;
+  // وقتی 2FA فعاله، این دوتا خالی می‌مونن و به‌جاش twoFactorRequired/twoFactorToken پر می‌شن
+  accessToken?: string;
+  refreshToken?: string;
+  twoFactorRequired?: boolean;
+  twoFactorToken?: string;
 }
 
 export interface RefreshRequestDto {
@@ -62,6 +65,15 @@ export interface SiteSettingsDto {
   aiEnabled: boolean;
   aiSystemPrompt: string | null;
   aiConfidenceThreshold: number;
+  // پروفایل و تنظیمات گسترده‌ی ربات (قابل تنظیم کامل از داشبورد)
+  aiBotName: string;
+  aiBotAvatarUrl: string | null;
+  aiGreetingMessage: string | null;
+  aiHandoffMessage: string | null;
+  aiTemperature: number;
+  aiMaxTokens: number;
+  aiMaxRepliesPerConversation: number;
+  aiReplyOnlyOutsideBusinessHours: boolean;
 }
 
 export interface UpdateSiteSettingsDto {
@@ -76,4 +88,12 @@ export interface UpdateSiteSettingsDto {
   aiEnabled?: boolean;
   aiSystemPrompt?: string | null;
   aiConfidenceThreshold?: number;
+  aiBotName?: string;
+  aiBotAvatarUrl?: string | null;
+  aiGreetingMessage?: string | null;
+  aiHandoffMessage?: string | null;
+  aiTemperature?: number;
+  aiMaxTokens?: number;
+  aiMaxRepliesPerConversation?: number;
+  aiReplyOnlyOutsideBusinessHours?: boolean;
 }

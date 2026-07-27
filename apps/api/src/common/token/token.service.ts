@@ -15,6 +15,13 @@ export interface AgentRefreshTokenPayload {
   type: 'agent_refresh';
 }
 
+// توکن کوتاه‌عمر مرحله‌ی میانی لاگین وقتی 2FA فعاله — رمز عبور تأیید شده ولی accessToken واقعی
+// هنوز صادر نشده تا کد TOTP هم تأیید بشه
+export interface AgentTwoFactorPendingTokenPayload {
+  sub: string; // agentId
+  type: 'agent_2fa_pending';
+}
+
 export interface VisitorTokenPayload {
   sub: string; // visitorId
   siteId: string;
@@ -61,6 +68,19 @@ export class TokenService {
   verifyAgentRefreshToken(token: string): AgentRefreshTokenPayload {
     return this.jwtService.verify<AgentRefreshTokenPayload>(token, {
       secret: this.config.get<string>('JWT_REFRESH_SECRET'),
+    });
+  }
+
+  signAgentTwoFactorPendingToken(payload: Omit<AgentTwoFactorPendingTokenPayload, 'type'>): string {
+    return this.jwtService.sign(
+      { ...payload, type: 'agent_2fa_pending' },
+      { secret: this.config.get<string>('JWT_ACCESS_SECRET'), expiresIn: '5m' },
+    );
+  }
+
+  verifyAgentTwoFactorPendingToken(token: string): AgentTwoFactorPendingTokenPayload {
+    return this.jwtService.verify<AgentTwoFactorPendingTokenPayload>(token, {
+      secret: this.config.get<string>('JWT_ACCESS_SECRET'),
     });
   }
 

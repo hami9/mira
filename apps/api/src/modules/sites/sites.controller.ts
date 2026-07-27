@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { AgentRole, SiteSettingsDto } from '@mira/shared-types';
 import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
@@ -31,6 +31,31 @@ export class SitesController {
     return this.toSettingsDto(site);
   }
 
+  @Get('api-key')
+  getApiKeyStatus(@CurrentAgent() agent: AgentAccessTokenPayload) {
+    this.assertAdmin(agent);
+    return this.sitesService.getApiKeyStatus(agent.siteId);
+  }
+
+  // کلید واقعی فقط همین یک بار در پاسخ همین درخواست برمی‌گرده؛ بعدش فقط prefix قابل‌مشاهده‌ست
+  @Post('api-key')
+  generateApiKey(@CurrentAgent() agent: AgentAccessTokenPayload) {
+    this.assertAdmin(agent);
+    return this.sitesService.generateApiKey(agent.siteId);
+  }
+
+  @Delete('api-key')
+  revokeApiKey(@CurrentAgent() agent: AgentAccessTokenPayload) {
+    this.assertAdmin(agent);
+    return this.sitesService.revokeApiKey(agent.siteId);
+  }
+
+  private assertAdmin(agent: AgentAccessTokenPayload): void {
+    if (agent.role !== AgentRole.ADMIN) {
+      throw new ForbiddenException('فقط ادمین می‌تواند کلید API را مدیریت کند');
+    }
+  }
+
   private toSettingsDto(site: SiteEntity): SiteSettingsDto {
     return {
       id: site.id,
@@ -46,6 +71,14 @@ export class SitesController {
       aiEnabled: site.aiEnabled,
       aiSystemPrompt: site.aiSystemPrompt,
       aiConfidenceThreshold: site.aiConfidenceThreshold,
+      aiBotName: site.aiBotName,
+      aiBotAvatarUrl: site.aiBotAvatarUrl,
+      aiGreetingMessage: site.aiGreetingMessage,
+      aiHandoffMessage: site.aiHandoffMessage,
+      aiTemperature: site.aiTemperature,
+      aiMaxTokens: site.aiMaxTokens,
+      aiMaxRepliesPerConversation: site.aiMaxRepliesPerConversation,
+      aiReplyOnlyOutsideBusinessHours: site.aiReplyOnlyOutsideBusinessHours,
     };
   }
 }

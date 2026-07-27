@@ -177,6 +177,26 @@ export class ConversationsService {
     return this.conversationsRepository.save(conversation);
   }
 
+  // اعمال ترکیبی نتیجه‌ی چند قانون اتوماسیون روی یک مکالمه با یک save (فاز ۶) — به‌جای یک نوشتن جدا به‌ازای هر قانون
+  async applyAutomationEffects(
+    conversationId: string,
+    siteId: string,
+    effects: { department?: string; addTags?: string[]; setPriorityHigh?: boolean },
+  ): Promise<ConversationEntity> {
+    const conversation = await this.findByIdForSite(conversationId, siteId);
+    if (effects.department !== undefined) {
+      conversation.department = effects.department;
+    }
+    if (effects.addTags?.length) {
+      const merged = new Set([...conversation.tags, ...effects.addTags]);
+      conversation.tags = [...merged];
+    }
+    if (effects.setPriorityHigh) {
+      conversation.priority = 'high';
+    }
+    return this.conversationsRepository.save(conversation);
+  }
+
   async resolve(conversationId: string, siteId: string): Promise<ConversationEntity> {
     const conversation = await this.findByIdForSite(conversationId, siteId);
     if (conversation.status === ConversationStatus.RESOLVED) {

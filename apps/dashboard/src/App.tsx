@@ -10,6 +10,11 @@ import { ChatWindow } from './components/ChatWindow';
 import { VisitorInfoPanel } from './components/VisitorInfoPanel';
 import { SettingsPage } from './components/SettingsPage';
 import { ReportsPage } from './components/ReportsPage';
+import { AgentsPage } from './components/AgentsPage';
+import { AgentProfilePage } from './components/AgentProfilePage';
+import { VisitorsOnlinePage } from './components/VisitorsOnlinePage';
+import { VisitorsAllPage } from './components/VisitorsAllPage';
+import { VisitorProfilePage } from './components/VisitorProfilePage';
 import {
   ensureNotificationPermission,
   playNotificationSound,
@@ -18,10 +23,25 @@ import {
 
 const REFRESH_INTERVAL_MS = 10 * 60 * 1000; // هر ۱۰ دقیقه access token کوتاه‌عمر رو تازه می‌کنیم
 
+type DashboardView =
+  | 'inbox'
+  | 'settings'
+  | 'reports'
+  | 'agents'
+  | 'agent-profile'
+  | 'visitors-online'
+  | 'visitors-all'
+  | 'visitor-profile';
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [view, setView] = useState<'inbox' | 'settings' | 'reports'>('inbox');
+  const [view, setView] = useState<DashboardView>('inbox');
+  // اپراتوری که پروفایلش باز است؛ null یعنی پروفایل خودِ کاربر وارد‌شده
+  const [viewedAgentId, setViewedAgentId] = useState<string | null>(null);
+  const [viewedVisitorId, setViewedVisitorId] = useState<string | null>(null);
+  // برای این‌که «بازگشت» از پروفایل بازدیدکننده به همان فهرستی برگردد که ازش آمده
+  const [visitorReturnView, setVisitorReturnView] = useState<DashboardView>('visitors-online');
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDto | null>(null);
   const [filters, setFilters] = useState<ListConversationsParams>({});
@@ -139,33 +159,122 @@ export default function App() {
   }
 
   if (view === 'settings') {
-    return <SettingsPage onClose={() => setView('inbox')} />;
+    return <SettingsPage onClose={() => setView('inbox')} isAdmin={isAdmin} />;
   }
 
   if (view === 'reports') {
     return <ReportsPage onClose={() => setView('inbox')} />;
   }
 
+  if (view === 'agents') {
+    return (
+      <AgentsPage
+        onClose={() => setView('inbox')}
+        onOpenProfile={(agentId) => {
+          setViewedAgentId(agentId);
+          setView('agent-profile');
+        }}
+      />
+    );
+  }
+
+  if (view === 'agent-profile') {
+    return (
+      <AgentProfilePage
+        agentId={viewedAgentId}
+        onClose={() => {
+          // اگر از فهرست اپراتورها آمده بودیم به همان‌جا برگردیم، وگرنه به صندوق ورودی
+          setView(viewedAgentId ? 'agents' : 'inbox');
+          setViewedAgentId(null);
+        }}
+      />
+    );
+  }
+
+  if (view === 'visitors-online') {
+    return (
+      <VisitorsOnlinePage
+        onClose={() => setView('inbox')}
+        onGoToAll={() => setView('visitors-all')}
+        onOpenVisitor={(visitorId) => {
+          setViewedVisitorId(visitorId);
+          setVisitorReturnView('visitors-online');
+          setView('visitor-profile');
+        }}
+      />
+    );
+  }
+
+  if (view === 'visitors-all') {
+    return (
+      <VisitorsAllPage
+        onClose={() => setView('inbox')}
+        onGoToOnline={() => setView('visitors-online')}
+        onOpenVisitor={(visitorId) => {
+          setViewedVisitorId(visitorId);
+          setVisitorReturnView('visitors-all');
+          setView('visitor-profile');
+        }}
+      />
+    );
+  }
+
+  if (view === 'visitor-profile' && viewedVisitorId) {
+    return (
+      <VisitorProfilePage
+        visitorId={viewedVisitorId}
+        onClose={() => {
+          setView(visitorReturnView);
+          setViewedVisitorId(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center justify-between border-b border-gray-200 bg-white p-3 text-sm font-bold text-gray-700">
         داشبورد اپراتور میرا
-        {isAdmin && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setView('reports')}
-              className="text-xs font-normal text-blue-600"
-            >
-              گزارش‌ها
-            </button>
-            <button
-              onClick={() => setView('settings')}
-              className="text-xs font-normal text-blue-600"
-            >
-              تنظیمات
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setView('visitors-online')}
+            className="text-xs font-normal text-blue-600"
+          >
+            بازدیدکنندگان
+          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setView('agents')}
+                className="text-xs font-normal text-blue-600"
+              >
+                اپراتورها
+              </button>
+              <button
+                onClick={() => setView('reports')}
+                className="text-xs font-normal text-blue-600"
+              >
+                گزارش‌ها
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => {
+              setViewedAgentId(null);
+              setView('agent-profile');
+            }}
+            className="text-xs font-normal text-blue-600"
+          >
+            پروفایل من
+          </button>
+          {/* تنظیمات برای همه‌ی اپراتورها بازه — غیر-ادمین فقط 2FA حساب خودش رو می‌بینه */}
+          <button
+            onClick={() => setView('settings')}
+            className="text-xs font-normal text-blue-600"
+          >
+            تنظیمات
+          </button>
+        </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <ConversationList

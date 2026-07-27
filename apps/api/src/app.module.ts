@@ -7,6 +7,7 @@ import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './common/redis/redis.module';
 import { AiQueueModule } from './common/queue/ai-queue.module';
+import { WebhookQueueModule } from './common/queue/webhook-queue.module';
 import { HealthModule } from './modules/health/health.module';
 import { SitesModule } from './modules/sites/sites.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -18,6 +19,10 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { AutomationModule } from './modules/automation/automation.module';
+import { InternalNotesModule } from './modules/internal-notes/internal-notes.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { PublicApiModule } from './modules/public-api/public-api.module';
 
 @Module({
   imports: [
@@ -28,6 +33,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     EventEmitterModule.forRoot(),
     RedisModule,
     AiQueueModule,
+    WebhookQueueModule,
     DatabaseModule,
     HealthModule,
     SitesModule,
@@ -40,6 +46,10 @@ import { ReportsModule } from './modules/reports/reports.module';
     ChatModule,
     KnowledgeBaseModule,
     ReportsModule,
+    AutomationModule,
+    InternalNotesModule,
+    WebhooksModule,
+    PublicApiModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

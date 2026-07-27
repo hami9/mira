@@ -14,6 +14,25 @@ import type {
   CreateKnowledgeDocumentDto,
   ReportsOverviewDto,
   AgentPerformanceDto,
+  AutomationRuleDto,
+  CreateAutomationRuleDto,
+  UpdateAutomationRuleDto,
+  InternalNoteDto,
+  WebhookDto,
+  CreateWebhookDto,
+  UpdateWebhookDto,
+  PublicApiKeyStatusDto,
+  GeneratedApiKeyDto,
+  TwoFactorSetupResponseDto,
+  TwoFactorStatusDto,
+  AgentDto,
+  AgentProfileDto,
+  CreateAgentDto,
+  UpdateAgentDto,
+  UpdateMyProfileDto,
+  VisitorStatsDto,
+  VisitorListItemDto,
+  VisitorProfileDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
@@ -186,6 +205,148 @@ class ApiClient {
     link.download = 'gozaresh-amalkard.csv';
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ---- قوانین اتوماسیون (فاز ۶) ----
+
+  async listAutomationRules(): Promise<AutomationRuleDto[]> {
+    return this.authedGet<AutomationRuleDto[]>('/v1/automation-rules');
+  }
+
+  async createAutomationRule(dto: CreateAutomationRuleDto): Promise<AutomationRuleDto> {
+    return this.authedPost<AutomationRuleDto>('/v1/automation-rules', dto);
+  }
+
+  async updateAutomationRule(id: string, dto: UpdateAutomationRuleDto): Promise<AutomationRuleDto> {
+    return this.authedPatch<AutomationRuleDto>(`/v1/automation-rules/${id}`, dto);
+  }
+
+  async deleteAutomationRule(id: string): Promise<void> {
+    await this.authedDelete(`/v1/automation-rules/${id}`);
+  }
+
+  // ---- یادداشت داخلی (فاز ۶) ----
+
+  async listInternalNotes(conversationId: string): Promise<InternalNoteDto[]> {
+    return this.authedGet<InternalNoteDto[]>(`/v1/conversations/${conversationId}/notes`);
+  }
+
+  async createInternalNote(conversationId: string, content: string): Promise<InternalNoteDto> {
+    return this.authedPost<InternalNoteDto>(`/v1/conversations/${conversationId}/notes`, { content });
+  }
+
+  // ---- وب‌هوک (فاز ۶) ----
+
+  async listWebhooks(): Promise<WebhookDto[]> {
+    return this.authedGet<WebhookDto[]>('/v1/webhooks');
+  }
+
+  async createWebhook(dto: CreateWebhookDto): Promise<WebhookDto> {
+    return this.authedPost<WebhookDto>('/v1/webhooks', dto);
+  }
+
+  async updateWebhook(id: string, dto: UpdateWebhookDto): Promise<WebhookDto> {
+    return this.authedPatch<WebhookDto>(`/v1/webhooks/${id}`, dto);
+  }
+
+  async deleteWebhook(id: string): Promise<void> {
+    await this.authedDelete(`/v1/webhooks/${id}`);
+  }
+
+  // ---- کلید API عمومی (فاز ۶) ----
+
+  async getApiKeyStatus(): Promise<PublicApiKeyStatusDto> {
+    return this.authedGet<PublicApiKeyStatusDto>('/v1/sites/me/api-key');
+  }
+
+  async generateApiKey(): Promise<GeneratedApiKeyDto> {
+    return this.authedPost<GeneratedApiKeyDto>('/v1/sites/me/api-key');
+  }
+
+  async revokeApiKey(): Promise<void> {
+    await this.authedDelete('/v1/sites/me/api-key');
+  }
+
+  // ---- احراز هویت دومرحله‌ای (فاز ۶) ----
+
+  async verifyTwoFactorLogin(twoFactorToken: string, code: string): Promise<LoginResponseDto> {
+    const response = await fetch(`${API_URL}/v1/auth/2fa/verify-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ twoFactorToken, code }),
+    });
+    if (!response.ok) {
+      throw new Error('کد تأیید نادرست است');
+    }
+    return response.json() as Promise<LoginResponseDto>;
+  }
+
+  async getTwoFactorStatus(): Promise<TwoFactorStatusDto> {
+    return this.authedGet<TwoFactorStatusDto>('/v1/auth/2fa/status');
+  }
+
+  async startTwoFactorSetup(): Promise<TwoFactorSetupResponseDto> {
+    return this.authedPost<TwoFactorSetupResponseDto>('/v1/auth/2fa/setup');
+  }
+
+  async confirmTwoFactorSetup(code: string): Promise<TwoFactorStatusDto> {
+    return this.authedPost<TwoFactorStatusDto>('/v1/auth/2fa/confirm', { code });
+  }
+
+  async disableTwoFactor(code: string): Promise<TwoFactorStatusDto> {
+    return this.authedPost<TwoFactorStatusDto>('/v1/auth/2fa/disable', { code });
+  }
+
+  // ---- مدیریت اپراتورها و پروفایل ----
+
+  async listAgents(): Promise<AgentDto[]> {
+    return this.authedGet<AgentDto[]>('/v1/agents');
+  }
+
+  async getMyProfile(): Promise<AgentProfileDto> {
+    return this.authedGet<AgentProfileDto>('/v1/agents/me');
+  }
+
+  async getAgentProfile(id: string): Promise<AgentProfileDto> {
+    return this.authedGet<AgentProfileDto>(`/v1/agents/${id}`);
+  }
+
+  async updateMyProfile(dto: UpdateMyProfileDto): Promise<AgentDto> {
+    return this.authedPatch<AgentDto>('/v1/agents/me', dto);
+  }
+
+  async changeMyPassword(currentPassword: string, newPassword: string): Promise<void> {
+    await this.authedPost('/v1/agents/me/password', { currentPassword, newPassword });
+  }
+
+  async createAgent(dto: CreateAgentDto): Promise<AgentDto> {
+    return this.authedPost<AgentDto>('/v1/agents', dto);
+  }
+
+  async updateAgent(id: string, dto: UpdateAgentDto): Promise<AgentDto> {
+    return this.authedPatch<AgentDto>(`/v1/agents/${id}`, dto);
+  }
+
+  async deleteAgent(id: string): Promise<void> {
+    await this.authedDelete(`/v1/agents/${id}`);
+  }
+
+  // ---- بازدیدکنندگان ----
+
+  async getVisitorStats(): Promise<VisitorStatsDto> {
+    return this.authedGet<VisitorStatsDto>('/v1/visitors/stats');
+  }
+
+  async listVisitors(params: { online?: boolean; search?: string } = {}): Promise<VisitorListItemDto[]> {
+    const query = new URLSearchParams();
+    if (params.online) query.set('online', 'true');
+    if (params.search) query.set('search', params.search);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return this.authedGet<VisitorListItemDto[]>(`/v1/visitors${suffix}`);
+  }
+
+  async getVisitorProfile(id: string): Promise<VisitorProfileDto> {
+    return this.authedGet<VisitorProfileDto>(`/v1/visitors/${id}`);
   }
 
   private async authedGet<T>(path: string): Promise<T> {

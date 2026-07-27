@@ -9,3 +9,6 @@ export * from './visitor-page-view.entity';
 export * from './conversation-read.entity';
 export * from './knowledge-base-document.entity';
 export * from './knowledge-base-chunk.entity';
+export * from './automation-rule.entity';
+export * from './internal-note.entity';
+export * from './webhook.entity';

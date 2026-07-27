@@ -4,6 +4,7 @@ import { AiSuggestionPayload, MessagePayload, MessageSenderType, SocketEvent } f
 import { apiClient, ConversationDto } from '../api';
 import { ConversationMeta } from './ConversationMeta';
 import { CannedResponsesPicker } from './CannedResponsesPicker';
+import { InternalNotesPanel } from './InternalNotesPanel';
 
 const SUGGESTION_TIMEOUT_MS = 20_000;
 
@@ -133,6 +134,7 @@ export function ChatWindow({ conversation, socket, onConversationUpdated, onMess
       <div className="h-5 px-4 text-xs text-gray-500">
         {isVisitorTyping ? 'بازدیدکننده در حال تایپ است...' : ''}
       </div>
+      <InternalNotesPanel conversationId={conversation.id} />
       <div className="flex items-stretch border-t border-gray-200">
         <CannedResponsesPicker onPick={(content) => setDraft(content)} />
         <button

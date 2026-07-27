@@ -1,11 +1,12 @@
 import { Worker } from 'bullmq';
-import { AI_QUEUE_NAMES } from '@mira/shared-types';
+import { AI_QUEUE_NAMES, WEBHOOK_QUEUE_NAME } from '@mira/shared-types';
 import { config } from './config';
 import { pool } from './db';
 import { processEmbedDocument } from './jobs/embed-document';
 import { processBotReply } from './jobs/bot-reply';
 import { processSuggestReply } from './jobs/suggest-reply';
 import { processSummarizeConversation } from './jobs/summarize-conversation';
+import { processDispatchWebhook } from './jobs/dispatch-webhook';
 
 const connection = {
   host: config.redis.host,
@@ -28,6 +29,10 @@ const workers = [
     prefix: config.queuePrefix,
   }),
   new Worker(AI_QUEUE_NAMES.SummarizeConversation, (job) => processSummarizeConversation(job.data), {
+    connection,
+    prefix: config.queuePrefix,
+  }),
+  new Worker(WEBHOOK_QUEUE_NAME, (job) => processDispatchWebhook(job.data), {
     connection,
     prefix: config.queuePrefix,
   }),

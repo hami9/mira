@@ -27,6 +27,8 @@ import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { TokenService } from '../../common/token/token.service';
 import { RedisRateLimiterService } from '../../common/rate-limit/redis-rate-limiter.service';
 import { AiQueueService } from '../../common/queue/ai-queue.service';
+import { WebhookQueueService } from '../../common/queue/webhook-queue.service';
+import { AutomationService } from '../automation/automation.service';
 import {
   CONVERSATION_RESOLVED_EVENT,
   ConversationResolvedEvent,
@@ -66,6 +68,8 @@ export class ChatGateway
     private readonly agentsService: AgentsService,
     private readonly rateLimiter: RedisRateLimiterService,
     private readonly aiQueue: AiQueueService,
+    private readonly webhookQueue: WebhookQueueService,
+    private readonly automationService: AutomationService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -202,6 +206,13 @@ export class ChatGateway
 
     this.server.to(`conversation:${conversation.id}`).emit(SocketEvent.MessageNew, payload);
 
+    // وب‌هوک message.created (فاز ۶) — در صف، چون سرور گیرنده ممکنه کند یا از دسترس خارج باشه
+    await this.webhookQueue.enqueueDispatch({
+      siteId: conversation.siteId,
+      event: 'message.created',
+      payload: { ...payload },
+    });
+
     // اگه اپراتور پاسخ داده، یعنی مکالمه رو دیده — badge نخوانده براش صفر می‌شه
     if (isAgent && data.agentId) {
       await this.conversationsService.touchRead(conversation.id, data.agentId);
@@ -212,6 +223,14 @@ export class ChatGateway
       const escalated = containsUrgentKeywords(message.content)
         ? await this.conversationsService.escalateIfUrgent(conversation.id)
         : null;
+
+      // قوانین اتوماسیون (فاز ۶) — هم فقط کلیدواژه‌ست، پس روی مسیر زنده مشکلی نداره.
+      // بعد از escalation اجرا می‌شه و خودش مکالمه رو تازه می‌خونه، پس نوشتن قبلی گم نمی‌شه.
+      await this.automationService.evaluateAndApply(
+        conversation.siteId,
+        conversation.id,
+        message.content,
+      );
 
       // پیام مجزا (نه MessageNew) به کل سایت — چون اپراتورهایی که هم‌زمان در اتاق site و اتاق
       // همین conversation عضو هستن، با emit روی MessageNew پیام رو دوبار دریافت می‌کردن
@@ -254,6 +273,13 @@ export class ChatGateway
   @OnEvent(CONVERSATION_RESOLVED_EVENT)
   async handleConversationResolvedEvent(event: ConversationResolvedEvent): Promise<void> {
     this.broadcastConversationStatus(event.conversationId, event.siteId, ConversationStatus.RESOLVED);
+
+    // وب‌هوک conversation.resolved (فاز ۶)
+    await this.webhookQueue.enqueueDispatch({
+      siteId: event.siteId,
+      event: 'conversation.resolved',
+      payload: { conversationId: event.conversationId, resolvedAt: new Date().toISOString() },
+    });
 
     // خلاصه‌سازی خودکار فقط برای گفتگوهای «طولانی» ارزش AI-call رو داره (فاز ۴)
     const messageCount = await this.messagesService.countForConversation(event.conversationId);

@@ -6,9 +6,14 @@ import {
   type KnowledgeDocumentDto,
   type SiteSettingsDto,
   type TriggerMessageConfig,
+  type UpdateSiteSettingsDto,
   type Weekday,
 } from '@mira/shared-types';
 import { apiClient } from '../api';
+import { AutomationRulesSection } from './AutomationRulesSection';
+import { WebhooksSection } from './WebhooksSection';
+import { TwoFactorSection } from './TwoFactorSection';
+import { AiSettingsSection } from './AiSettingsSection';
 
 const KB_STATUS_LABELS: Record<string, string> = {
   pending: 'در حال پردازش...',
@@ -18,6 +23,7 @@ const KB_STATUS_LABELS: Record<string, string> = {
 
 interface SettingsPageProps {
   onClose: () => void;
+  isAdmin: boolean;
 }
 
 const WEEKDAY_LABELS: Record<Weekday, string> = {
@@ -38,7 +44,7 @@ function defaultBusinessHours(): BusinessHours {
   return { days };
 }
 
-export function SettingsPage({ onClose }: SettingsPageProps) {
+export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
   const [settings, setSettings] = useState<SiteSettingsDto | null>(null);
   const [businessHours, setBusinessHours] = useState<BusinessHours>(defaultBusinessHours());
   const [offlineMessage, setOfflineMessage] = useState('');
@@ -52,10 +58,6 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
 
-  const [aiEnabled, setAiEnabled] = useState(true);
-  const [aiSystemPrompt, setAiSystemPrompt] = useState('');
-  const [aiConfidenceThreshold, setAiConfidenceThreshold] = useState(0.6);
-
   const [knowledgeDocuments, setKnowledgeDocuments] = useState<KnowledgeDocumentDto[]>([]);
   const [newKbTitle, setNewKbTitle] = useState('');
   const [newKbContent, setNewKbContent] = useState('');
@@ -67,6 +69,8 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   const [newContent, setNewContent] = useState('');
 
   useEffect(() => {
+    // اپراتور غیر-ادمین فقط بخش 2FA خودش رو می‌بینه، پس تنظیمات سایت رو هم اصلاً نمی‌خونیم
+    if (!isAdmin) return;
     apiClient.getSiteSettings().then((data) => {
       setSettings(data);
       setBusinessHours(data.businessHours ?? defaultBusinessHours());
@@ -74,13 +78,10 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
       setTriggerMessage(data.triggerMessage);
       setWordpressSiteUrl(data.wordpressSiteUrl ?? '');
       setWordpressApiKey(data.wordpressApiKey ?? '');
-      setAiEnabled(data.aiEnabled);
-      setAiSystemPrompt(data.aiSystemPrompt ?? '');
-      setAiConfidenceThreshold(data.aiConfidenceThreshold);
     });
     apiClient.listCannedResponses().then(setCannedResponses);
     refreshKnowledgeDocuments();
-  }, []);
+  }, [isAdmin]);
 
   function refreshKnowledgeDocuments(): void {
     apiClient.listKnowledgeDocuments().then(setKnowledgeDocuments);
@@ -95,15 +96,19 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
         triggerMessage,
         wordpressSiteUrl: wordpressSiteUrl.trim() || null,
         wordpressApiKey: wordpressApiKey.trim() || null,
-        aiEnabled,
-        aiSystemPrompt: aiSystemPrompt.trim() || null,
-        aiConfidenceThreshold,
       });
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 2000);
     } finally {
       setSaving(false);
     }
+  }
+
+  // بخش هوش مصنوعی state خودش رو داره؛ بعد از ذخیره، نسخه‌ی سرور رو دوباره می‌خونیم تا
+  // settings والد هم با مقادیر واقعی ذخیره‌شده همگام بمونه
+  async function handleSaveAiSettings(patch: UpdateSiteSettingsDto): Promise<void> {
+    const updated = await apiClient.updateSiteSettings(patch);
+    setSettings(updated);
   }
 
   async function handleAddKnowledgeDocument(): Promise<void> {
@@ -151,6 +156,21 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     setCannedResponses((prev) => prev.filter((response) => response.id !== id));
   }
 
+  // اپراتور غیر-ادمین فقط تنظیمات امنیتی حساب خودش رو داره (تنظیمات سایت مخصوص ادمینه)
+  if (!isAdmin) {
+    return (
+      <div className="mx-auto max-w-2xl overflow-y-auto p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-gray-800">تنظیمات حساب من</h1>
+          <button onClick={onClose} className="text-sm text-blue-600">
+            بازگشت به داشبورد
+          </button>
+        </div>
+        <TwoFactorSection />
+      </div>
+    );
+  }
+
   if (!settings) {
     return <div className="p-4 text-sm text-gray-400">در حال بارگذاری تنظیمات...</div>;
   }
@@ -163,6 +183,8 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
           بازگشت به داشبورد
         </button>
       </div>
+
+      <TwoFactorSection />
 
       <section className="mb-6 rounded border border-gray-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-gray-700">ساعت کاری</h2>
@@ -279,46 +301,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
         </button>
       </section>
 
-      <section className="mb-6 rounded border border-gray-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-bold text-gray-700">ربات پاسخ‌گو (هوش مصنوعی)</h2>
-        <label className="mb-3 flex items-center gap-1 text-xs">
-          <input
-            type="checkbox"
-            checked={aiEnabled}
-            onChange={(e) => setAiEnabled(e.target.checked)}
-          />
-          فعال باشد — به مکالمه‌های بدون اپراتور از روی پایگاه دانش پاسخ بده
-        </label>
-        <div className="mb-3">
-          <label className="mb-1 block text-xs text-gray-600">شخصیت/دستورالعمل ربات (اختیاری)</label>
-          <textarea
-            value={aiSystemPrompt}
-            onChange={(e) => setAiSystemPrompt(e.target.value)}
-            placeholder="مثلاً: با لحن دوستانه و مثل یک فروشنده‌ی متخصص لوازم موبایل پاسخ بده."
-            className="w-full rounded border border-gray-300 p-2 text-xs"
-            rows={2}
-          />
-        </div>
-        <div className="mb-3 flex items-center gap-2 text-xs">
-          <span>آستانه‌ی اطمینان (پایین‌تر از این عدد، به اپراتور محول می‌شه)</span>
-          <input
-            type="number"
-            min={0}
-            max={1}
-            step={0.05}
-            value={aiConfidenceThreshold}
-            onChange={(e) => setAiConfidenceThreshold(Number(e.target.value))}
-            className="w-20 rounded border border-gray-300 p-1"
-          />
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-60"
-        >
-          {saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات'}
-        </button>
-      </section>
+      <AiSettingsSection settings={settings} onSave={handleSaveAiSettings} />
 
       <section className="mb-6 rounded border border-gray-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
@@ -372,6 +355,10 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
           </button>
         </div>
       </section>
+
+      <AutomationRulesSection />
+
+      <WebhooksSection />
 
       <section className="rounded border border-gray-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-gray-700">پاسخ‌های آماده</h2>

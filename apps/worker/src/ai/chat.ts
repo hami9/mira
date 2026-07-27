@@ -12,23 +12,36 @@ const anthropicClient = new Anthropic({ apiKey: config.ai.anthropicApiKey });
 
 // یک تابع واحد که بر اساس AI_PROVIDER بین OpenAI-compatible (شامل Gemini از طریق baseURL) و
 // Anthropic سوییچ می‌کنه — بقیه‌ی کد worker هیچ‌وقت مستقیم با SDK یک پرووایدر خاص کار نمی‌کنه
-export async function chatCompletion(messages: ChatMessage[], maxTokens = 1024): Promise<string> {
+export async function chatCompletion(
+  messages: ChatMessage[],
+  maxTokens = 1024,
+  temperature?: number,
+): Promise<string> {
   if (config.ai.chatProvider === 'anthropic') {
-    return anthropicChat(messages, maxTokens);
+    return anthropicChat(messages, maxTokens, temperature);
   }
-  return openaiChat(messages, maxTokens);
+  return openaiChat(messages, maxTokens, temperature);
 }
 
-async function openaiChat(messages: ChatMessage[], maxTokens: number): Promise<string> {
+async function openaiChat(
+  messages: ChatMessage[],
+  maxTokens: number,
+  temperature?: number,
+): Promise<string> {
   const response = await openaiClient.chat.completions.create({
     model: config.ai.openaiModel,
     messages,
     max_tokens: maxTokens,
+    ...(temperature !== undefined ? { temperature } : {}),
   });
   return response.choices[0]?.message?.content?.trim() ?? '';
 }
 
-async function anthropicChat(messages: ChatMessage[], maxTokens: number): Promise<string> {
+async function anthropicChat(
+  messages: ChatMessage[],
+  maxTokens: number,
+  temperature?: number,
+): Promise<string> {
   const systemPrompt = messages
     .filter((m) => m.role === 'system')
     .map((m) => m.content)
@@ -42,6 +55,7 @@ async function anthropicChat(messages: ChatMessage[], maxTokens: number): Promis
     max_tokens: maxTokens,
     system: systemPrompt || undefined,
     messages: conversation,
+    ...(temperature !== undefined ? { temperature } : {}),
   });
   const block = response.content[0];
   return block?.type === 'text' ? block.text.trim() : '';

@@ -1,8 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UpdateSiteSettingsDto } from '@mira/shared-types';
+import { randomBytes, createHash } from 'node:crypto';
+import { GeneratedApiKeyDto, PublicApiKeyStatusDto, UpdateSiteSettingsDto } from '@mira/shared-types';
 import { SiteEntity } from '../../database/entities';
+
+const API_KEY_PREFIX = 'mira_';
+
+function hashApiKey(key: string): string {
+  return createHash('sha256').update(key).digest('hex');
+}
 
 // نگهدارنده کش سبک دامنه‌های مجاز همه‌ی سایت‌ها، برای چک سریع CORS در هندشیک Socket.io
 // بدون این‌که هر اتصال مجبور به یک کوئری دیتابیس باشه
@@ -45,6 +52,35 @@ export class SitesService {
     // اگه allowedDomains تغییر کرده باشه، کش رو باطل کن تا فوراً اعمال بشه (نه بعد از TTL)
     this.allDomainsCache = null;
     return saved;
+  }
+
+  // فقط hash نگه داشته می‌شه (مثل passwordHash اپراتور)؛ کلید واقعی فقط همین یک‌بار برگردونده می‌شه
+  async generateApiKey(siteId: string): Promise<GeneratedApiKeyDto> {
+    const site = await this.findById(siteId);
+    const apiKey = `${API_KEY_PREFIX}${randomBytes(24).toString('hex')}`;
+    const keyPrefix = apiKey.slice(0, 12);
+    site.apiKeyHash = hashApiKey(apiKey);
+    site.apiKeyPrefix = keyPrefix;
+    site.apiKeyCreatedAt = new Date();
+    await this.sitesRepository.save(site);
+    return { apiKey, keyPrefix };
+  }
+
+  async revokeApiKey(siteId: string): Promise<void> {
+    await this.sitesRepository.update({ id: siteId }, { apiKeyHash: null, apiKeyPrefix: null, apiKeyCreatedAt: null });
+  }
+
+  async getApiKeyStatus(siteId: string): Promise<PublicApiKeyStatusDto> {
+    const site = await this.findById(siteId);
+    return {
+      hasKey: !!site.apiKeyHash,
+      keyPrefix: site.apiKeyPrefix,
+      createdAt: site.apiKeyCreatedAt ? site.apiKeyCreatedAt.toISOString() : null,
+    };
+  }
+
+  async findByApiKey(apiKey: string): Promise<SiteEntity | null> {
+    return this.sitesRepository.findOne({ where: { apiKeyHash: hashApiKey(apiKey) } });
   }
 
   isDomainAllowed(site: SiteEntity, origin: string): boolean {

@@ -6,7 +6,7 @@ import { publishSocketEvent } from '../redis-bridge';
 
 const HISTORY_LIMIT = 10;
 const RETRIEVAL_LIMIT = 5;
-const HANDOFF_MESSAGE =
+const DEFAULT_HANDOFF_MESSAGE =
   'ممنون از پیامتون 🙏 برای پاسخ دقیق‌تر شما رو به یکی از همکارانم وصل می‌کنم، لحظاتی صبر کنید.';
 
 const DEFAULT_SYSTEM_PROMPT =
@@ -22,15 +22,21 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
   const site = await getSite(data.siteId);
   if (!site || !site.aiEnabled) return;
 
+  const handoffMessage = site.aiHandoffMessage?.trim() || DEFAULT_HANDOFF_MESSAGE;
+
   const conversation = await getConversation(data.conversationId);
   // اگه بین enqueue و پردازش یک اپراتور مکالمه رو claim کرده باشه، ربات دیگه دخالت نمی‌کنه
   if (!conversation || conversation.assignedAgentId) return;
+
+  // سقف پاسخ ربات در هر مکالمه (کنترل هزینه) — بعد از رسیدن به سقف، مکالمه دست انسان می‌مونه
+  const botReplyCount = await countBotReplies(data.conversationId);
+  if (botReplyCount >= site.aiMaxRepliesPerConversation) return;
 
   const visitorMessage = await getMessage(data.visitorMessageId);
   if (!visitorMessage) return;
 
   if (containsHumanRequestKeywords(visitorMessage.content)) {
-    await postBotMessage(data.siteId, data.conversationId, HANDOFF_MESSAGE);
+    await postBotMessage(data.siteId, data.conversationId, handoffMessage);
     return;
   }
 
@@ -59,11 +65,11 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
     ...history,
   ];
 
-  const raw = await chatCompletion(messages);
+  const raw = await chatCompletion(messages, site.aiMaxTokens, site.aiTemperature);
   const { confidence, answer } = parseModelOutput(raw);
 
   if (confidence === null || answer === '' || confidence < site.aiConfidenceThreshold) {
-    await postBotMessage(data.siteId, data.conversationId, HANDOFF_MESSAGE);
+    await postBotMessage(data.siteId, data.conversationId, handoffMessage);
     return;
   }
 
@@ -106,14 +112,32 @@ async function getRecentHistory(conversationId: string): Promise<ChatMessage[]> 
   }));
 }
 
-async function getSite(
-  siteId: string,
-): Promise<{ aiEnabled: boolean; aiSystemPrompt: string | null; aiConfidenceThreshold: number } | null> {
-  const result = await pool.query(
-    `SELECT "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold" FROM sites WHERE id = $1`,
+interface SiteAiSettings {
+  aiEnabled: boolean;
+  aiSystemPrompt: string | null;
+  aiConfidenceThreshold: number;
+  aiHandoffMessage: string | null;
+  aiTemperature: number;
+  aiMaxTokens: number;
+  aiMaxRepliesPerConversation: number;
+}
+
+async function getSite(siteId: string): Promise<SiteAiSettings | null> {
+  const result = await pool.query<SiteAiSettings>(
+    `SELECT "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold", "aiHandoffMessage",
+            "aiTemperature", "aiMaxTokens", "aiMaxRepliesPerConversation"
+     FROM sites WHERE id = $1`,
     [siteId],
   );
   return result.rows[0] ?? null;
+}
+
+async function countBotReplies(conversationId: string): Promise<number> {
+  const result = await pool.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM messages WHERE "conversationId" = $1 AND "senderType" = 'bot'`,
+    [conversationId],
+  );
+  return parseInt(result.rows[0]?.count ?? '0', 10);
 }
 
 async function getConversation(

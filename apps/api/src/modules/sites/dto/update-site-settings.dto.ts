@@ -100,4 +100,43 @@ export class UpdateSiteSettingsRequestDto implements UpdateSiteSettingsDto {
   @Min(0)
   @Max(1)
   aiConfidenceThreshold?: number;
+
+  @IsOptional()
+  @IsString()
+  aiBotName?: string;
+
+  @IsOptional()
+  @IsString()
+  aiBotAvatarUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  aiGreetingMessage?: string | null;
+
+  @IsOptional()
+  @IsString()
+  aiHandoffMessage?: string | null;
+
+  // بالاتر از ۱ برای یک ربات پشتیبانی معنی ندارد (پاسخ‌ها بی‌ثبات و غیرقابل‌اتکا می‌شوند)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  aiTemperature?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(100)
+  @Max(4000)
+  aiMaxTokens?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  aiMaxRepliesPerConversation?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  aiReplyOnlyOutsideBusinessHours?: boolean;
 }

@@ -30,6 +30,11 @@ export class MessageEntity {
   @Column({ type: 'varchar', length: 1024, nullable: true })
   attachmentUrl!: string | null;
 
+  // شناسه‌ی تولیدشده توسط کلاینت برای idempotency — اگر کلاینت به‌خاطر قطعی شبکه
+  // همان پیام را دوباره بفرستد، پیام تکراری ساخته نمی‌شود (فاز ۷)
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  clientMessageId!: string | null;
+
   @Index()
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

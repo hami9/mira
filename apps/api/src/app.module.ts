@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './common/redis/redis.module';
 import { AiQueueModule } from './common/queue/ai-queue.module';
 import { WebhookQueueModule } from './common/queue/webhook-queue.module';
+import { PermissionsModule } from './common/guards/permissions.module';
 import { HealthModule } from './modules/health/health.module';
 import { SitesModule } from './modules/sites/sites.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -35,6 +36,8 @@ import { PublicApiModule } from './modules/public-api/public-api.module';
     AiQueueModule,
     WebhookQueueModule,
     DatabaseModule,
+    // بعد از DatabaseModule چون به AgentEntity نیاز دارد
+    PermissionsModule,
     HealthModule,
     SitesModule,
     AuthModule,

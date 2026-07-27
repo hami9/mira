@@ -132,6 +132,11 @@ export class VisitorsController {
     @Param('id') conversationId: string,
     @Query('before') before?: string,
   ) {
+    // سقف روی خواندن تاریخچه هم لازم است تا کسی با توکن معتبر، تاریخچه را در حلقه نکشد
+    const allowed = await this.rateLimiter.consume(`widget-history:${visitor.sub}`, 60, 60);
+    if (!allowed) {
+      throw new HttpException('درخواست بیش از حد مجاز', HttpStatus.TOO_MANY_REQUESTS);
+    }
     await this.conversationsService.ensureVisitorOwnsConversation(conversationId, visitor.sub);
     return this.messagesService.listForConversation(conversationId, { before });
   }
@@ -144,6 +149,10 @@ export class VisitorsController {
     @Param('id') conversationId: string,
     @Body() dto: SubmitCsatRequestDto,
   ): Promise<void> {
+    const allowed = await this.rateLimiter.consume(`widget-csat:${visitor.sub}`, 10, 60);
+    if (!allowed) {
+      throw new HttpException('درخواست بیش از حد مجاز', HttpStatus.TOO_MANY_REQUESTS);
+    }
     await this.conversationsService.submitCsatAsVisitor(
       conversationId,
       visitor.sub,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { AgentRole } from '@mira/shared-types';
+import { AgentRole, hasPermission, type AgentPermission, type AgentPermissionMap } from '@mira/shared-types';
 import { apiClient, ConversationDto, ListConversationsParams } from './api';
 import { connectDashboardSocket } from './socket';
 import { decodeJwtPayload } from './jwt';
@@ -36,6 +36,7 @@ type DashboardView =
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [myPermissions, setMyPermissions] = useState<AgentPermissionMap>({});
   const [view, setView] = useState<DashboardView>('inbox');
   // اپراتوری که پروفایلش باز است؛ null یعنی پروفایل خودِ کاربر وارد‌شده
   const [viewedAgentId, setViewedAgentId] = useState<string | null>(null);
@@ -118,6 +119,16 @@ export default function App() {
     const token = apiClient.getAccessToken();
     const payload = token ? decodeJwtPayload<{ role: string }>(token) : null;
     setIsAdmin(payload?.role === AgentRole.ADMIN);
+    // دسترسی‌ها در توکن نیستند (تا لغوشان فوری اثر کند)، پس از سرور می‌گیریم.
+    // این فقط برای نمایش/مخفی‌کردن منوهاست — تصمیم واقعی همیشه سمت سرور گرفته می‌شود.
+    apiClient
+      .getMyProfile()
+      .then((profile) => setMyPermissions(profile.permissions ?? {}))
+      .catch(() => setMyPermissions({}));
+  }
+
+  function can(permission: AgentPermission): boolean {
+    return hasPermission(isAdmin ? 'admin' : 'agent', myPermissions, permission);
   }
 
   function markConversationSeenLocally(conversationId: string): void {
@@ -159,7 +170,16 @@ export default function App() {
   }
 
   if (view === 'settings') {
-    return <SettingsPage onClose={() => setView('inbox')} isAdmin={isAdmin} />;
+    return (
+      <SettingsPage
+        onClose={() => setView('inbox')}
+        canManageSiteSettings={can('manageSiteSettings')}
+        canManageKnowledgeBase={can('manageKnowledgeBase')}
+        canManageAutomation={can('manageAutomation')}
+        canManageCannedResponses={can('manageCannedResponses')}
+        canManageWebhooks={can('manageWebhooks')}
+      />
+    );
   }
 
   if (view === 'reports') {
@@ -236,27 +256,30 @@ export default function App() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white p-3 text-sm font-bold text-gray-700">
         داشبورد اپراتور میرا
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setView('visitors-online')}
-            className="text-xs font-normal text-blue-600"
-          >
-            بازدیدکنندگان
-          </button>
+          {can('viewVisitors') && (
+            <button
+              onClick={() => setView('visitors-online')}
+              className="text-xs font-normal text-blue-600"
+            >
+              بازدیدکنندگان
+            </button>
+          )}
+          {/* مدیریت اپراتورها عمداً فقط ادمین است و به permission واگذار نمی‌شود */}
           {isAdmin && (
-            <>
-              <button
-                onClick={() => setView('agents')}
-                className="text-xs font-normal text-blue-600"
-              >
-                اپراتورها
-              </button>
-              <button
-                onClick={() => setView('reports')}
-                className="text-xs font-normal text-blue-600"
-              >
-                گزارش‌ها
-              </button>
-            </>
+            <button
+              onClick={() => setView('agents')}
+              className="text-xs font-normal text-blue-600"
+            >
+              اپراتورها
+            </button>
+          )}
+          {can('viewReports') && (
+            <button
+              onClick={() => setView('reports')}
+              className="text-xs font-normal text-blue-600"
+            >
+              گزارش‌ها
+            </button>
           )}
           <button
             onClick={() => {

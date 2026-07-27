@@ -349,6 +349,10 @@ class ApiClient {
     return this.authedGet<VisitorProfileDto>(`/v1/visitors/${id}`);
   }
 
+  async deleteVisitorData(id: string): Promise<void> {
+    await this.authedDelete(`/v1/visitors/${id}`);
+  }
+
   private async authedGet<T>(path: string): Promise<T> {
     const response = await fetch(`${API_URL}${path}`, {
       headers: { Authorization: `Bearer ${this.accessToken}` },

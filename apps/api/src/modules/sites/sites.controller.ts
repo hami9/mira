@@ -1,59 +1,52 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Patch, Post, UseGuards } from '@nestjs/common';
-import { AgentRole, SiteSettingsDto } from '@mira/shared-types';
+import { Body, Controller, Delete, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { SiteSettingsDto } from '@mira/shared-types';
 import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
+import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { SitesService } from './sites.service';
 import { UpdateSiteSettingsRequestDto } from './dto/update-site-settings.dto';
 import { SiteEntity } from '../../database/entities';
 
 @Controller('v1/sites/me')
-@UseGuards(AgentJwtGuard)
 export class SitesController {
   constructor(private readonly sitesService: SitesService) {}
 
+  // خواندن تنظیمات برای همه‌ی اپراتورها بازه (ساعت کاری، نام سایت و ... را لازم دارند)
   @Get()
+  @UseGuards(AgentJwtGuard)
   async getSettings(@CurrentAgent() agent: AgentAccessTokenPayload): Promise<SiteSettingsDto> {
     const site = await this.sitesService.findById(agent.siteId);
     return this.toSettingsDto(site);
   }
 
   @Patch()
+  @RequirePermission('manageSiteSettings')
   async updateSettings(
     @CurrentAgent() agent: AgentAccessTokenPayload,
     @Body() dto: UpdateSiteSettingsRequestDto,
   ): Promise<SiteSettingsDto> {
-    // فقط ادمین اجازه‌ی تغییر تنظیمات سایت (ساعت کاری، دامنه‌ها و ...) رو داره
-    if (agent.role !== AgentRole.ADMIN) {
-      throw new ForbiddenException('فقط ادمین می‌تواند تنظیمات سایت را تغییر دهد');
-    }
     const site = await this.sitesService.updateSettings(agent.siteId, dto);
     return this.toSettingsDto(site);
   }
 
   @Get('api-key')
+  @RequirePermission('manageWebhooks')
   getApiKeyStatus(@CurrentAgent() agent: AgentAccessTokenPayload) {
-    this.assertAdmin(agent);
     return this.sitesService.getApiKeyStatus(agent.siteId);
   }
 
   // کلید واقعی فقط همین یک بار در پاسخ همین درخواست برمی‌گرده؛ بعدش فقط prefix قابل‌مشاهده‌ست
   @Post('api-key')
+  @RequirePermission('manageWebhooks')
   generateApiKey(@CurrentAgent() agent: AgentAccessTokenPayload) {
-    this.assertAdmin(agent);
     return this.sitesService.generateApiKey(agent.siteId);
   }
 
   @Delete('api-key')
+  @RequirePermission('manageWebhooks')
   revokeApiKey(@CurrentAgent() agent: AgentAccessTokenPayload) {
-    this.assertAdmin(agent);
     return this.sitesService.revokeApiKey(agent.siteId);
-  }
-
-  private assertAdmin(agent: AgentAccessTokenPayload): void {
-    if (agent.role !== AgentRole.ADMIN) {
-      throw new ForbiddenException('فقط ادمین می‌تواند کلید API را مدیریت کند');
-    }
   }
 
   private toSettingsDto(site: SiteEntity): SiteSettingsDto {

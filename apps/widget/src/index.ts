@@ -3,7 +3,7 @@ import type { Socket } from 'socket.io-client';
 import { WidgetApi } from './api';
 import { connectWidgetSocket } from './socket';
 import { WidgetUi } from './ui';
-import { getStoredVisitorRef, storeVisitorRef } from './storage';
+import { getStoredVisitorRef, newClientMessageId, storeVisitorRef } from './storage';
 
 interface WidgetConfig {
   widgetKey: string;
@@ -68,7 +68,13 @@ async function main(): Promise<void> {
             socket?.emit(SocketEvent.ConversationJoin, { conversationId });
           }
           // پیام خودمون رو اینجا رندر نمی‌کنیم؛ سرور همون پیام رو به همین اتاق پخش می‌کنه (تک منبع حقیقت)
-          socket?.emit(SocketEvent.MessageSend, { conversationId, content });
+          // clientMessageId برای idempotency: اگه سوکت وسط ارسال قطع/وصل شه و پیام دوباره
+          // فرستاده شه، سرور پیام تکراری نمی‌سازه (فاز ۷)
+          socket?.emit(SocketEvent.MessageSend, {
+            conversationId,
+            content,
+            clientMessageId: newClientMessageId(),
+          });
         } catch {
           ui.showError('ارسال پیام ناموفق بود، دوباره تلاش کنید');
         }

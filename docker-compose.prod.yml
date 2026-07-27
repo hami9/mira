@@ -1,0 +1,87 @@
+# لایه‌ی پروداکشن — روی docker-compose.yml اعمال می‌شود، جایگزینش نمی‌شود:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# تفاوت‌های اصلی با توسعه:
+#   ۱) هیچ پورت دیتابیسی/Redis/MinIO روی اینترنت باز نیست — فقط Caddy پورت ۸۰/۴۴۳ دارد
+#   ۲) SSL خودکار با Let's Encrypt توسط Caddy
+#   ۳) چرخش لاگ (log rotation) روی همه‌ی سرویس‌ها
+#   ۴) بک‌آپ دوره‌ی خودکار Postgres
+name: mira
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: mira_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      # دامنه‌ها از .env خوانده می‌شوند تا Caddyfile نیازی به ویرایش دستی نداشته باشد
+      APP_DOMAIN: ${APP_DOMAIN}
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      - api
+      - dashboard
+    logging: &default_logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  postgres:
+    # در پروداکشن پورت روی هاست باز نمی‌شود؛ فقط سرویس‌های داخل شبکه به آن می‌رسند
+    ports: !override []
+    logging: *default_logging
+
+  redis:
+    ports: !override []
+    logging: *default_logging
+
+  minio:
+    ports: !override []
+    logging: *default_logging
+
+  api:
+    # API فقط از پشت Caddy در دسترس است، نه مستقیم از اینترنت
+    ports: !override []
+    environment:
+      NODE_ENV: production
+    logging: *default_logging
+
+  worker:
+    environment:
+      NODE_ENV: production
+    logging: *default_logging
+
+  dashboard:
+    ports: !override []
+    logging: *default_logging
+
+  # بک‌آپ روزانه‌ی Postgres با نگه‌داری ۱۴ روز آخر
+  postgres_backup:
+    image: postgres:16-alpine
+    container_name: mira_postgres_backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_RETENTION_DAYS: "14"
+    volumes:
+      - ./backups:/backups
+      - ./deploy/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    logging: *default_logging
+
+volumes:
+  caddy_data:
+  caddy_config:

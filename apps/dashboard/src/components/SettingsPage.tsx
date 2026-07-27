@@ -23,7 +23,11 @@ const KB_STATUS_LABELS: Record<string, string> = {
 
 interface SettingsPageProps {
   onClose: () => void;
-  isAdmin: boolean;
+  canManageSiteSettings: boolean;
+  canManageKnowledgeBase: boolean;
+  canManageAutomation: boolean;
+  canManageCannedResponses: boolean;
+  canManageWebhooks: boolean;
 }
 
 const WEEKDAY_LABELS: Record<Weekday, string> = {
@@ -44,7 +48,21 @@ function defaultBusinessHours(): BusinessHours {
   return { days };
 }
 
-export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
+export function SettingsPage({
+  onClose,
+  canManageSiteSettings,
+  canManageKnowledgeBase,
+  canManageAutomation,
+  canManageCannedResponses,
+  canManageWebhooks,
+}: SettingsPageProps) {
+  // هر بخش تنظیمات دسترسی خودش را دارد؛ اگر اپراتور هیچ‌کدام را نداشته باشد فقط 2FA خودش را می‌بیند
+  const hasAnySettingsAccess =
+    canManageSiteSettings ||
+    canManageKnowledgeBase ||
+    canManageAutomation ||
+    canManageCannedResponses ||
+    canManageWebhooks;
   const [settings, setSettings] = useState<SiteSettingsDto | null>(null);
   const [businessHours, setBusinessHours] = useState<BusinessHours>(defaultBusinessHours());
   const [offlineMessage, setOfflineMessage] = useState('');
@@ -70,7 +88,7 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
 
   useEffect(() => {
     // اپراتور غیر-ادمین فقط بخش 2FA خودش رو می‌بینه، پس تنظیمات سایت رو هم اصلاً نمی‌خونیم
-    if (!isAdmin) return;
+    if (!hasAnySettingsAccess) return;
     apiClient.getSiteSettings().then((data) => {
       setSettings(data);
       setBusinessHours(data.businessHours ?? defaultBusinessHours());
@@ -81,7 +99,7 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
     });
     apiClient.listCannedResponses().then(setCannedResponses);
     refreshKnowledgeDocuments();
-  }, [isAdmin]);
+  }, [hasAnySettingsAccess]);
 
   function refreshKnowledgeDocuments(): void {
     apiClient.listKnowledgeDocuments().then(setKnowledgeDocuments);
@@ -156,8 +174,8 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
     setCannedResponses((prev) => prev.filter((response) => response.id !== id));
   }
 
-  // اپراتور غیر-ادمین فقط تنظیمات امنیتی حساب خودش رو داره (تنظیمات سایت مخصوص ادمینه)
-  if (!isAdmin) {
+  // اپراتوری که هیچ دسترسی تنظیماتی ندارد، فقط بخش امنیتی حساب خودش را می‌بیند
+  if (!hasAnySettingsAccess) {
     return (
       <div className="mx-auto max-w-2xl overflow-y-auto p-6">
         <div className="mb-4 flex items-center justify-between">
@@ -186,6 +204,7 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
 
       <TwoFactorSection />
 
+      {canManageSiteSettings && (
       <section className="mb-6 rounded border border-gray-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-gray-700">ساعت کاری</h2>
         {WEEKDAYS.map((day) => (
@@ -263,7 +282,9 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
         </button>
         {savedNotice && <span className="mr-3 text-xs text-green-600">ذخیره شد ✓</span>}
       </section>
+      )}
 
+      {canManageSiteSettings && (
       <section className="mb-6 rounded border border-gray-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-gray-700">اتصال وردپرس/ووکامرس</h2>
         <p className="mb-3 text-gray-500">
@@ -300,9 +321,13 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
           {saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات'}
         </button>
       </section>
+      )}
 
-      <AiSettingsSection settings={settings} onSave={handleSaveAiSettings} />
+      {canManageSiteSettings && (
+        <AiSettingsSection settings={settings} onSave={handleSaveAiSettings} />
+      )}
 
+      {canManageKnowledgeBase && (
       <section className="mb-6 rounded border border-gray-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-700">پایگاه دانش (منبع پاسخ ربات)</h2>
@@ -355,11 +380,13 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
           </button>
         </div>
       </section>
+      )}
 
-      <AutomationRulesSection />
+      {canManageAutomation && <AutomationRulesSection />}
 
-      <WebhooksSection />
+      {canManageWebhooks && <WebhooksSection />}
 
+      {canManageCannedResponses && (
       <section className="rounded border border-gray-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-gray-700">پاسخ‌های آماده</h2>
         {cannedResponses.map((response) => (
@@ -409,6 +436,7 @@ export function SettingsPage({ onClose, isAdmin }: SettingsPageProps) {
           </button>
         </div>
       </section>
+      )}
     </div>
   );
 }

@@ -11,6 +11,15 @@ export interface CreateMessageInput {
   senderType: MessageSenderType;
   senderId: string | null;
   rawContent: string;
+  // شناسه‌ی تولیدشده توسط کلاینت؛ اگر ست شود، ارسال دوباره‌ی همان پیام تکراری ایجاد نمی‌کند
+  clientMessageId?: string | null;
+}
+
+// کد خطای Postgres برای نقض قید یکتایی
+const PG_UNIQUE_VIOLATION = '23505';
+
+function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: string })?.code === PG_UNIQUE_VIOLATION;
 }
 
 export interface ListMessagesOptions {
@@ -29,6 +38,15 @@ export class MessagesService {
   ) {}
 
   async create(input: CreateMessageInput): Promise<MessageEntity> {
+    // Idempotency (فاز ۷): اگر کلاینت به‌خاطر قطعی شبکه همان پیام را دوباره بفرستد،
+    // به‌جای ساختن پیام تکراری همان پیام قبلی برگردانده می‌شود.
+    if (input.clientMessageId) {
+      const existing = await this.messagesRepository.findOne({
+        where: { conversationId: input.conversationId, clientMessageId: input.clientMessageId },
+      });
+      if (existing) return existing;
+    }
+
     // محتوا همیشه پیش از ذخیره sanitize می‌شه — نقطه‌ی واحد جلوگیری از XSS ذخیره‌شده
     const content = sanitizeMessageContent(input.rawContent);
     const message = this.messagesRepository.create({
@@ -37,8 +55,22 @@ export class MessagesService {
       senderType: input.senderType,
       senderId: input.senderId,
       content,
+      clientMessageId: input.clientMessageId ?? null,
     });
-    return this.messagesRepository.save(message);
+
+    try {
+      return await this.messagesRepository.save(message);
+    } catch (error) {
+      // رقابت بین دو ارسال هم‌زمان با یک clientMessageId: ایندکس یکتا جلوی درج دوم را می‌گیرد،
+      // پس همان ردیفی که برنده شده را برمی‌گردانیم (به‌جای پرت‌کردن خطا به کاربر)
+      if (input.clientMessageId && isUniqueViolation(error)) {
+        const existing = await this.messagesRepository.findOne({
+          where: { conversationId: input.conversationId, clientMessageId: input.clientMessageId },
+        });
+        if (existing) return existing;
+      }
+      throw error;
+    }
   }
 
   async countForConversation(conversationId: string): Promise<number> {

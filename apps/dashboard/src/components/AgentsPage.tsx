@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   AGENT_PERMISSIONS,
+  PERMISSION_DESCRIPTIONS,
+  PERMISSION_GROUPS,
   PERMISSION_LABELS,
+  PERMISSION_PRESETS,
   type AgentDto,
   type AgentPermission,
   type AgentPermissionMap,
@@ -88,14 +91,7 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
     }
   }
 
-  async function handlePermissionToggle(
-    agent: AgentDto,
-    permission: AgentPermission,
-  ): Promise<void> {
-    const next: AgentPermissionMap = {
-      ...agent.permissions,
-      [permission]: !agent.permissions?.[permission],
-    };
+  async function savePermissions(agent: AgentDto, next: AgentPermissionMap): Promise<void> {
     setError(null);
     try {
       const updated = await apiClient.updateAgent(agent.id, { permissions: next });
@@ -103,6 +99,28 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تغییر دسترسی با خطا مواجه شد');
     }
+  }
+
+  function handlePermissionToggle(agent: AgentDto, permission: AgentPermission): Promise<void> {
+    return savePermissions(agent, {
+      ...agent.permissions,
+      [permission]: !agent.permissions?.[permission],
+    });
+  }
+
+  function handleApplyPreset(agent: AgentDto, permissions: AgentPermission[]): Promise<void> {
+    // الگو جایگزین کامل می‌شود (نه ادغام) تا نتیجه دقیقاً همان چیزی باشد که در توضیح الگو نوشته شده
+    const next: AgentPermissionMap = {};
+    for (const permission of permissions) next[permission] = true;
+    return savePermissions(agent, next);
+  }
+
+  function handleClearPermissions(agent: AgentDto): Promise<void> {
+    return savePermissions(agent, {});
+  }
+
+  function countGranted(agent: AgentDto): number {
+    return AGENT_PERMISSIONS.filter((p) => agent.permissions?.[p] === true).length;
   }
 
   async function handleDelete(agent: AgentDto): Promise<void> {
@@ -261,6 +279,11 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                   className="text-blue-600"
                 >
                   دسترسی‌ها
+                  {agent.role !== 'admin' && (
+                    <span className="mr-1 rounded bg-blue-100 px-1 text-[10px] text-blue-800">
+                      {countGranted(agent)}
+                    </span>
+                  )}
                 </button>
                 <button onClick={() => handleDelete(agent)} className="text-red-600">
                   حذف
@@ -276,18 +299,61 @@ export function AgentsPage({ onClose, onOpenProfile }: AgentsPageProps) {
                     برای محدود کردن، ابتدا نقش را به «اپراتور» تغییر دهید.
                   </p>
                 ) : (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {AGENT_PERMISSIONS.map((permission) => (
-                      <label key={permission} className="flex items-center gap-2 text-xs text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={agent.permissions?.[permission] === true}
-                          onChange={() => handlePermissionToggle(agent, permission)}
-                        />
-                        {PERMISSION_LABELS[permission]}
-                      </label>
+                  <>
+                    <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-3">
+                      <span className="text-[11px] font-bold text-gray-600">الگوی آماده:</span>
+                      {PERMISSION_PRESETS.map((preset) => (
+                        <button
+                          key={preset.name}
+                          onClick={() => handleApplyPreset(agent, preset.permissions)}
+                          title={preset.description}
+                          className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] text-blue-800 hover:bg-blue-100"
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handleClearPermissions(agent)}
+                        className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 hover:bg-gray-100"
+                      >
+                        پاک کردن همه
+                      </button>
+                    </div>
+
+                    {PERMISSION_GROUPS.map((group) => (
+                      <div key={group.title} className="mb-3">
+                        <div className="mb-1.5 text-[11px] font-bold text-gray-700">
+                          {group.title}
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {group.permissions.map((permission) => (
+                            <label
+                              key={permission}
+                              className="flex cursor-pointer items-start gap-2 rounded bg-white p-2 text-xs text-gray-700 hover:bg-blue-50"
+                            >
+                              <input
+                                type="checkbox"
+                                className="mt-0.5"
+                                checked={agent.permissions?.[permission] === true}
+                                onChange={() => handlePermissionToggle(agent, permission)}
+                              />
+                              <span>
+                                {PERMISSION_LABELS[permission]}
+                                <span className="block text-[10px] text-gray-400">
+                                  {PERMISSION_DESCRIPTIONS[permission]}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     ))}
-                  </div>
+
+                    <p className="text-[10px] text-gray-500">
+                      تغییرات بلافاصله ذخیره و اعمال می‌شوند — نیازی به خروج و ورود دوباره‌ی اپراتور نیست.
+                      «مدیریت اپراتورها» عمداً قابل واگذاری نیست و همیشه فقط دست ادمین است.
+                    </p>
+                  </>
                 )}
               </div>
             )}

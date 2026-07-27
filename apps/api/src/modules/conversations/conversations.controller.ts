@@ -4,6 +4,7 @@ import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
 import { AiQueueService } from '../../common/queue/ai-queue.service';
+import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { ConversationsService } from './conversations.service';
 import { UpdateConversationRequestDto } from './dto/update-conversation.dto';
 
@@ -53,6 +54,7 @@ export class ConversationsController {
   }
 
   @Post(':id/resolve')
+  @RequirePermission('resolveConversations')
   resolve(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
     return this.conversationsService.resolve(id, agent.siteId);
   }

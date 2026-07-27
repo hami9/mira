@@ -84,6 +84,19 @@ export class VisitorsDirectoryService {
     }));
   }
 
+  // حذف کامل داده‌ی یک بازدیدکننده برای درخواست‌های حریم خصوصی (فاز ۷).
+  // مکالمات/پیام‌ها/CSAT/page-viewها همگی با ON DELETE CASCADE پاک می‌شوند، پس یک DELETE کافی است.
+  async deleteVisitorData(siteId: string, visitorId: string): Promise<{ deleted: boolean }> {
+    const result = await this.dataSource.query(
+      `DELETE FROM visitors WHERE id = $1 AND "siteId" = $2 RETURNING id`,
+      [visitorId, siteId],
+    );
+    if (result.length === 0) {
+      throw new NotFoundException('بازدیدکننده پیدا نشد');
+    }
+    return { deleted: true };
+  }
+
   async getProfile(siteId: string, visitorId: string): Promise<VisitorProfileDto> {
     const [visitor] = await this.dataSource.query(
       `SELECT id, "visitorRef", name, email, "userAgent", "firstSeenAt", "lastSeenAt",

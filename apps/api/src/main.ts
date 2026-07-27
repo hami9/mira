@@ -7,6 +7,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './modules/chat/redis-io.adapter';
 import { SitesService } from './modules/sites/sites.service';
+import { createSecurityHeadersMiddleware } from './common/security/security-headers.middleware';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -14,6 +15,15 @@ async function bootstrap(): Promise<void> {
   const sitesService = app.get(SitesService);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  // هدرهای امنیتی باید *پیش از* useStaticAssets ثبت شوند، وگرنه فایل‌های استاتیک
+  // (از جمله صفحه‌ی دمو ویجت) بدون هیچ هدر امنیتی سرو می‌شوند — با تست واقعی تأیید شد.
+  app.use(
+    createSecurityHeadersMiddleware({
+      publicApiUrl: config.get<string>('PUBLIC_API_URL', ''),
+      isProduction: config.get<string>('NODE_ENV') === 'production',
+    }),
+  );
 
   // فایل‌های استاتیک صفحه دمو ویجت (فقط برای تست دستی فاز ۱ — در تولید واقعی از CDN/هاست جدا سرو می‌شه)
   app.useStaticAssets(join(__dirname, '..', 'public'));

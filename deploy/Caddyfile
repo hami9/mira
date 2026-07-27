@@ -1,0 +1,37 @@
+# Caddy به‌صورت خودکار گواهی Let's Encrypt می‌گیرد و تمدید می‌کند — نیازی به certbot یا cron نیست.
+{
+	email {$ACME_EMAIL}
+}
+
+# دامنه‌ی API و ویجت (این همان دامنه‌ای است که در PUBLIC_API_URL می‌گذارید)
+{$APP_DOMAIN} {
+	encode gzip
+
+	# WebSocket و REST هر دو به api می‌روند؛ Caddy خودش upgrade را درست هندل می‌کند
+	reverse_proxy api:3000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+# دامنه‌ی داشبورد اپراتور — جدا از دامنه‌ی ویجت تا سطح دسترسی‌ها مخلوط نشود
+{$DASHBOARD_DOMAIN} {
+	encode gzip
+	reverse_proxy dashboard:5173
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

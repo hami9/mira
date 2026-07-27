@@ -17,3 +17,14 @@ export function storeVisitorRef(ref: string): void {
     // localStorage در دسترس نیست (مثلاً حالت خصوصی مرورگر) — مشکلی نیست، فقط ادامه‌ی مکالمه بین بازخوانی از دست می‌ره
   }
 }
+
+// شناسه‌ی یکبارمصرف هر ارسال پیام برای idempotency سمت سرور (فاز ۷).
+// در حافظه می‌ماند و ذخیره نمی‌شود — فقط باید در محدوده‌ی یک تلاش ارسال یکتا باشد.
+export function newClientMessageId(): string {
+  const cryptoObj = window.crypto;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
+  }
+  // fallback برای مرورگرهای قدیمی‌تر یا context غیر-secure که randomUUID ندارند
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}

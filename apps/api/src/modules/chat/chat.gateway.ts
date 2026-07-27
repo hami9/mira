@@ -162,7 +162,7 @@ export class ChatGateway
   @SubscribeMessage(SocketEvent.MessageSend)
   async onMessageSend(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { conversationId?: string; content?: string },
+    @MessageBody() body: { conversationId?: string; content?: string; clientMessageId?: string },
   ): Promise<void> {
     if (!body?.conversationId || !body?.content?.trim()) return;
 
@@ -193,6 +193,7 @@ export class ChatGateway
       senderType,
       senderId,
       rawContent: body.content.slice(0, MESSAGE_MAX_LENGTH),
+      clientMessageId: body.clientMessageId?.slice(0, 64) || null,
     });
 
     const payload: MessagePayload = {

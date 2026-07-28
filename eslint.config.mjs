@@ -5,7 +5,16 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/build/**', '**/node_modules/**', '**/*.min.js'],
+    ignores: [
+      '**/dist/**',
+      '**/build/**',
+      '**/node_modules/**',
+      '**/*.min.js',
+      // باندل build‌شده‌ی ویجت که برای صفحه‌ی دمو کپی می‌شود — سورس نیست
+      'apps/api/public/widget-dist/**',
+      'playwright-report/**',
+      'test-results/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -2,7 +2,7 @@
 # فایل‌های compose مورد استفاده در /etc/mira/compose-files تعیین می‌شوند (توسط mira setup)
 [Unit]
 Description=Mira self-hosted live chat platform (Docker Compose)
-Documentation=file:/usr/share/doc/mira/INSTALL.fa.md
+Documentation=file:/usr/share/doc/mira/INSTALL.md
 Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target

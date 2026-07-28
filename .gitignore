@@ -40,3 +40,10 @@ package/dist/
 
 # تنظیمات محلی ابزارهای هوش مصنوعی (نباید در مخزن باشد)
 .claude/
+
+# خروجی ساخت ویجت که برای صفحه‌ی دمو کپی می‌شود (Dockerfile هنگام build می‌سازدش)
+apps/api/public/widget-dist/
+
+# آرتیفکت‌های Playwright
+playwright-report/
+test-results/

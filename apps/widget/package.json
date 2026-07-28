@@ -1,13 +1,13 @@
 {
   "name": "@mira/widget",
-  "version": "1.0.1",
+  "version": "1.3.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/hami9/mira.git"
   },
-  "description": "ویجت جاسازی‌شونده در سایت مشتری، TypeScript خالص بدون فریمورک",
+  "description": "Embeddable chat widget for the customer's site, plain TypeScript with no framework",
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs"

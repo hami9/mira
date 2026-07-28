@@ -1,52 +1,53 @@
-name: 🐛 گزارش باگ
-description: چیزی درست کار نمی‌کند
-title: '[باگ] '
+name: 🐛 Bug report
+description: Something is not working
+title: '[bug] '
 labels: ['bug']
 body:
   - type: markdown
     attributes:
       value: |
-        ممنون که وقت می‌گذاری! لطفاً پیش از ثبت، issueهای باز را جست‌وجو کن تا تکراری نباشد.
+        Thanks for taking the time! Please search the open issues first so this isn't a duplicate.
+        You are welcome to write in Persian or English.
   - type: textarea
     id: what-happened
     attributes:
-      label: چه اتفاقی افتاد؟
-      description: توضیح کامل مشکل + رفتار مورد انتظار
-      placeholder: وقتی ... را انجام می‌دهم، ... می‌شود؛ در حالی که انتظار داشتم ...
+      label: What happened?
+      description: A full description of the problem plus the behaviour you expected
+      placeholder: When I do ..., ... happens; I expected ... instead.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: مراحل بازتولید
+      label: Steps to reproduce
       placeholder: |
-        ۱. برو به ...
-        ۲. کلیک کن روی ...
-        ۳. خطای ... ظاهر می‌شود
+        1. Go to ...
+        2. Click on ...
+        3. The error ... appears
     validations:
       required: true
   - type: dropdown
     id: component
     attributes:
-      label: کدام بخش؟
+      label: Which part?
       options:
-        - داشبورد اپراتور
-        - ویجت چت
-        - API / بک‌اند
-        - Worker / هوش مصنوعی
-        - افزونه‌ی وردپرس
-        - نصب / پکیج دبیان
-        - سایر
+        - Operator dashboard
+        - Chat widget
+        - API / backend
+        - Worker / AI
+        - WordPress plugin
+        - Installation / Debian package
+        - Other
     validations:
       required: true
   - type: textarea
     id: logs
     attributes:
-      label: لاگ‌ها
-      description: 'خروجی مرتبط از: sudo mira logs api (رمز/توکن را حذف کن!)'
+      label: Logs
+      description: 'Relevant output from: sudo mira logs api (strip any password/token!)'
       render: shell
   - type: input
     id: environment
     attributes:
-      label: محیط
-      placeholder: 'مثلاً: دبیان ۱۲، Docker 27، نصب با پکیج deb نسخه 1.0.0'
+      label: Environment
+      placeholder: 'e.g. Debian 12, Docker 27, installed from the deb package v1.0.0'

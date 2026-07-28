@@ -1,32 +1,35 @@
-# package/ — بسته‌بندی و نصب میرا روی سرور لینوکس
+# package/ — packaging and installing Mira on a Linux server
 
-> ⚠️ این پوشه با `packages/` (پکیج‌های npm مونوریپو) فرق دارد —
-> این‌جا فقط ابزارهای ساخت پکیج نصب سرور است.
+**English** · [فارسی](README.fa.md)
 
-| فایل/پوشه                        | نقش                                                                |
-| -------------------------------- | ------------------------------------------------------------------ |
-| [`INSTALL.fa.md`](INSTALL.fa.md) | **راهنمای کامل نصب فارسی** — دبیان، اوبونتو و سایر توزیع‌ها        |
-| `build-deb.sh`                   | ساخت پکیج `mira_<version>_all.deb` با dpkg-deb                     |
-| `install.sh`                     | نصاب دستی برای توزیع‌های غیر deb (Alma/Rocky/Fedora/...)           |
-| `bin/mira`                       | ابزار خط فرمان مدیریت سرور (setup/start/status/logs/backup/doctor) |
-| `systemd/mira.service`           | سرویس systemd — شروع خودکار استک بعد از ریبوت                      |
-| `debian/`                        | فایل‌های کنترل پکیج دبیان (control/postinst/prerm/postrm)          |
-| `dist/`                          | خروجی build (در گیت نیست)                                          |
+> ⚠️ This directory is not `packages/` (the monorepo's npm packages) —
+> it only holds the tooling that builds the server installation package.
 
-## ساخت سریع پکیج
+| File / directory                 | Role                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| [`INSTALL.md`](INSTALL.md)       | **The full installation guide** — Debian, Ubuntu and other distributions |
+| [`INSTALL.fa.md`](INSTALL.fa.md) | The same guide in Persian                                                |
+| `build-deb.sh`                   | Builds the `mira_<version>_all.deb` package with dpkg-deb                |
+| `install.sh`                     | Manual installer for non-deb distributions (Alma/Rocky/Fedora/…)         |
+| `bin/mira`                       | The server management CLI (setup/start/status/logs/backup/doctor)        |
+| `systemd/mira.service`           | The systemd service — starts the stack automatically after a reboot      |
+| `debian/`                        | Debian package control files (control/postinst/prerm/postrm)             |
+| `dist/`                          | Build output (not in git)                                                |
+
+## Building the package
 
 ```bash
 bash package/build-deb.sh
-# خروجی: package/dist/mira_<version>_all.deb
+# output: package/dist/mira_<version>_all.deb
 ```
 
-در CI هم با هر tag نسخه (`v*`)، همین پکیج ساخته و به GitHub Release پیوست می‌شود
-(workflow ‏`.github/workflows/release.yml`).
+CI builds the same package on every version tag (`v*`) and attaches it to the GitHub
+Release (the `.github/workflows/release.yml` workflow).
 
-## ایمیج‌های آماده (GHCR)
+## Prebuilt images (GHCR)
 
-ایمیج‌های Docker سه سرویس با هر push به `main` و هر tag نسخه، خودکار در
-GitHub Container Registry منتشر می‌شوند (workflow ‏`docker-publish.yml`):
+Docker images for the three services are published automatically to the GitHub Container
+Registry on every push to `main` and every version tag (the `docker-publish.yml` workflow):
 
 ```
 ghcr.io/hami9/mira-api
@@ -34,5 +37,5 @@ ghcr.io/hami9/mira-worker
 ghcr.io/hami9/mira-dashboard
 ```
 
-استفاده روی سرور: در `mira setup` گزینه‌ی «ایمیج آماده از GHCR» — یا دستی با
-لایه‌ی `docker-compose.ghcr.yml`. جزئیات در [`INSTALL.fa.md`](INSTALL.fa.md).
+To use them on a server: pick "prebuilt images from GHCR" during `mira setup`, or apply the
+`docker-compose.ghcr.yml` overlay by hand. Details in [`INSTALL.md`](INSTALL.md).

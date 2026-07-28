@@ -46,6 +46,65 @@ jobs:
           name: widget-dist
           path: apps/widget/dist/widget.js
 
+  # تست‌های واحد همه‌جا اجرا می‌شوند؛ تست‌های یکپارچگی روی Postgres و Redis **واقعی**
+  # (service container) اجرا می‌شوند، نه ماک — قاعده‌ی ۸ پروژه.
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: kgchat
+          POSTGRES_PASSWORD: kgchat_ci
+          POSTGRES_DB: kgchat
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kgchat"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://kgchat:kgchat_ci@localhost:5432/kgchat
+      TEST_DATABASE_URL: postgresql://kgchat:kgchat_ci@localhost:5432/kgchat
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # تست‌ها از خروجی build پکیج مشترک import می‌کنند
+      - name: Build shared types
+        run: npm run build -w packages/shared-types
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Enable pgvector extension
+        run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
+      # `synchronize` هرگز روشن نمی‌شود (قاعده‌ی ۱) — اسکیما فقط از راه مایگریشن ساخته می‌شود
+      - name: Run migrations
+        run: npm run migration:run -w apps/api
+
+      - name: Integration tests (real Postgres + Redis)
+        run: npm run test:integration
+
   build-deb:
     name: Build Debian package
     runs-on: ubuntu-latest

@@ -17,6 +17,9 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
+  // سقف کل سوئیت. اگر داشبورد اصلاً بالا نیاید، هر تست تا آخرِ timeout خودش صبر
+  // می‌کند و با retry جمعاً خیلی طولانی می‌شود؛ این سقف کل اجرا را قطع می‌کند.
+  globalTimeout: process.env.CI ? 10 * 60_000 : undefined,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL: API_URL,

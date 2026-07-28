@@ -11,7 +11,7 @@ jobs:
     name: Lint and build all workspaces
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -78,7 +78,7 @@ jobs:
       REDIS_HOST: localhost
       REDIS_PORT: 6379
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -157,7 +157,7 @@ jobs:
       SEED_ADMIN_PASSWORD: ChangeMe123!
       E2E_DASHBOARD_URL: http://localhost:5173
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -236,7 +236,7 @@ jobs:
     name: Build Debian package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build .deb
         run: bash package/build-deb.sh

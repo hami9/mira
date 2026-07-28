@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>میرا — پلتفرم چت پشتیبانی خودمیزبان با هوش مصنوعی</title>
+    <title>Mira — self-hosted AI-powered live chat support</title>
     <meta
       name="description"
-      content="میرا: جایگزین خودمیزبان گفتینو برای وردپرس و ووکامرس — چت زنده، ربات هوش مصنوعی با پایگاه دانش شما، و داشبورد اپراتور. متن‌باز با مجوز AGPL-3.0."
+      content="Mira: a self-hosted live chat alternative for WordPress and WooCommerce — realtime chat, an AI bot over your own knowledge base, and an operator dashboard. Open source under AGPL-3.0."
     />
     <meta name="theme-color" content="#2E6BE6" />
     <link rel="icon" type="image/svg+xml" href="brand/mira-logo.svg" />
-    <meta property="og:title" content="میرا — چت پشتیبانی خودمیزبان با هوش مصنوعی" />
+    <meta property="og:title" content="Mira — self-hosted AI-powered live chat" />
     <meta
       property="og:description"
-      content="چت زنده، ربات هوش مصنوعی با پایگاه دانش شما، و داشبورد اپراتور — روی سرور خودتان."
+      content="Realtime chat, an AI bot over your own knowledge base, and an operator dashboard — on your own server."
     />
     <meta property="og:type" content="website" />
     <style>
@@ -34,7 +34,13 @@
         margin: 0;
         background: #fff;
         color: var(--ink);
-        font-family: Vazirmatn, Tahoma, Arial, sans-serif;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          Arial,
+          sans-serif;
         line-height: 1.8;
       }
       a {
@@ -241,6 +247,18 @@
         margin: 0 0 10px;
       }
 
+      .langbar {
+        margin-top: 18px;
+        font-size: 13px;
+        opacity: 0.9;
+      }
+      .langbar a {
+        color: #fff;
+        text-decoration: underline;
+      }
+      .langbar strong {
+        font-weight: 700;
+      }
       footer {
         padding: 30px 0 40px;
         text-align: center;
@@ -261,8 +279,8 @@
     <header class="hero">
       <div class="wrap">
         <div class="logo-badge">
-          <!-- نشان انیمیشنی میرا (درون‌خطی، بدون درخواست خارجی) -->
-          <svg viewBox="0 0 256 200" width="120" role="img" aria-label="نشان میرا">
+          <!-- Animated Mira mark (inline, no external request) -->
+          <svg viewBox="0 0 256 200" width="120" role="img" aria-label="Mira mark">
             <defs>
               <linearGradient id="lB" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stop-color="#5F9DF3" />
@@ -380,69 +398,72 @@
             />
           </svg>
         </div>
-        <h1>میرا</h1>
+        <h1>Mira</h1>
         <p class="tagline">
-          پلتفرم چت پشتیبانی <strong>خودمیزبان</strong> با هوش مصنوعی — جایگزین گفتینو برای وردپرس و
-          ووکامرس
+          A <strong>self-hosted</strong> AI-powered live chat support platform for WordPress and
+          WooCommerce
         </p>
-        <p class="sub">گفت‌وگویی که به قلب می‌رسد ♥ &nbsp;·&nbsp; متن‌باز با مجوز AGPL-3.0</p>
+        <p class="sub">
+          A conversation that reaches the heart &#9829; &nbsp;·&nbsp; Open source under AGPL-3.0
+        </p>
         <div class="cta">
-          <a class="btn btn-solid" href="https://github.com/hami9/mira">مشاهده در گیت‌هاب</a>
+          <a class="btn btn-solid" href="https://github.com/hami9/mira">View on GitHub</a>
           <a class="btn btn-ghost" href="https://github.com/hami9/mira/releases/latest"
-            >دانلود نسخه‌ی آخر</a
+            >Download the latest release</a
           >
-          <a class="btn btn-ghost" href="brand/preview.html">دیزاین‌سیستم</a>
+          <a class="btn btn-ghost" href="brand/preview.html">Design system</a>
         </div>
+        <p class="langbar"><strong>English</strong> · <a href="fa.html">فارسی</a></p>
       </div>
     </header>
 
     <section>
       <div class="wrap">
-        <h2 class="section-title">چه چیزی به شما می‌دهد</h2>
+        <h2 class="section-title">What you get</h2>
         <p class="section-sub">
-          همه‌چیز روی سرور خودتان اجرا می‌شود — داده‌ی مشتری‌هایتان جایی نمی‌رود.
+          Everything runs on your own server — your customers' data never leaves it.
         </p>
         <div class="grid">
           <div class="card">
-            <h3><span class="ico">💬</span> چت زنده‌ی واقعی</h3>
+            <h3><span class="ico">&#128172;</span> Real live chat</h3>
             <p>
-              پیام بلادرنگ با Socket.io، نشانگر تایپ، نشان پیام نخوانده، و تحویل idempotent که با
-              قطعی شبکه پیام تکراری نمی‌سازد.
+              Realtime messaging over Socket.io, typing indicators, unread badges, and idempotent
+              delivery that does not duplicate messages when the network drops.
             </p>
           </div>
           <div class="card">
-            <h3><span class="ico">✦</span> هوش مصنوعی با دانش شما</h3>
+            <h3><span class="ico">&#10022;</span> AI that knows your shop</h3>
             <p>
-              ربات پاسخ‌گو با RAG روی پایگاه دانش خودتان، Copilot پیشنهاد پاسخ برای اپراتور،
-              خلاصه‌سازی خودکار، و تحویل به انسان وقتی مطمئن نیست.
+              An answering bot with RAG over your own knowledge base, a reply Copilot for operators,
+              automatic summaries, and hand-off to a human whenever it is not confident.
             </p>
           </div>
           <div class="card">
-            <h3><span class="ico">🛒</span> متصل به ووکامرس</h3>
+            <h3><span class="ico">&#128722;</span> WooCommerce aware</h3>
             <p>
-              اپراتور همان لحظه سبد خرید، تاریخچه‌ی سفارش و مجموع خرید مشتری را کنار گفتگو می‌بیند؛
-              پیام محرک سبد رهاشده هم دارد.
+              The operator sees the customer's cart, order history and total spend right next to the
+              conversation — plus an abandoned-cart trigger message.
             </p>
           </div>
           <div class="card">
-            <h3><span class="ico">📊</span> گزارش و اتوماسیون</h3>
+            <h3><span class="ico">&#128202;</span> Reporting and automation</h3>
             <p>
-              آمار گفتگو، زمان اولین پاسخ، CSAT، عملکرد هر اپراتور و خروجی CSV — به‌علاوه قوانین
-              اتوماسیون و وب‌هوک با امضای HMAC.
+              Conversation volume, first-response time, CSAT, per-operator performance and CSV
+              export — plus automation rules and HMAC-signed webhooks.
             </p>
           </div>
           <div class="card">
-            <h3><span class="ico">🔒</span> امن از پیش‌فرض</h3>
+            <h3><span class="ico">&#128274;</span> Secure by default</h3>
             <p>
-              ورود دومرحله‌ای، دسترسی نقش‌محور زنده از دیتابیس، CORS و CSP سخت‌گیرانه، محدودیت نرخ،
-              و HTTPS خودکار با Caddy.
+              Two-factor login, role-based permissions read live from the database, strict CORS and
+              CSP, rate limiting, and automatic HTTPS via Caddy.
             </p>
           </div>
           <div class="card">
-            <h3><span class="ico">⚡</span> نصب در چند دقیقه</h3>
+            <h3><span class="ico">&#9889;</span> Installs in minutes</h3>
             <p>
-              یک پکیج واقعی دبیان به‌همراه ابزار خط فرمان <code>mira</code>، یا ایمیج‌های آماده‌ی
-              Docker — بدون نیاز به تنظیم دستی.
+              A real Debian package with the <code>mira</code> command-line tool, or prebuilt Docker
+              images — no manual configuration required.
             </p>
           </div>
         </div>
@@ -451,24 +472,36 @@
 
     <section class="shots">
       <div class="wrap">
-        <h2 class="section-title">نمای محصول</h2>
-        <p class="section-sub">داشبورد اپراتور، ویجت چت و دیزاین‌سیستم برند</p>
+        <h2 class="section-title">Product tour</h2>
+        <p class="section-sub">
+          The operator dashboard, the chat widget and the brand design system
+        </p>
         <div class="shot-grid shot">
           <figure>
-            <img src="screenshots/dashboard.webp" alt="داشبورد اپراتور میرا" loading="lazy" />
-            <figcaption>داشبورد اپراتور — گفتگو، اطلاعات مشتری ووکامرس، یادداشت داخلی</figcaption>
+            <img
+              src="screenshots/dashboard.webp"
+              alt="The Mira operator dashboard"
+              loading="lazy"
+            />
+            <figcaption>
+              Operator dashboard — conversation, WooCommerce customer info, internal notes
+            </figcaption>
           </figure>
           <figure>
-            <img src="screenshots/widget.webp" alt="ویجت چت میرا روی سایت فروشگاه" loading="lazy" />
-            <figcaption>ویجت چت روی سایت فروشگاه — با پاسخ ربات</figcaption>
+            <img
+              src="screenshots/widget.webp"
+              alt="The Mira chat widget on a shop website"
+              loading="lazy"
+            />
+            <figcaption>The chat widget on a shop website — with a bot reply</figcaption>
           </figure>
           <figure>
-            <img src="screenshots/login.webp" alt="صفحه ورود داشبورد میرا" loading="lazy" />
-            <figcaption>صفحه‌ی ورود اپراتور</figcaption>
+            <img src="screenshots/login.webp" alt="The Mira dashboard login page" loading="lazy" />
+            <figcaption>The operator login page</figcaption>
           </figure>
           <figure>
-            <img src="screenshots/design-system.webp" alt="دیزاین‌سیستم میرا" loading="lazy" />
-            <figcaption>دیزاین‌سیستم و پالت برند</figcaption>
+            <img src="screenshots/design-system.webp" alt="The Mira design system" loading="lazy" />
+            <figcaption>The design system and brand palette</figcaption>
           </figure>
         </div>
       </div>
@@ -476,57 +509,37 @@
 
     <section>
       <div class="wrap">
-        <h2 class="section-title">نصب روی سرور</h2>
-        <p class="section-sub">روی دبیان یا اوبونتو، سه دستور تا داشبورد آماده با SSL خودکار</p>
-        <pre><span class="c"># نصب پکیج (از بخش Releases)</span>
+        <h2 class="section-title">Install on your server</h2>
+        <p class="section-sub">
+          On Debian or Ubuntu, three commands to a working dashboard with automatic SSL
+        </p>
+        <pre><span class="c"># install the package (from Releases)</span>
 sudo dpkg -i mira_*_all.deb || sudo apt -f install
 
-<span class="c"># راه‌اندازی: تولید خودکار همه‌ی رمزها + پرسیدن دامنه‌ها</span>
+<span class="c"># setup: generates every secret, asks for your domains</span>
 sudo mira setup
 
-<span class="c"># بالا آوردن سرویس‌ها</span>
+<span class="c"># bring up the services</span>
 sudo mira start</pre>
         <p class="install-note">
-          توزیع‌های دیگر (AlmaLinux، Rocky، Fedora) با <code>package/install.sh</code> — راهنمای
-          کامل فارسی:
-          <a href="https://github.com/hami9/mira/blob/main/package/INSTALL.fa.md">INSTALL.fa.md</a>
-        </p>
-      </div>
-    </section>
-
-    <section class="en">
-      <div class="wrap">
-        <h2>In English</h2>
-        <p>
-          <strong>Mira</strong> is a self-hosted, AI-powered live chat platform for
-          WordPress/WooCommerce stores — an open-source alternative to hosted chat SaaS. It ships a
-          realtime chat widget, an operator dashboard, a RAG chatbot over your own knowledge base,
-          WooCommerce customer context, reporting, automations and webhooks. Persian-first (full
-          RTL) and multi-tenant from day one.
-        </p>
-        <p>
-          Install with a real Debian package (<code>sudo mira setup &amp;&amp; sudo mira start</code
-          >) or pull the prebuilt images from <code>ghcr.io/hami9/mira-*</code>. Licensed under
-          AGPL-3.0.
-        </p>
-        <p>
-          → <a href="https://github.com/hami9/mira">GitHub repository</a> ·
-          <a href="https://github.com/hami9/mira/blob/main/README.md">English README</a>
+          Other distributions (AlmaLinux, Rocky, Fedora) use <code>package/install.sh</code> — full
+          guide:
+          <a href="https://github.com/hami9/mira/blob/main/package/INSTALL.md">INSTALL.md</a>
         </p>
       </div>
     </section>
 
     <footer>
       <div class="wrap">
-        میرا — متن‌باز با مجوز
+        Mira — open source under
         <a href="https://github.com/hami9/mira/blob/main/LICENSE">AGPL-3.0</a>
         <br />
-        <a href="https://github.com/hami9/mira">گیت‌هاب</a>·<a
-          href="https://github.com/hami9/mira/blob/main/package/INSTALL.fa.md"
-          >راهنمای نصب</a
-        >·<a href="brand/preview.html">دیزاین‌سیستم</a>·<a
+        <a href="https://github.com/hami9/mira">GitHub</a>·<a
+          href="https://github.com/hami9/mira/blob/main/package/INSTALL.md"
+          >Installation guide</a
+        >·<a href="brand/preview.html">Design system</a>·<a
           href="https://github.com/hami9/mira/issues"
-          >گزارش مشکل</a
+          >Report an issue</a
         >
       </div>
     </footer>

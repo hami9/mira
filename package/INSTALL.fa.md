@@ -1,5 +1,7 @@
 # راهنمای نصب میرا روی سرور لینوکس
 
+[English](INSTALL.md) · **فارسی**
+
 این راهنما نصب کامل **میرا** (پلتفرم چت پشتیبانی خودمیزبان با هوش مصنوعی) را روی یک سرور
 لینوکسی توضیح می‌دهد — از صفر تا داشبورد آماده با SSL خودکار.
 
@@ -62,7 +64,7 @@ sudo dpkg -i mira_*_all.deb || sudo apt -f install
 | `/opt/mira/app`                        | سورس کامل میرا (ایمیج‌ها روی همین سرور build می‌شوند) |
 | `/usr/bin/mira`                        | ابزار مدیریت (setup/start/status/logs/backup/...)     |
 | `/usr/lib/systemd/system/mira.service` | سرویس systemd (شروع خودکار بعد از ریبوت)              |
-| `/usr/share/doc/mira/INSTALL.fa.md`    | همین راهنما                                           |
+| `/usr/share/doc/mira/INSTALL.fa.md`    | همین راهنما (نسخه‌ی انگلیسی: `INSTALL.md`)            |
 
 ### راه‌اندازی اولیه
 

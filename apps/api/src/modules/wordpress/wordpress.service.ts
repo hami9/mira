@@ -37,7 +37,9 @@ export class WordPressService {
 
     try {
       const response = await fetch(url.toString(), {
-        headers: { 'X-میرا-Api-Key': site.wordpressApiKey },
+        // نام هدر باید ASCII خالص باشد — با کاراکتر فارسی، fetch اصلاً درخواست را نمی‌فرستد
+        // و TypeError می‌دهد که catch پایین بی‌صدا می‌بلعیدش (بخش ۶ AGENTS.md)
+        headers: { 'X-Mira-Api-Key': site.wordpressApiKey },
         signal: controller.signal,
       });
       if (!response.ok) {

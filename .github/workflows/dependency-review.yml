@@ -1,0 +1,25 @@
+# جلوی PRهایی را می‌گیرد که وابستگی آسیب‌پذیر یا با لایسنس ناسازگار اضافه می‌کنند.
+# مکمل Dependabot است، نه جایگزینش: ‏Dependabot وابستگی‌های *موجود* را به‌روز می‌کند،
+# این یکی وابستگی‌های *تازه‌اضافه‌شده* را همان لحظه‌ی PR بررسی می‌کند.
+name: Dependency Review
+
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Review dependency changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/dependency-review-action@v4
+        with:
+          # زیر «متوسط» فقط نویز است و PRها را بی‌دلیل قرمز می‌کند
+          fail-on-severity: moderate
+          # پلتفرم AGPL-3.0 است؛ لایسنس‌های مالکانه‌ی ناسازگار نباید وارد شوند
+          deny-licenses: 'MS-PL, BUSL-1.1'
+          comment-summary-in-pr: on-failure

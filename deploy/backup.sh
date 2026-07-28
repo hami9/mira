@@ -7,16 +7,16 @@ set -eu
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
 INTERVAL_SECONDS=86400
 
-echo "[backup] شروع شد — بک‌آپ هر ۲۴ ساعت، نگه‌داری ${RETENTION_DAYS} روز"
+echo "[backup] started — a backup every 24 hours, keeping ${RETENTION_DAYS} days"
 
 while true; do
   TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
   OUTPUT="/backups/mira-${TIMESTAMP}.sql.gz"
 
   if pg_dump -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$OUTPUT"; then
-    echo "[backup] ساخته شد: ${OUTPUT} ($(du -h "$OUTPUT" | cut -f1))"
+    echo "[backup] created: ${OUTPUT} ($(du -h "$OUTPUT" | cut -f1))"
   else
-    echo "[backup] خطا در ساخت بک‌آپ" >&2
+    echo "[backup] failed to create the backup" >&2
     rm -f "$OUTPUT"
   fi
 

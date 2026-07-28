@@ -10,7 +10,7 @@ _A conversation that reaches the heart ♥_
 
 [![CI](https://github.com/hami9/mira/actions/workflows/ci.yml/badge.svg)](https://github.com/hami9/mira/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2E6BE6)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/hami9/mira?color=17B8A6)](https://github.com/hami9/mira/releases)
+[![Release](https://img.shields.io/github/v/release/hami9/mira?sort=semver&color=17B8A6)](https://github.com/hami9/mira/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-F5A623)](CONTRIBUTING.md)
 
 **English** · [فارسی](README.fa.md)
@@ -68,7 +68,7 @@ That's it — Caddy obtains and renews the TLS certificate automatically. The `m
 handles `status`, `logs`, `backup`, `restore`, `update` and `doctor`.
 
 Other distributions (AlmaLinux, Rocky, Fedora, …) use `package/install.sh`.
-Full step-by-step guide (Persian): **[`package/INSTALL.fa.md`](package/INSTALL.fa.md)**
+Full step-by-step guide: **[`package/INSTALL.md`](package/INSTALL.md)**
 
 ### Prebuilt Docker images
 
@@ -128,20 +128,23 @@ tenant isolation, secrets handling) before opening a PR.
 
 ## Documentation
 
-| Doc                                              | What's in it                                          |
-| ------------------------------------------------ | ----------------------------------------------------- |
-| [`README.fa.md`](README.fa.md)                   | Full Persian documentation — the deepest resource     |
-| [`package/INSTALL.fa.md`](package/INSTALL.fa.md) | Server installation, WordPress setup, troubleshooting |
-| [`docs/brand/README.md`](docs/brand/README.md)   | Brand guide and design system                         |
-| [`AGENTS.md`](AGENTS.md)                         | Architecture decisions, real bugs fixed, known gaps   |
-| [`CHANGELOG.md`](CHANGELOG.md)                   | Version history                                       |
-| [`SECURITY.md`](SECURITY.md)                     | Reporting vulnerabilities                             |
+| Doc                                            | What's in it                                          |
+| ---------------------------------------------- | ----------------------------------------------------- |
+| [`README.fa.md`](README.fa.md)                 | Full Persian documentation — the deepest resource     |
+| [`package/INSTALL.md`](package/INSTALL.md)     | Server installation, WordPress setup, troubleshooting |
+| [`docs/brand/README.md`](docs/brand/README.md) | Brand guide and design system                         |
+| [`AGENTS.md`](AGENTS.md)                       | Architecture decisions, real bugs fixed, known gaps   |
+| [`CHANGELOG.md`](CHANGELOG.md)                 | Version history                                       |
+| [`SECURITY.md`](SECURITY.md)                   | Reporting vulnerabilities                             |
 
 ## Status
 
-Version 1.0.0 — phases 0 through 7 of the roadmap are complete. Honest caveats (untested
+Phases 0 through 7 of the roadmap are complete — see the release badge above for the current
+version, and [`CHANGELOG.md`](CHANGELOG.md) for what changed. Honest caveats (untested
 surfaces, known technical debt) are listed in [`AGENTS.md`](AGENTS.md) rather than hidden.
-There is no automated test suite yet; all testing so far has been manual against real services.
+Testing: 55 unit tests and 27 integration tests (real Postgres + Redis) run in CI. An
+end-to-end browser suite does not exist yet, and the stack has never run on a real server —
+see [`ROADMAP.md`](ROADMAP.md) and [`docs/PHASE0-RUNBOOK.md`](docs/PHASE0-RUNBOOK.md).
 
 ## License
 

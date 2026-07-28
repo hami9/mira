@@ -10,13 +10,13 @@ case "$1" in
     if [ -f /etc/mira/mira.env ]; then
       ln -sfn /etc/mira/mira.env /opt/mira/app/.env
       mkdir -p /opt/mira/app/backups
-      echo "میرا به‌روزرسانی شد. برای اعمال نسخه‌ی جدید: sudo mira update"
+      echo "Mira updated. To apply the new version: sudo mira update"
     else
       echo ""
-      echo "میرا نصب شد ✔"
-      echo "قدم بعدی (راه‌اندازی اولیه و تولید رمزهای امن):"
+      echo "Mira installed ✔"
+      echo "Next step (first-time setup and secure secret generation):"
       echo "    sudo mira setup"
-      echo "راهنمای کامل فارسی: /usr/share/doc/mira/INSTALL.fa.md"
+      echo "Full guide: /usr/share/doc/mira/INSTALL.md (Persian: INSTALL.fa.md)"
       echo ""
     fi
     ;;

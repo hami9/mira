@@ -142,7 +142,9 @@ tenant isolation, secrets handling) before opening a PR.
 Phases 0 through 7 of the roadmap are complete — see the release badge above for the current
 version, and [`CHANGELOG.md`](CHANGELOG.md) for what changed. Honest caveats (untested
 surfaces, known technical debt) are listed in [`AGENTS.md`](AGENTS.md) rather than hidden.
-There is no automated test suite yet; all testing so far has been manual against real services.
+Testing: 55 unit tests and 27 integration tests (real Postgres + Redis) run in CI. An
+end-to-end browser suite does not exist yet, and the stack has never run on a real server —
+see [`ROADMAP.md`](ROADMAP.md) and [`docs/PHASE0-RUNBOOK.md`](docs/PHASE0-RUNBOOK.md).
 
 ## License
 

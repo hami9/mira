@@ -340,7 +340,11 @@ docker exec mira_postgres psql -U kgchat -d kgchat -c "SELECT ..."
    گفتگو و ویجت با اسکرین‌شات واقعی Chromium (Playwright + ماک fetch) دیده و درست
    بودند — ولی نه متصل به بک‌اند واقعی. تست جریان کامل (سوکت واقعی، همه‌ی صفحات
    تنظیمات/گزارش/بازدیدکنندگان) هنوز لازم است.
-6. **تست خودکار (unit/e2e) وجود ندارد.** همه‌ی تست‌ها دستی بوده‌اند.
+6. **تست خودکار ناقص است.** از نسخه‌ی ۱.۲.۰، ۵۵ تست واحد (منطق خالص: sanitize، جداسازی
+   کلیدواژه، پارس اطمینان، دسترسی‌ها، ساعت کاری، User-Agent) و ۲۷ تست یکپارچگی روی
+   Postgres و Redis واقعی در CI (مایگریشن، اسکیما، ایزوله‌ی `siteId`، ‏idempotency پیام)
+   وجود دارد. **هنوز هیچ تست E2E مرورگری نیست** و مسیر سوکت انتها به انتها پوشش ندارد.
+   اجرا: `npm test`؛ تست‌های یکپارچگی به `TEST_DATABASE_URL` نیاز دارند و بدون آن skip می‌شوند.
 
 ### بدهی فنی شناخته‌شده
 
@@ -389,8 +393,11 @@ bash package/build-deb.sh
 # یادداشت ریلیز خودکار از همان بخش CHANGELOG خوانده می‌شود؛ اگر بخش نبود، ریلیز fail می‌شود.
 git tag v1.1.0 && git push origin v1.1.0
 
-# lint/format/build روی host (بدون داکر — CI هم همین‌ها را اجرا می‌کند)
-npm ci && npm run lint && npm run format:check && npm run build
+# lint/format/build/test روی host (بدون داکر — CI هم همین‌ها را اجرا می‌کند)
+npm ci && npm run lint && npm run format:check && npm run build && npm test
+
+# تست‌های یکپارچگی به Postgres واقعی نیاز دارند (در CI با service container)
+TEST_DATABASE_URL=postgresql://kgchat:pass@localhost:5432/kgchat npm run test:integration
 ```
 
 آدرس‌های توسعه: داشبورد `http://localhost:5173` — API `http://localhost:3000`

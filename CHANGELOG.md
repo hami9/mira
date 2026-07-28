@@ -5,6 +5,45 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.2.0] — 2026-07-27
+
+Phase 0 of the roadmap, as far as it can go without hardware: the project has an automated
+test suite for the first time, and the roadmap itself now lives in the repository.
+
+### Added
+
+- **Test suite** (`npm test`) — the project had none before this release
+  - 55 unit tests over the pure logic that has historically broken: input sanitization,
+    keyword splitting (both `,` and the Persian `،`), the AI confidence parse and its
+    fail-safe hand-off, permission resolution, business hours in the Tehran timezone, and
+    user-agent parsing
+  - 27 integration tests against **real Postgres + Redis** service containers in CI —
+    migrations, schema shape, multi-tenant `siteId` isolation, and message idempotency.
+    They self-skip without `TEST_DATABASE_URL`, so `npm test` stays green on any machine
+  - A `Tests` job in CI, running both as a required check
+- [`ROADMAP.md`](ROADMAP.md) / [`ROADMAP.fa.md`](ROADMAP.fa.md) — the seven-phase enterprise
+  roadmap, checked line by line against the code before being committed
+- [`docs/PHASE0-RUNBOOK.md`](docs/PHASE0-RUNBOOK.md) — step-by-step instructions for the
+  three Phase 0 tasks that need real hardware (WordPress install, Debian deployment,
+  production dashboard image), each with pass criteria
+
+### Changed
+
+- `parseModelOutput` moved out of `bot-reply.ts` into `apps/worker/src/ai/parse-model-output.ts`
+  and the automation keyword splitter into `splitKeywords()` in `packages/shared-types` —
+  both were unreachable from a test before. Behaviour is unchanged
+- `AGENTS.md` §9 now describes the test suite honestly: unit and integration coverage
+  exists, browser E2E does not
+
+### Notes
+
+Three claims in the roadmap draft did not survive checking against the code and were
+corrected before commit: the seed script contains no placeholder knowledge-base document or
+`offlineMessage` (those are rows in a local dev database, not code), a non-default admin
+password is already enforced, and the phase tags were realigned to the real version line.
+The dead `AI_MAX_TOKENS_PER_CONVERSATION` config was confirmed real and stays scheduled for
+Phase 2.
+
 ## [1.1.0] — 2026-07-27
 
 English is now the canonical language of every surface a visitor sees, with a Persian

@@ -54,8 +54,12 @@ docker compose up -d --build
 Lint/format on the host (needs only Node 20+):
 
 ```bash
-npm ci && npm run lint && npm run format:check
+npm ci && npm run lint && npm run format:check && npm test
 ```
+
+`npm test` runs the unit suite. The integration suite (`npm run test:integration`) needs a
+real Postgres — it self-skips without `TEST_DATABASE_URL` and runs in CI against a service
+container.
 
 ## Non-negotiable rules
 

@@ -5,6 +5,7 @@ import {
   AutomationRuleDto,
   CreateAutomationRuleDto,
   UpdateAutomationRuleDto,
+  splitKeywords,
 } from '@mira/shared-types';
 import { AutomationRuleEntity } from '../../database/entities';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -76,12 +77,8 @@ export class AutomationService {
     let matchedAny = false;
 
     for (const rule of rules) {
-      // هم کامای انگلیسی و هم کامای فارسی (،) به‌عنوان جداکننده پذیرفته می‌شن — چون کاربر فارسی‌زبان
-      // به‌طور طبیعی «،» تایپ می‌کنه و بدون این، کل رشته یک کلیدواژه‌ی واحد در نظر گرفته می‌شد
-      const keywords = rule.triggerValue
-        .split(/[,،]/)
-        .map((keyword) => keyword.trim().toLowerCase())
-        .filter(Boolean);
+      // منطق جداسازی (پذیرش «،» فارسی در کنار «,») در shared-types است تا تست‌پذیر بماند
+      const keywords = splitKeywords(rule.triggerValue);
       const matched = keywords.some((keyword) => normalizedMessage.includes(keyword));
       if (!matched) continue;
 

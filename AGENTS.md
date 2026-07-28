@@ -374,7 +374,15 @@ After every test: **delete the test data.**
    screenshots (Playwright + fetch mocking) and looked correct — but not connected to a
    real backend. A full-flow test (real socket, all settings/reports/visitors pages) is
    still needed.
-6. **There is no automated test suite (unit/e2e).** All testing has been manual.
+6. **The automated test suite covers three levels.** 67 unit tests (pure logic:
+   sanitization, keyword splitting, confidence parsing, permissions, business hours,
+   user-agent, security headers), 27 integration tests against real Postgres + Redis
+   (migrations, schema, tenant isolation, message idempotency), and — since v1.3.0 — a
+   **real browser E2E** that boots the actual API and drives a live visitor↔operator
+   conversation over Socket.io. All three run in CI as required checks. Run units with
+   `npm test`; integration needs `TEST_DATABASE_URL`, E2E needs the whole stack up.
+   What is still _not_ covered: the AI/worker path, the WordPress plugin, and every
+   settings/reports page.
 
 ### Known technical debt
 
@@ -426,8 +434,11 @@ bash package/build-deb.sh
 # if the section is missing, the release fails.
 git tag v1.1.0 && git push origin v1.1.0
 
-# lint/format/build on the host (no Docker — CI runs exactly these)
-npm ci && npm run lint && npm run format:check && npm run build
+# lint/format/build/test on the host (no Docker — CI runs exactly these)
+npm ci && npm run lint && npm run format:check && npm run build && npm test
+
+# integration tests need a real Postgres (CI uses a service container)
+TEST_DATABASE_URL=postgresql://kgchat:pass@localhost:5432/kgchat npm run test:integration
 ```
 
 Development addresses: dashboard `http://localhost:5173` — API `http://localhost:3000`

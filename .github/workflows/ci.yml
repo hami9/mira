@@ -46,6 +46,192 @@ jobs:
           name: widget-dist
           path: apps/widget/dist/widget.js
 
+  # تست‌های واحد همه‌جا اجرا می‌شوند؛ تست‌های یکپارچگی روی Postgres و Redis **واقعی**
+  # (service container) اجرا می‌شوند، نه ماک — قاعده‌ی ۸ پروژه.
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: kgchat
+          POSTGRES_PASSWORD: kgchat_ci
+          POSTGRES_DB: kgchat
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kgchat"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://kgchat:kgchat_ci@localhost:5432/kgchat
+      TEST_DATABASE_URL: postgresql://kgchat:kgchat_ci@localhost:5432/kgchat
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # تست‌ها از خروجی build پکیج مشترک import می‌کنند
+      - name: Build shared types
+        run: npm run build -w packages/shared-types
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Enable pgvector extension
+        run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
+      # `synchronize` هرگز روشن نمی‌شود (قاعده‌ی ۱) — اسکیما فقط از راه مایگریشن ساخته می‌شود
+      - name: Run migrations
+        run: npm run migration:run -w apps/api
+
+      - name: Integration tests (real Postgres + Redis)
+        run: npm run test:integration
+
+  # تنها تستی که کل مسیر زنده را می‌آزماید: ویجت → Socket.io → API → Postgres → داشبورد.
+  # اینجا API **واقعاً بوت می‌شود** (همان دستوری که Dockerfile اجرا می‌کند)، نه ماک.
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: kgchat
+          POSTGRES_PASSWORD: kgchat_ci
+          POSTGRES_DB: kgchat
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U kgchat"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NODE_ENV: development
+      API_PORT: 3000
+      DATABASE_URL: postgresql://kgchat:kgchat_ci@localhost:5432/kgchat
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: kgchat
+      POSTGRES_USER: kgchat
+      POSTGRES_PASSWORD: kgchat_ci
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      PUBLIC_API_URL: http://localhost:3000
+      # داشبورد از این origin می‌آید؛ بدون این، CORS جلوی ورود را می‌گیرد
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      DASHBOARD_URL: http://localhost:5173
+      JWT_ACCESS_SECRET: ci_access_secret_not_a_real_secret
+      JWT_REFRESH_SECRET: ci_refresh_secret_not_a_real_secret
+      WIDGET_TOKEN_SECRET: ci_widget_secret_not_a_real_secret
+      QUEUE_PREFIX: mira
+      # صفحه‌ی دمو از localhost:3000 سرو می‌شود و باید در دامنه‌های مجاز ویجت باشد
+      SEED_ALLOWED_DOMAINS: http://localhost:3000
+      SEED_WIDGET_KEY: kgkala-demo-key
+      SEED_ADMIN_EMAIL: admin@kgkala.test
+      SEED_ADMIN_PASSWORD: ChangeMe123!
+      E2E_DASHBOARD_URL: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all workspaces
+        run: npm run build
+
+      # صفحه‌ی دمو ویجت را از `/widget-dist/widget.js` لود می‌کند — همان کاری که
+      # apps/api/Dockerfile هنگام ساخت ایمیج انجام می‌دهد
+      - name: Stage the built widget for the demo page
+        run: |
+          mkdir -p apps/api/public/widget-dist
+          cp apps/widget/dist/widget.js apps/api/public/widget-dist/widget.js
+
+      - name: Enable pgvector extension
+        run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
+      - name: Run migrations and seed
+        run: |
+          npm run migration:run -w apps/api
+          npm run seed -w apps/api
+
+      - name: Start the API
+        run: |
+          node apps/api/dist/main.js > /tmp/mira-api.log 2>&1 &
+          echo $! > /tmp/mira-api.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/health >/dev/null 2>&1; then
+              echo "API is up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::API did not become healthy in 60s"
+          cat /tmp/mira-api.log
+          exit 1
+
+      # داشبورد یک باندل استاتیک است؛ آدرس API را زمان اجرا از config.js می‌خواند
+      - name: Serve the dashboard bundle
+        run: |
+          echo "window.__MIRA_API_URL__ = 'http://localhost:3000';" > apps/dashboard/dist/config.js
+          npx --yes http-server apps/dashboard/dist -p 5173 -s --cors > /tmp/mira-dashboard.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:5173/ >/dev/null 2>&1; then
+              echo "dashboard is up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::dashboard did not become reachable in 30s"
+          cat /tmp/mira-dashboard.log
+          exit 1
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test
+
+      - name: API log on failure
+        if: failure()
+        run: tail -100 /tmp/mira-api.log
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   build-deb:
     name: Build Debian package
     runs-on: ubuntu-latest

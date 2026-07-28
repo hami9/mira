@@ -29,6 +29,11 @@ tar -C "$REPO_ROOT" -cf - \
   --exclude='./package/dist' \
   --exclude='./backups' \
   --exclude='./wordpress-plugin/docker-compose.test.yml' \
+  --exclude='./tests' \
+  --exclude='./vitest.config.ts' \
+  --exclude='./playwright.config.ts' \
+  --exclude='./playwright-report' \
+  --exclude='./test-results' \
   --exclude='node_modules' \
   --exclude='dist' \
   --exclude='.env' \

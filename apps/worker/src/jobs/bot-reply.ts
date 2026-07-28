@@ -8,6 +8,7 @@ import { pool } from '../db';
 import { chatCompletion, ChatMessage } from '../ai/chat';
 import { embedTexts } from '../ai/embeddings';
 import { publishSocketEvent } from '../redis-bridge';
+import { parseModelOutput } from '../ai/parse-model-output';
 
 const HISTORY_LIMIT = 10;
 const RETRIEVAL_LIMIT = 5;
@@ -81,14 +82,6 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
   const usedTitles = [...new Set(chunks.map((c) => c.title))];
   const citation = usedTitles.length > 0 ? `\n\n📎 منبع: ${usedTitles.join('، ')}` : '';
   await postBotMessage(data.siteId, data.conversationId, `${answer}${citation}`);
-}
-
-function parseModelOutput(raw: string): { confidence: number | null; answer: string } {
-  const confidenceMatch = raw.match(/CONFIDENCE:\s*([\d.]+)/i);
-  const answerMatch = raw.match(/ANSWER:\s*([\s\S]+)/i);
-  const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : null;
-  const answer = answerMatch ? answerMatch[1].trim() : '';
-  return { confidence: confidence !== null && !isNaN(confidence) ? confidence : null, answer };
 }
 
 async function retrieveRelevantChunks(siteId: string, question: string): Promise<RetrievedChunk[]> {

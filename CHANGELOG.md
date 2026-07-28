@@ -5,6 +5,43 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.3.0] — 2026-07-28
+
+Phase 0's test harness is now complete: the project has a **real end-to-end browser test**
+that boots the actual API and drives a live visitor↔operator conversation. Plus the
+security scanning the roadmap asks for in Phase 1.
+
+### Added
+
+- **Real E2E test** (`tests/e2e/`, Playwright) — the last unchecked item of Phase 0 task 4
+  - Visitor opens the widget on the demo page → sends a message → the operator sees the
+    conversation appear live → replies → **the reply reaches the visitor without a reload**,
+    proving the whole Socket.io path
+  - A second test sends `<script>` and `<img onerror>` through the widget and asserts the
+    operator's DOM is clean and nothing executed — rule 5 (`sanitizeMessageContent`)
+  - Runs in CI in a new `E2E` job: Postgres + Redis service containers, migrations, seed,
+    the API booted with the same command the Dockerfile uses, and the dashboard bundle served
+- **CodeQL SAST** (`codeql.yml`) — TypeScript and PHP, on every PR and push plus a weekly run
+- **Dependency review** (`dependency-review.yml`) — blocks PRs adding vulnerable or
+  licence-incompatible dependencies
+- **12 unit tests for the security headers middleware** — the only significant piece of
+  security logic that had no coverage. Guards real bug #5 (`X-Powered-By` leaking on static
+  files) and real bug #6 (CSP applied to JSON but not HTML, including the query-string case
+  that caused it)
+
+### Changed
+
+- `AGENTS.md` §9 now describes all three test levels honestly, and states plainly what is
+  still uncovered: the AI/worker path, the WordPress plugin, and the settings/reports pages
+
+### Notes
+
+Two things were learned by running the stack rather than reading it, and are worth knowing:
+reloading the dashboard logs the operator out (tokens are held in memory, by design), and
+the login endpoint is throttled to 10 requests/minute — running the E2E suite repeatedly
+back to back trips that limit, which is the rate limiter working correctly rather than a
+flaky test.
+
 ## [1.2.0] — 2026-07-27
 
 Phase 0 of the roadmap, as far as it can go without hardware: the project has an automated

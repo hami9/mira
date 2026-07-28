@@ -374,12 +374,15 @@ After every test: **delete the test data.**
    screenshots (Playwright + fetch mocking) and looked correct — but not connected to a
    real backend. A full-flow test (real socket, all settings/reports/visitors pages) is
    still needed.
-6. **The automated test suite is partial.** Since v1.2.0 there are 55 unit tests (pure
-   logic: sanitization, keyword splitting, confidence parsing, permissions, business hours,
-   user-agent) and 27 integration tests against real Postgres + Redis in CI (migrations,
-   schema, tenant isolation, message idempotency). **There is still no browser E2E suite**,
-   and nothing covers the socket path end to end. Run them with `npm test`; the integration
-   ones need `TEST_DATABASE_URL` and self-skip without it.
+6. **The automated test suite covers three levels.** 67 unit tests (pure logic:
+   sanitization, keyword splitting, confidence parsing, permissions, business hours,
+   user-agent, security headers), 27 integration tests against real Postgres + Redis
+   (migrations, schema, tenant isolation, message idempotency), and — since v1.3.0 — a
+   **real browser E2E** that boots the actual API and drives a live visitor↔operator
+   conversation over Socket.io. All three run in CI as required checks. Run units with
+   `npm test`; integration needs `TEST_DATABASE_URL`, E2E needs the whole stack up.
+   What is still _not_ covered: the AI/worker path, the WordPress plugin, and every
+   settings/reports page.
 
 ### Known technical debt
 

@@ -34,6 +34,17 @@ const HUMAN_REQUEST_KEYWORDS = [
   'speak to someone',
 ];
 
+// جداکردن فهرست کلیدواژه‌ی نوشته‌شده توسط کاربر (قوانین اتوماسیون).
+// هم کامای انگلیسی و هم کامای فارسی «،» جداکننده‌اند — کاربر فارسی‌زبان به‌طور طبیعی «،»
+// تایپ می‌کند و زمانی که فقط `,` پشتیبانی می‌شد، کل رشته یک کلیدواژه‌ی واحد حساب می‌شد و
+// عملاً **هیچ قانونی هرگز match نمی‌کرد** (باگ واقعی ۲ — بخش ۶ AGENTS.md).
+export function splitKeywords(rawValue: string): string[] {
+  return rawValue
+    .split(/[,،]/)
+    .map((keyword) => keyword.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function containsAny(text: string, keywords: string[]): boolean {
   const normalized = text.toLowerCase();
   return keywords.some((keyword) => normalized.includes(keyword.toLowerCase()));

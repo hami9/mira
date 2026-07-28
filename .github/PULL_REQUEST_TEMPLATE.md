@@ -1,24 +1,26 @@
-## چه چیزی تغییر کرد؟
+## What changed?
 
-<!-- توضیح کوتاه تغییرات و دلیلشان -->
+<!-- A short description of the change and why -->
 
-## نوع تغییر
+## Type of change
 
-- [ ] رفع باگ
-- [ ] قابلیت جدید
-- [ ] بهبود/بازآرایی بدون تغییر رفتار
-- [ ] مستندات
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Refactor / improvement with no behaviour change
+- [ ] Documentation
 
-## چک‌لیست (قواعد پروژه — AGENTS.md)
+## Checklist (project rules — AGENTS.md)
 
-- [ ] با **سرویس واقعی** تست شده، نه فقط بازبینی کد (شرح تست در پایین)
-- [ ] تغییر اسکیمای دیتابیس؟ → مایگریشن جدید اضافه شده (`synchronize` هرگز روشن نمی‌شود)
-- [ ] کوئری‌های جدید با `siteId` فیلتر شده‌اند (چندمستأجری)
-- [ ] هیچ سکرت/توکنی در کد یا لاگ نیست
-- [ ] فراخوانی AI روی مسیر درخواست نیست (در صف BullMQ است)
-- [ ] `npm run lint` و `npm run format:check` سبز است
-- [ ] در صورت نیاز `README.fa.md` (و در صورت لزوم `README.md` انگلیسی) و `AGENTS.md` به‌روز شده‌اند
+- [ ] Tested against the **real service**, not just by reading code (describe the test below)
+- [ ] Database schema change? → a new migration was added (`synchronize` is never enabled)
+- [ ] New queries are filtered by `siteId` (multi-tenancy)
+- [ ] No secret or token in the code or the logs
+- [ ] No Persian text in a wire protocol (header name, JSON key, parameter name)
+- [ ] AI calls are not on the request path (they go through the BullMQ queue)
+- [ ] `npm run lint` and `npm run format:check` are green
+- [ ] Docs updated where needed — `README.md` / `README.fa.md` and `AGENTS.md` / `AGENTS.fa.md`
+      (change an English doc and its `.fa.md` mirror in the same commit)
 
-## چطور تست شد؟
+## How was it tested?
 
-<!-- دستورها/سناریوی واقعی که اجرا کردی -->
+<!-- The real commands/scenario you ran -->

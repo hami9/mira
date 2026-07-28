@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <title>صفحه دمو ویجت میرا</title>
+    <title>Mira widget demo page</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       * {
@@ -78,7 +78,7 @@
   <body>
     <header>
       <!-- نشان میرا -->
-      <svg viewBox="0 0 256 200" width="96" role="img" aria-label="نشان میرا">
+      <svg viewBox="0 0 256 200" width="96" role="img" aria-label="Mira logo">
         <defs>
           <linearGradient id="dB" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#ffffff" stop-opacity=".95" />
@@ -100,29 +100,30 @@
           stroke-linejoin="round"
         />
       </svg>
-      <h1>فروشگاه نمونه KG Kala</h1>
+      <h1>KG Kala — sample shop</h1>
       <p>
-        این صفحه برای تست ویجت لایو چت میراست — حباب گفتگو را از گوشه‌ی پایین باز کنید و یک پیام
-        بفرستید.
+        This page exists to test the Mira live chat widget — open the bubble in the corner and send
+        a message.
       </p>
     </header>
     <main>
       <div class="card">
-        <h2>ویجت چطور به این صفحه اضافه شده؟</h2>
-        فقط با یک تگ اسکریپت:
+        <h2>How is the widget added to this page?</h2>
+        With a single script tag:
         <br />
         <code
           >&lt;script src="/widget-dist/widget.js" data-widget-key="..."&gt;&lt;/script&gt;</code
         >
         <div class="hint">
-          رنگ سفارشی با <code>data-color</code> و موقعیت با <code>data-position</code> قابل تنظیم
-          است؛ بدون تنظیم رنگ، گرادیان برند میرا اعمال می‌شود.
+          A custom colour can be set with <code>data-color</code> and the position with
+          <code>data-position</code>; with no colour set, the Mira brand gradient is used.
         </div>
       </div>
       <div class="card">
-        <h2>چه چیزهایی را می‌توانید تست کنید؟</h2>
-        ارسال و دریافت لحظه‌ای پیام، نشانگر «در حال تایپ»، پیام خودکار خارج از ساعت کاری، پاسخ ربات
-        هوش مصنوعی (در صورت فعال بودن)، و کارت امتیازدهی بعد از حل شدن گفتگو.
+        <h2>What can you test here?</h2>
+        Sending and receiving messages in realtime, the typing indicator, the out-of-hours
+        auto-reply, the AI bot's answer (if enabled), and the rating card once a conversation is
+        resolved.
       </div>
     </main>
     <script src="/widget-dist/widget.js" data-widget-key="kgkala-demo-key"></script>

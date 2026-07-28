@@ -10,6 +10,8 @@ jobs:
   lint-and-build:
     name: Lint and build all workspaces
     runs-on: ubuntu-latest
+    # بدون این، یک job معلق تا سقف پیش‌فرض گیت‌هاب (۶ ساعت) runner را نگه می‌دارد
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -51,6 +53,7 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -110,6 +113,10 @@ jobs:
   e2e:
     name: E2E
     runs-on: ubuntu-latest
+    # اجرای سالم حدود ۹۰ ثانیه طول می‌کشد. سقف ۲۰ دقیقه یعنی اگر مرورگر یا بوت
+    # API جایی گیر کند، job سریع قرمز می‌شود به‌جای اینکه ساعت‌ها معلق بماند —
+    # این دقیقاً روی PR ‏#10 اتفاق افتاد (ناسازگاری react/react-dom).
+    timeout-minutes: 20
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -235,6 +242,7 @@ jobs:
   build-deb:
     name: Build Debian package
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 

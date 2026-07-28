@@ -52,8 +52,12 @@ docker compose up -d --build
 lint/format روی host (فقط Node ۲۰+ لازم دارد):
 
 ```bash
-npm ci && npm run lint && npm run format:check
+npm ci && npm run lint && npm run format:check && npm test
 ```
+
+`npm test` تست‌های واحد را اجرا می‌کند. تست‌های یکپارچگی (`npm run test:integration`) به
+Postgres واقعی نیاز دارند — بدون `TEST_DATABASE_URL` خودشان را skip می‌کنند و در CI روی
+service container اجرا می‌شوند.
 
 ## قواعد غیرقابل‌مذاکره
 

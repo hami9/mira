@@ -23,11 +23,16 @@ export async function createSite(client: Client, name: string, widgetKey: string
   return result.rows[0].id;
 }
 
-/** بازدیدکننده‌ی متصل به یک سایت. */
+/**
+ * بازدیدکننده‌ی متصل به یک سایت.
+ * `visitorRef` اجباری است (NOT NULL) و روی (`siteId`, `visitorRef`) ایندکس یکتا دارد —
+ * همان شناسه‌ای که ویجت در مرورگر بازدیدکننده نگه می‌دارد.
+ */
 export async function createVisitor(client: Client, siteId: string): Promise<string> {
+  const visitorRef = `test-${Math.random().toString(36).slice(2, 12)}`;
   const result = await client.query<{ id: string }>(
-    `INSERT INTO visitors ("siteId") VALUES ($1) RETURNING id`,
-    [siteId],
+    `INSERT INTO visitors ("siteId", "visitorRef") VALUES ($1, $2) RETURNING id`,
+    [siteId, visitorRef],
   );
   return result.rows[0].id;
 }

@@ -29,6 +29,8 @@ tar -C "$REPO_ROOT" -cf - \
   --exclude='./package/dist' \
   --exclude='./backups' \
   --exclude='./wordpress-plugin/docker-compose.test.yml' \
+  --exclude='./tests' \
+  --exclude='./vitest.config.ts' \
   --exclude='node_modules' \
   --exclude='dist' \
   --exclude='.env' \

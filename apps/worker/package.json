@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@mira/shared-types": "*",
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.115.0",
     "bullmq": "^5.34.4",
     "dotenv": "^16.4.5",
     "ioredis": "^5.4.1",

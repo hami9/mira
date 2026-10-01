@@ -16,16 +16,16 @@
   },
   "dependencies": {
     "@mira/shared-types": "*",
-    "@anthropic-ai/sdk": "^0.32.1",
+    "@anthropic-ai/sdk": "^0.128.0",
     "bullmq": "^5.34.4",
     "dotenv": "^16.4.5",
     "ioredis": "^5.4.1",
     "openai": "^4.73.1",
-    "pg": "^8.13.0"
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
-    "@types/pg": "^8.11.10",
+    "@types/pg": "^8.23.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0"
   }

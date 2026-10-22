@@ -1,4 +1,5 @@
 import type { BusinessHours, TriggerMessageConfig } from './business-hours';
+import type { AiPolicy, WidgetAssistant } from './ai';
 
 export interface LoginRequestDto {
   email: string;
@@ -30,6 +31,7 @@ export interface WidgetSessionRequestDto {
 }
 
 export interface WidgetSessionResponseDto {
+  assistant?: WidgetAssistant;
   visitorToken: string;
   visitorRef: string;
   siteId: string;
@@ -50,6 +52,7 @@ export interface SubmitCsatDto {
 }
 
 export interface SiteSettingsDto {
+  aiPolicy: AiPolicy;
   id: string;
   name: string;
   widgetKey: string;
@@ -61,6 +64,7 @@ export interface SiteSettingsDto {
   // آدرس سایت وردپرس و کلیدی که میرا برای صدا زدن REST endpoint سفارشی وردپرس استفاده می‌کنه
   wordpressSiteUrl: string | null;
   wordpressApiKey: string | null;
+  wordpressApiKeyConfigured?: boolean;
   // تنظیمات ربات پاسخ‌گوی هوش مصنوعی (فاز ۴)
   aiEnabled: boolean;
   aiSystemPrompt: string | null;
@@ -77,6 +81,7 @@ export interface SiteSettingsDto {
 }
 
 export interface UpdateSiteSettingsDto {
+  aiPolicy?: AiPolicy;
   name?: string;
   allowedDomains?: string[];
   appearance?: Record<string, unknown>;

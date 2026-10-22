@@ -61,34 +61,30 @@ async function openWidget(browser: Browser): Promise<Page> {
   return page;
 }
 
-async function sendFromWidget(page: Page, text: string): Promise<void> {
+async function sendFromWidget(page: Page, text: string): Promise<string> {
+  const started = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/v1/widget/conversations') && response.request().method() === 'POST',
+  );
   await page.locator('.mira-input').fill(text);
   await page.locator('.mira-send').click();
+  return (await (await started).json()).conversationId;
 }
 
 /**
  * منتظر می‌ماند تا مکالمه‌ی تازه در لیست اپراتور ظاهر شود، بازش می‌کند و پیام را تأیید می‌کند.
  *
- * آیتم‌های لیست **متن پیام را نشان نمی‌دهند** — فقط `بازدیدکننده #<۸ رقم اول visitorId>` و
- * وضعیت. لیست با `createdAt DESC` مرتب است (conversations.service.ts)، و چون این تست
- * بازدیدکننده‌ی کاملاً تازه‌ای ساخته، مکالمه‌اش بالای لیست می‌نشیند.
+ * با خوانده‌شدن پیام، جای آیتم در گروه‌های لیست عوض می‌شود؛ شناسه گفتگو ثابت می‌ماند.
  */
-async function openNewestConversationWith(page: Page, text: string): Promise<void> {
-  const items = page.locator('button', { hasText: 'بازدیدکننده #' });
-  await expect(items.first()).toBeVisible({ timeout: 30_000 });
-
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    await items.first().click();
-    const found = await page
-      .getByText(text, { exact: false })
-      .first()
-      .isVisible({ timeout: 3_000 })
-      .catch(() => false);
-    if (found) return;
-    await page.waitForTimeout(1_000);
-  }
-  throw new Error(`the newest conversation never showed the message: ${text}`);
+async function openConversationWith(
+  page: Page,
+  text: string,
+  conversationId: string,
+): Promise<void> {
+  const item = page.locator(`button[data-conversation-id="${conversationId}"]`);
+  await expect(item).toBeVisible({ timeout: 30_000 });
+  await item.click();
+  await expect(page.getByText(text, { exact: true })).toBeVisible();
 }
 
 test.describe('live conversation, end to end', () => {
@@ -104,11 +100,11 @@ test.describe('live conversation, end to end', () => {
 
     // بعد بازدیدکننده پیام می‌فرستد
     const visitor = await openWidget(browser);
-    await sendFromWidget(visitor, visitorText);
+    const conversationId = await sendFromWidget(visitor, visitorText);
     await expect(visitor.locator('.mira-msg-visitor', { hasText: visitorText })).toBeVisible();
 
     // مکالمه‌ی تازه باید به لیست اپراتور برسد
-    await openNewestConversationWith(operator, visitorText);
+    await openConversationWith(operator, visitorText, conversationId);
 
     await operator.locator('[placeholder="پاسخ خود را بنویسید..."]').fill(operatorText);
     await operator.locator('button', { hasText: 'ارسال' }).first().click();
@@ -133,9 +129,9 @@ test.describe('live conversation, end to end', () => {
     const operator = await loginOperator(browser);
 
     const visitor = await openWidget(browser);
-    await sendFromWidget(visitor, malicious);
+    const conversationId = await sendFromWidget(visitor, malicious);
 
-    await openNewestConversationWith(operator, marker);
+    await openConversationWith(operator, marker, conversationId);
 
     // نه اسکریپت اجرا شده باشد، نه تگی در DOM مانده باشد
     expect(

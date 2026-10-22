@@ -12,15 +12,69 @@ import {
   Max,
   Min,
   ValidateNested,
+  ArrayMaxSize,
+  MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import type {
   BusinessHours,
   TriggerMessageConfig,
   UpdateSiteSettingsDto,
   Weekday,
+  AiPolicy,
 } from '@mira/shared-types';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+class AiPolicyDto implements AiPolicy {
+  @IsBoolean()
+  useKnowledgeBase!: boolean;
+
+  @IsBoolean()
+  useWebsite!: boolean;
+
+  @IsBoolean()
+  useProducts!: boolean;
+
+  @IsBoolean()
+  showSources!: boolean;
+
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  minSimilarity!: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(6)
+  maxProducts!: number;
+
+  @IsInt()
+  @Min(100)
+  @Max(8000)
+  maxInputChars!: number;
+
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  @MaxLength(100, { each: true })
+  blockedTopics!: string[];
+
+  @IsString()
+  @MaxLength(8000)
+  serverContext!: string;
+
+  @IsString()
+  @MaxLength(120)
+  @Matches(/^[a-zA-Z0-9._:/-]*$/)
+  model!: string;
+
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  @MaxLength(100, { each: true })
+  quickReplies!: string[];
+}
 
 class BusinessHoursDayDto {
   @IsBoolean()
@@ -52,6 +106,12 @@ class TriggerMessageDto implements TriggerMessageConfig {
 }
 
 export class UpdateSiteSettingsRequestDto implements UpdateSiteSettingsDto {
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AiPolicyDto)
+  aiPolicy?: AiPolicyDto;
+
   @IsOptional()
   @IsString()
   name?: string;
@@ -93,6 +153,7 @@ export class UpdateSiteSettingsRequestDto implements UpdateSiteSettingsDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(8000)
   aiSystemPrompt?: string | null;
 
   @IsOptional()
@@ -103,18 +164,22 @@ export class UpdateSiteSettingsRequestDto implements UpdateSiteSettingsDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   aiBotName?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ protocols: ['https', 'http'], require_protocol: true })
+  @MaxLength(1024)
   aiBotAvatarUrl?: string | null;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   aiGreetingMessage?: string | null;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   aiHandoffMessage?: string | null;
 
   // بالاتر از ۱ برای یک ربات پشتیبانی معنی ندارد (پاسخ‌ها بی‌ثبات و غیرقابل‌اتکا می‌شوند)

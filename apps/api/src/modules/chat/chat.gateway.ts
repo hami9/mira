@@ -163,7 +163,7 @@ export class ChatGateway
   async onMessageSend(
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { conversationId?: string; content?: string; clientMessageId?: string },
-  ): Promise<void> {
+  ): Promise<{ id: string } | void> {
     if (!body?.conversationId || !body?.content?.trim()) return;
 
     let conversation = await this.assertAccess(client, body.conversationId);
@@ -245,7 +245,7 @@ export class ChatGateway
 
       // اگه هنوز اپراتوری assign نشده، ربات RAG (فاز ۴) سعی می‌کنه توی صف BullMQ پاسخ بده —
       // مسیر Socket.io هیچ‌وقت منتظر پاسخ کند مدل زبانی نمی‌مونه
-      if (!conversation.assignedAgentId) {
+      if (!conversation.assignedAgentId && !conversation.aiPaused) {
         await this.aiQueue.enqueueBotReply({
           siteId: conversation.siteId,
           conversationId: conversation.id,
@@ -253,6 +253,7 @@ export class ChatGateway
         });
       }
     }
+    return { id: message.id };
   }
 
   @SubscribeMessage(SocketEvent.TypingStart)

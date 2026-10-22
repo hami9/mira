@@ -10,6 +10,9 @@ import { ConversationStatus } from '@mira/shared-types';
 
 @Entity('conversations')
 export class ConversationEntity {
+  @Column({ type: 'boolean', default: false })
+  aiPaused!: boolean;
+
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

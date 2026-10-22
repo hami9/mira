@@ -12,3 +12,4 @@ export * from './knowledge-base-chunk.entity';
 export * from './automation-rule.entity';
 export * from './internal-note.entity';
 export * from './webhook.entity';
+export * from './ai-usage.entity';

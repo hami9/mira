@@ -7,6 +7,8 @@ function env(key: string, fallback = ''): string {
   return process.env[key] ?? fallback;
 }
 
+const useAvalai = !env('OPENAI_API_KEY') && Boolean(env('AVALAI_API_KEY'));
+
 export const config = {
   databaseUrl: env('DATABASE_URL'),
   redis: {
@@ -17,9 +19,13 @@ export const config = {
   queuePrefix: env('QUEUE_PREFIX', 'mira'),
   ai: {
     chatProvider: env('AI_PROVIDER', 'openai') as 'openai' | 'anthropic',
-    openaiApiKey: env('OPENAI_API_KEY'),
-    openaiBaseUrl: env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
-    openaiModel: env('OPENAI_MODEL', 'gpt-4o-mini'),
+    openaiApiKey: env('OPENAI_API_KEY') || env('AVALAI_API_KEY'),
+    openaiBaseUrl: useAvalai
+      ? env('AVALAI_BASE_URL') || 'https://api.avalai.ir/v1'
+      : env('OPENAI_BASE_URL') || 'https://api.openai.com/v1',
+    openaiModel: useAvalai
+      ? env('AVALAI_MODEL') || 'deepseek-v4-flash'
+      : env('OPENAI_MODEL') || 'gpt-4o-mini',
     openaiEmbeddingModel: env('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small'),
     anthropicApiKey: env('ANTHROPIC_API_KEY'),
     anthropicModel: env('ANTHROPIC_MODEL', 'claude-sonnet-5'),

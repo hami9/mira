@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Patch, Post, UseGuards } from '@nestjs/common';
-import { SiteSettingsDto } from '@mira/shared-types';
+import { SiteSettingsDto, DEFAULT_AI_POLICY } from '@mira/shared-types';
 import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
@@ -60,8 +60,10 @@ export class SitesController {
       offlineMessage: site.offlineMessage,
       triggerMessage: site.triggerMessage,
       wordpressSiteUrl: site.wordpressSiteUrl,
-      wordpressApiKey: site.wordpressApiKey,
+      wordpressApiKey: null,
+      wordpressApiKeyConfigured: Boolean(site.wordpressApiKey),
       aiEnabled: site.aiEnabled,
+      aiPolicy: { ...DEFAULT_AI_POLICY, ...site.aiPolicy },
       aiSystemPrompt: site.aiSystemPrompt,
       aiConfidenceThreshold: site.aiConfidenceThreshold,
       aiBotName: site.aiBotName,

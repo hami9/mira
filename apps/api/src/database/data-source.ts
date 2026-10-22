@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import { join } from 'path';
 import {
   SiteEntity,
+  AiUsageEntity,
   AgentEntity,
   VisitorEntity,
   ConversationEntity,
@@ -24,6 +25,7 @@ export const AppDataSource = new DataSource({
   url: process.env.DATABASE_URL,
   entities: [
     SiteEntity,
+    AiUsageEntity,
     AgentEntity,
     VisitorEntity,
     ConversationEntity,

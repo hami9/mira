@@ -33,6 +33,8 @@ import type {
   VisitorStatsDto,
   VisitorListItemDto,
   VisitorProfileDto,
+  AiBillingDto,
+  AiUsageReport,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
@@ -58,6 +60,12 @@ export interface ListConversationsParams {
 }
 
 class ApiClient {
+  getAiBilling(): Promise<AiBillingDto> {
+    return this.authedGet<AiBillingDto>('/v1/ai/billing');
+  }
+  getAiUsage(days: number): Promise<AiUsageReport> {
+    return this.authedGet<AiUsageReport>(`/v1/ai/billing/usage?days=${days}`);
+  }
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
 

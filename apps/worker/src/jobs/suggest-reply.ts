@@ -12,16 +12,27 @@ const SYSTEM_PROMPT =
   'گفتگو، یک پاسخ کوتاه، مودبانه و حرفه‌ای به زبان همون گفتگو پیشنهاد بده. فقط متن پاسخ رو بنویس، بدون توضیح اضافه.';
 
 export async function processSuggestReply(data: AiSuggestReplyJobData): Promise<void> {
-  const transcript = await getTranscript(data.conversationId);
+  const transcript = await getTranscript(data.conversationId, data.siteId);
   if (!transcript) return;
 
   // تاریخچه رو به‌عنوان متن داخل یک user turn تنها می‌فرستیم (نه چندین نوبت user/assistant متناوب)
   // چون بعضی providerها (از جمله Gemini) درخواستی که آخرین پیامش نوبت مدل باشه رو رد می‌کنن —
   // اینجا آخرین پیام گفتگو معمولاً می‌تونه از طرف اپراتور/ربات باشه، پس این محدودیت واقعی بود.
-  const suggestion = await chatCompletion([
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: `تاریخچه‌ی گفتگو:\n\n${transcript}\n\nپاسخ پیشنهادی؟` },
-  ]);
+  const suggestion = await chatCompletion(
+    [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `تاریخچه‌ی گفتگو:\n\n${transcript}\n\nپاسخ پیشنهادی؟` },
+    ],
+    1024,
+    undefined,
+    undefined,
+    {
+      siteId: data.siteId,
+      conversationId: data.conversationId,
+      agentId: data.agentId,
+      kind: 'suggestion',
+    },
+  );
   if (!suggestion) return;
 
   const payload: AiSuggestionPayload = { conversationId: data.conversationId, suggestion };
@@ -32,10 +43,10 @@ export async function processSuggestReply(data: AiSuggestReplyJobData): Promise<
   );
 }
 
-async function getTranscript(conversationId: string): Promise<string> {
+async function getTranscript(conversationId: string, siteId: string): Promise<string> {
   const result = await pool.query<{ senderType: string; content: string }>(
-    `SELECT "senderType", content FROM messages WHERE "conversationId" = $1 ORDER BY "createdAt" DESC LIMIT $2`,
-    [conversationId, HISTORY_LIMIT],
+    `SELECT "senderType", content FROM messages WHERE "conversationId" = $1 AND "siteId" = $3 ORDER BY "createdAt" DESC LIMIT $2`,
+    [conversationId, HISTORY_LIMIT, siteId],
   );
   return result.rows
     .reverse()

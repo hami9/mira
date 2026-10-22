@@ -5,6 +5,10 @@ import {
   MessagePayload,
   MessageSenderType,
   SocketEvent,
+  AiStatusPayload,
+  AI_STATUS_LABELS,
+  safeHttpUrl,
+  formatProductPrice,
 } from '@mira/shared-types';
 import { apiClient, ConversationDto } from '../api';
 import { ConversationMeta } from './ConversationMeta';
@@ -36,6 +40,7 @@ export function ChatWindow({
   const [draft, setDraft] = useState('');
   const [isVisitorTyping, setIsVisitorTyping] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
+  const [aiStage, setAiStage] = useState<AiStatusPayload['stage']>('idle');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,9 +60,27 @@ export function ChatWindow({
   useEffect(() => {
     if (!socket) return;
 
+    let aiTimeout: ReturnType<typeof setTimeout> | undefined;
+    let aiMessageId: string | undefined;
+    setAiStage('idle');
+    function onAiStatus(payload: AiStatusPayload): void {
+      if (payload.conversationId !== conversation.id) return;
+      if (payload.stage === 'idle' && aiMessageId !== payload.messageId) return;
+      aiMessageId = payload.messageId;
+      setAiStage(payload.stage);
+      clearTimeout(aiTimeout);
+      aiTimeout = setTimeout(() => setAiStage('idle'), 60_000);
+    }
+    function onDisconnect(): void {
+      setAiStage('idle');
+    }
+
     function onMessage(message: MessagePayload): void {
       if (message.conversationId !== conversation.id) return;
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) =>
+        prev.some((item) => item.id === message.id) ? prev : [...prev, message],
+      );
+      if (message.senderType !== MessageSenderType.VISITOR) setAiStage('idle');
       // این پنجره همین الان بازه؛ اگه پیام از طرف بازدیدکننده/ربات باشه بلافاصله به‌عنوان خوانده‌شده علامت بزن
       if (message.senderType !== MessageSenderType.AGENT) {
         apiClient.markConversationRead(conversation.id).catch(() => {});
@@ -78,9 +101,14 @@ export function ChatWindow({
     }
 
     socket.on(SocketEvent.MessageNew, onMessage);
+    socket.on(SocketEvent.AiStatus, onAiStatus);
+    socket.on('disconnect', onDisconnect);
     socket.on(SocketEvent.Typing, onTyping);
     socket.on(SocketEvent.AiReplySuggested, onAiSuggestion);
     return () => {
+      clearTimeout(aiTimeout);
+      socket.off(SocketEvent.AiStatus, onAiStatus);
+      socket.off('disconnect', onDisconnect);
       socket.off(SocketEvent.MessageNew, onMessage);
       socket.off(SocketEvent.Typing, onTyping);
       socket.off(SocketEvent.AiReplySuggested, onAiSuggestion);
@@ -145,9 +173,75 @@ export function ChatWindow({
               {SENDER_LABELS[message.senderType]}
             </div>
             <div className="whitespace-pre-wrap break-words">{message.content}</div>
+            {message.senderType === MessageSenderType.BOT && message.aiMetadata && (
+              <>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {message.aiMetadata.products.map(
+                    (product) =>
+                      safeHttpUrl(product.url) && (
+                        <a
+                          key={product.id}
+                          href={safeHttpUrl(product.url)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-xl border border-teal-100 bg-white p-3 text-xs text-slate-800"
+                        >
+                          {product.imageUrl && safeHttpUrl(product.imageUrl) && (
+                            <img
+                              src={safeHttpUrl(product.imageUrl)!}
+                              alt={product.name}
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              className="mb-2 h-20 w-full object-contain"
+                            />
+                          )}
+                          <strong>{product.name}</strong>
+                          <div className="mt-2 text-teal-700">{formatProductPrice(product)}</div>
+                          <div className="mt-1 text-[10px] text-slate-500">
+                            {product.inStock ? 'موجود · مشاهده محصول ↗' : 'ناموجود'}
+                          </div>
+                        </a>
+                      ),
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {message.aiMetadata.sources.map((source) =>
+                    source.url && safeHttpUrl(source.url) ? (
+                      <a
+                        key={source.id}
+                        href={safeHttpUrl(source.url)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded border border-teal-100 bg-white px-2 py-1 text-[10px]"
+                      >
+                        ↗ {source.title}
+                      </a>
+                    ) : (
+                      <span
+                        key={source.id}
+                        className="rounded border border-teal-100 bg-white px-2 py-1 text-[10px]"
+                      >
+                        {source.title}
+                      </span>
+                    ),
+                  )}
+                </div>
+                {message.aiMetadata.handoff && (
+                  <div className="mt-2 text-[10px] font-bold text-amber-700">
+                    در انتظار پشتیبان · پاسخ خودکار متوقف است
+                  </div>
+                )}
+              </>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
+        {aiStage !== 'idle' && (
+          <div role="status" className="flex items-center gap-2 p-3 text-xs text-teal-700">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-teal-100 border-t-teal-600 motion-reduce:animate-none" />
+            {AI_STATUS_LABELS[aiStage]}
+          </div>
+        )}
       </div>
       <div className="h-5 px-4 text-xs text-gray-500">
         {isVisitorTyping ? (

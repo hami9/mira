@@ -1,0 +1,40 @@
+name: mira-ai-check
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: fixture-root
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: fixture-db
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  wp:
+    image: wordpress:php8.3-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: &wp-env
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: fixture-db
+      MIRA_WP_FIXTURE: '1'
+    ports: ['127.0.0.1:18091:80']
+    volumes: &wp-volumes
+      - wp-data:/var/www/html
+      - ../../wordpress-plugin/mira:/var/www/html/wp-content/plugins/mira:ro
+      - ./wordpress-check.php:/tmp/wordpress-check.php:ro
+  cli:
+    image: wordpress:cli-php8.3
+    user: '33:33'
+    environment: *wp-env
+    volumes: *wp-volumes
+    entrypoint: ['wp']
+volumes:
+  wp-data:

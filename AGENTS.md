@@ -299,6 +299,15 @@ code.** This is the most important section of this file.
 
 ---
 
+9. **Bot hours and human handoff were not durable worker controls.** The queue worker now
+   enforces outside-business-hours settings and stores `aiPaused` when handing off. Real
+   Postgres tests verify that later visitor messages do not restart the bot and that agent
+   takeover or resolution during generation prevents a late answer.
+
+10. **Mixed provider defaults could send an AvalAI key to the OpenAI endpoint.** When the
+    explicit OpenAI key is empty, the worker now selects the AvalAI key, endpoint and model
+    together. The environment-example defaults are covered by a regression test.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have
@@ -467,3 +476,41 @@ The order followed throughout the project, which should continue:
 
 **And most importantly:** if you find a real bug, add it to section 6 of this file. The
 value of this file is exactly those lessons that are written down nowhere else.
+
+## 12. AI assistant update
+
+The assistant now uses structured JSON with confidence, answer, source IDs and product IDs.
+The worker validates IDs against tenant-scoped retrieved data; it constructs cards and citations
+from server records. This supersedes the old bot CONFIDENCE/ANSWER format described above.
+Handoff now persists `conversations.aiPaused`; it is no longer just a message or silence.
+All bot turns use one user message containing untrusted history and context for provider compatibility.
+
+Migration `1737300800000-AiAssistant` adds `sites.aiPolicy`, `messages.aiMetadata` and
+`conversations.aiPaused`. The model/credentials remain server-managed; only the model name can
+be overridden per site. The API never returns the WordPress key. The widget session only exposes
+public assistant identity and suggested questions, never the server context or policy.
+
+The WordPress plugin has a read-only public-content/product endpoint. The worker only calls its
+fixed route over public HTTPS, with pinned DNS, no redirects and bounded responses. Product links
+are same-origin; external media hosts are omitted. There is no shell, arbitrary URL or private-order
+access. Approved server facts are text supplied by an administrator. See
+[the assistant guide](docs/ai-assistant.md) for controls, limitations and reproducible tests.
+
+Two existing bot bugs addressed here: outside-business-hours settings were not enforced in the
+worker, and a handoff did not stop future bot replies. The new worker also rechecks conversation
+ownership/status and newer messages before posting, and deduplicates jobs with a stored reply ID.
+Real-provider answer quality and production deployment are separate from deterministic fixture tests.
+
+Migration `1737300900000-AiUsage` adds a tenant-scoped provider usage ledger. The worker records
+reply, retrieval, copilot, summary and document embedding tokens. Admin-only reports show
+1/7/30-day totals and per-visitor averages. AvalAI account data requires `AVALAI_SITE_ID` and
+fresh admin authorization; keys stay server-side. Charges are reconciled by `avalai-request-id`
+when billing is opened/refreshed, in batches of 100 after 30 seconds. Missing usage/cost is
+unknown or pending, never an invented zero. Account totals can include other applications.
+Quick payment opens the official provider page. See the assistant guide for setup and limits.
+
+Local verification now includes 112 unit tests, 44 real-database integration tests, a real
+WordPress/WooCommerce fixture contract check, and a bounded DeepSeek AvalAI queued call with
+actual token and transaction-cost reconciliation. This supersedes the earlier statement that
+the plugin has never been installed: it was installed on a disposable local fixture, not a
+customer production site. Production deployment and Luna remain unverified.

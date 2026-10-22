@@ -8,6 +8,10 @@ const publisher = new Redis({
   password: config.redis.password,
 });
 
+export async function closeSocketPublisher(): Promise<void> {
+  await publisher.quit();
+}
+
 export async function publishSocketEvent(
   room: string,
   event: string,

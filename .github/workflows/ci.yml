@@ -163,6 +163,9 @@ jobs:
       SEED_ADMIN_EMAIL: admin@kgkala.test
       SEED_ADMIN_PASSWORD: ChangeMe123!
       E2E_DASHBOARD_URL: http://localhost:5173
+      AI_E2E: '1'
+      OPENAI_API_KEY: fixture-only
+      OPENAI_BASE_URL: http://127.0.0.1:4201/v1
     steps:
       - uses: actions/checkout@v7
 
@@ -223,6 +226,16 @@ jobs:
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+
+      - name: Start AI fixture and worker
+        run: |
+          node tests/fixtures/ai-provider.mjs > /tmp/mira-fixture.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4201/health >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4201/health >/dev/null
+          node apps/worker/dist/main.js > /tmp/mira-worker.log 2>&1 &
 
       - name: Run E2E tests
         run: npx playwright test

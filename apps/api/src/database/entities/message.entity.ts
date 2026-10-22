@@ -1,8 +1,11 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
-import { MessageSenderType } from '@mira/shared-types';
+import { MessageSenderType, AiMessageMetadata } from '@mira/shared-types';
 
 @Entity('messages')
 export class MessageEntity {
+  @Column({ type: 'jsonb', nullable: true })
+  aiMetadata!: AiMessageMetadata | null;
+
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

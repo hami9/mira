@@ -7,6 +7,7 @@ import { processBotReply } from './jobs/bot-reply';
 import { processSuggestReply } from './jobs/suggest-reply';
 import { processSummarizeConversation } from './jobs/summarize-conversation';
 import { processDispatchWebhook } from './jobs/dispatch-webhook';
+import { closeSocketPublisher } from './redis-bridge';
 
 const connection = {
   host: config.redis.host,
@@ -46,8 +47,8 @@ for (const worker of workers) {
   worker.on('completed', (job) =>
     console.log(`[worker] ${job.queueName} تکمیل شد — job ${job.id}`),
   );
-  worker.on('failed', (job, err) =>
-    console.error(`[worker] ${job?.queueName} شکست خورد — job ${job?.id}:`, err.message),
+  worker.on('failed', (job) =>
+    console.error(`[worker] ${job?.queueName} شکست خورد — job ${job?.id}`),
   );
 }
 
@@ -57,6 +58,7 @@ async function shutdown(): Promise<void> {
   console.log('[worker] در حال خاموش شدن...');
   await Promise.all(workers.map((worker) => worker.close()));
   await pool.end();
+  await closeSocketPublisher();
   process.exit(0);
 }
 

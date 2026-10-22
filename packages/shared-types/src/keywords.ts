@@ -26,6 +26,7 @@ const HUMAN_REQUEST_KEYWORDS = [
   'آدم واقعی',
   'کارشناس',
   'پشتیبان واقعی',
+  'گفتگو با پشتیبان',
   'صحبت با انسان',
   'human',
   'real person',

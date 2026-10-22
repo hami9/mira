@@ -17,6 +17,7 @@ import {
   MessageSenderType,
   WidgetSessionResponseDto,
   StartConversationResponseDto,
+  DEFAULT_AI_POLICY,
 } from '@mira/shared-types';
 import { VisitorJwtGuard } from '../../common/guards/visitor-jwt.guard';
 import { CurrentVisitor } from '../../common/decorators/current-visitor.decorator';
@@ -86,6 +87,13 @@ export class VisitorsController {
       activeConversationId: activeConversation?.id ?? null,
       pendingRatingConversationId: pendingRatingConversation?.id ?? null,
       triggerMessage: site.triggerMessage.enabled ? site.triggerMessage : null,
+      assistant: {
+        enabled: site.aiEnabled,
+        name: site.aiBotName,
+        avatarUrl: site.aiBotAvatarUrl,
+        greeting: site.aiGreetingMessage,
+        quickReplies: site.aiPolicy.quickReplies ?? DEFAULT_AI_POLICY.quickReplies,
+      },
     };
   }
 

@@ -6,6 +6,7 @@ import { defineConfig } from 'vitest/config';
 //                      نه با ماک). در CI با service containerها اجرا می‌شود؛ اگر
 //                      DATABASE_URL ست نباشد، فایل‌هایش خودشان را skip می‌کنند.
 export default defineConfig({
+  esbuild: { tsconfigRaw: { compilerOptions: { experimentalDecorators: true } } },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',

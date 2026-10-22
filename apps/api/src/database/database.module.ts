@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   SiteEntity,
+  AiUsageEntity,
   AgentEntity,
   VisitorEntity,
   ConversationEntity,
@@ -28,6 +29,7 @@ import {
         url: config.get<string>('DATABASE_URL'),
         entities: [
           SiteEntity,
+          AiUsageEntity,
           AgentEntity,
           VisitorEntity,
           ConversationEntity,

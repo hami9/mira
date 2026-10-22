@@ -18,6 +18,7 @@ const inputClass =
 export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) {
   const [tab, setTab] = useState(0);
   const [draft, setDraft] = useState({
+    name: settings.name,
     aiEnabled: settings.aiEnabled,
     aiBotName: settings.aiBotName,
     aiBotAvatarUrl: settings.aiBotAvatarUrl ?? '',
@@ -74,6 +75,7 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
     try {
       await onSave({
         ...draft,
+        name: draft.name.trim(),
         aiBotName: draft.aiBotName.trim() || 'دستیار میرا',
         aiBotAvatarUrl: draft.aiBotAvatarUrl.trim() || null,
         aiPolicy: {
@@ -136,6 +138,18 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
           <div className="space-y-5 p-5 sm:p-6">
             {tab === 0 && (
               <>
+                <Field
+                  label="نام فروشگاه"
+                  hint="هویت این سایت در ویجت و پاسخ‌های دستیار؛ اطلاعات فروشگاه‌های دیگر جدا می‌ماند."
+                >
+                  <input
+                    className={inputClass}
+                    value={draft.name}
+                    required
+                    maxLength={255}
+                    onChange={(e) => patch({ name: e.target.value })}
+                  />
+                </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="نام دستیار">
                     <input

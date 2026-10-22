@@ -110,6 +110,7 @@ export const AI_STATUS_LABELS: Record<AiStatusPayload['stage'], string> = {
 };
 
 export interface WidgetAssistant {
+  siteName?: string;
   avatarUrl?: string | null;
   enabled: boolean;
   name: string;

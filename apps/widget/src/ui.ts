@@ -422,6 +422,7 @@ export class WidgetUi {
   }
 
   configureAssistant(assistant?: WidgetAssistant): void {
+    const store = assistant?.siteName?.trim() || 'فروشگاه';
     if (assistant?.enabled) this.botName = assistant.name;
     if (assistant?.enabled && assistant.avatarUrl && safeHttpUrl(assistant.avatarUrl)) {
       const avatar = document.createElement('img');
@@ -436,10 +437,10 @@ export class WidgetUi {
     }
     this.panel.querySelector('.mira-header-title')!.textContent = assistant?.enabled
       ? this.botName
-      : 'پشتیبانی آنلاین';
+      : `پشتیبانی ${store}`;
     this.panel.querySelector('.mira-header-sub')!.textContent = assistant?.enabled
-      ? 'دستیار هوشمند فروشگاه · همراه با پشتیبان انسانی'
-      : 'میرا — پاسخ‌گوی شما';
+      ? `دستیار ${store} · همراه با پشتیبان انسانی`
+      : `${store} · پاسخ‌گوی شما`;
     if (this.seenMessages.size) return;
     this.messagesEl.querySelector('.mira-welcome')?.remove();
     const welcome = document.createElement('div');
@@ -449,7 +450,7 @@ export class WidgetUi {
     welcome.appendChild(title);
     const text = document.createElement('p');
     text.textContent = assistant?.enabled
-      ? assistant.greeting || 'برای انتخاب محصول و پاسخ به پرسش‌های فروشگاه اینجا هستم.'
+      ? assistant.greeting || `برای انتخاب محصول و پاسخ به پرسش‌های ${store} اینجا هستم.`
       : 'پیامتان را بنویسید تا همکاران ما راهنمایی‌تان کنند.';
     welcome.appendChild(text);
     const quick = document.createElement('div');

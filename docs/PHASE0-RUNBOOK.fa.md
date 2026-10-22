@@ -25,7 +25,7 @@ cd wordpress-plugin
 docker compose -f docker-compose.test.yml up -d
 
 docker compose -f docker-compose.test.yml run --rm wpcli core install \
-  --url=http://localhost:8081 --title="KG Kala Test" \
+  --url=http://localhost:8081 --title="Mira Test" \
   --admin_user=admin --admin_password=admin123 \
   --admin_email=admin@example.test --skip-email
 

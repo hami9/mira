@@ -46,7 +46,7 @@ _گفت‌وگویی که به قلب می‌رسد ♥_
 ## کنترل دستیار هوشمند
 
 ویجت از کارت محصول، نمایش منابع، شروع پیشنهادی گفتگو و وضعیت زنده پردازش پشتیبانی می‌کند.
-پنل هوش مصنوعی شامل منابع، موضوع‌های ممنوع، ارتباط اسناد، مدل و سقف پاسخ است.
+نام و منابع هر فروشگاه جداست. پنل هوش مصنوعی شامل منابع، موضوع‌های ممنوع، ارتباط اسناد، مدل و سقف پاسخ است.
 مدیر مصرف هر بازدیدکننده، میانگین مصرف، اعتبار آوالای، هزینه نهایی و برآورد مدل‌ها را هم می‌بیند
 و از پیوند پرداخت رسمی حساب را شارژ می‌کند.
 [راهنمای راه‌اندازی و محدودیت‌ها](docs/ai-assistant.fa.md) را ببینید.
@@ -132,7 +132,7 @@ docker compose ps
 هنگام بالا آمدن سرویس `api`، به‌صورت خودکار (idempotent، امن برای هر بار ری‌استارت):
 
 - مایگریشن‌های دیتابیس اجرا می‌شن
-- یک سایت نمونه (`KG Kala`) و یک اپراتور ادمین seed می‌شن
+- یک سایت نمونه (`فروشگاه نمونه میرا`) و یک اپراتور ادمین seed می‌شن
 
 > ⚠️ **فقط محیط توسعه‌ی محلی.** مقادیر زیر پیش‌فرض seed برای توسعه‌اند و در
 > `NODE_ENV=production` اصلاً کار نمی‌کنند: اگر `SEED_ADMIN_PASSWORD` تنظیم نشده باشد
@@ -185,7 +185,7 @@ cd wordpress-plugin
 docker compose -f docker-compose.test.yml up -d
 # نصب اولیه با WP-CLI:
 docker compose -f docker-compose.test.yml run --rm wpcli core install \
-  --url=http://localhost:8081 --title="KG Kala Test" \
+  --url=http://localhost:8081 --title="Mira Test" \
   --admin_user=admin --admin_password=admin123 --admin_email=admin@example.test --skip-email
 docker compose -f docker-compose.test.yml run --rm wpcli plugin install woocommerce --activate
 docker compose -f docker-compose.test.yml run --rm wpcli plugin activate mira

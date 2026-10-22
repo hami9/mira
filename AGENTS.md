@@ -509,8 +509,15 @@ when billing is opened/refreshed, in batches of 100 after 30 seconds. Missing us
 unknown or pending, never an invented zero. Account totals can include other applications.
 Quick payment opens the official provider page. See the assistant guide for setup and limits.
 
-Local verification now includes 112 unit tests, 44 real-database integration tests, a real
+Local verification now includes 112 unit tests, 45 real-database integration tests, a real
 WordPress/WooCommerce fixture contract check, and a bounded DeepSeek AvalAI queued call with
 actual token and transaction-cost reconciliation. This supersedes the earlier statement that
 the plugin has never been installed: it was installed on a disposable local fixture, not a
 customer production site. Production deployment and Luna remain unverified.
+
+Store identity is now explicit in widget sessions and all worker chat prompts. AI identity
+settings can update the site name; existing records are never renamed by this change.
+Sample branding is Mira, while legacy development credentials/widget keys and the `kgchat`
+database name stay compatible. Tenant identity is verified with two independent fixture stores.
+
+Seven live browser scenarios now pass, including two independent store widgets and queued replies.

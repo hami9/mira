@@ -2,6 +2,7 @@ import { AiSuggestReplyJobData, AiSuggestionPayload, SocketEvent } from '@mira/s
 import { pool } from '../db';
 import { chatCompletion } from '../ai/chat';
 import { publishSocketEvent } from '../redis-bridge';
+import { plainText } from '../ai/guardrails';
 
 const HISTORY_LIMIT = 15;
 
@@ -14,13 +15,20 @@ const SYSTEM_PROMPT =
 export async function processSuggestReply(data: AiSuggestReplyJobData): Promise<void> {
   const transcript = await getTranscript(data.conversationId, data.siteId);
   if (!transcript) return;
+  const site = (
+    await pool.query<{ name: string }>('SELECT name FROM sites WHERE id = $1', [data.siteId])
+  ).rows[0];
+  if (!site) return;
 
   // تاریخچه رو به‌عنوان متن داخل یک user turn تنها می‌فرستیم (نه چندین نوبت user/assistant متناوب)
   // چون بعضی providerها (از جمله Gemini) درخواستی که آخرین پیامش نوبت مدل باشه رو رد می‌کنن —
   // اینجا آخرین پیام گفتگو معمولاً می‌تونه از طرف اپراتور/ربات باشه، پس این محدودیت واقعی بود.
   const suggestion = await chatCompletion(
     [
-      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'system',
+        content: `${SYSTEM_PROMPT}\nنام فروشگاه همین گفتگو: ${JSON.stringify(plainText(site.name, 255))}. هویت فروشگاه را با نام دیگری جایگزین نکن.`,
+      },
       { role: 'user', content: `تاریخچه‌ی گفتگو:\n\n${transcript}\n\nپاسخ پیشنهادی؟` },
     ],
     1024,

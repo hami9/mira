@@ -1,5 +1,5 @@
 === میرا ===
-Contributors: kgkala
+Contributors: hami9
 Tags: live chat, support, woocommerce, chat widget
 Requires at least: 6.0
 Tested up to: 6.6

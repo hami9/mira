@@ -88,6 +88,7 @@ export class VisitorsController {
       pendingRatingConversationId: pendingRatingConversation?.id ?? null,
       triggerMessage: site.triggerMessage.enabled ? site.triggerMessage : null,
       assistant: {
+        siteName: site.name,
         enabled: site.aiEnabled,
         name: site.aiBotName,
         avatarUrl: site.aiBotAvatarUrl,

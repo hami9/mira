@@ -26,6 +26,8 @@ import {
 import { getSiteContext, SiteContext } from '../ai/site-context';
 
 interface SiteAiSettings {
+  name: string;
+  aiBotName: string;
   aiEnabled: boolean;
   aiSystemPrompt: string | null;
   aiConfidenceThreshold: number;
@@ -55,7 +57,7 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
     locked = true;
     const site = (
       await client.query<SiteAiSettings>(
-        `SELECT "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold", "aiHandoffMessage",
+        `SELECT name, "aiBotName", "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold", "aiHandoffMessage",
         "aiTemperature", "aiMaxTokens", "aiMaxRepliesPerConversation", "aiPolicy",
         "aiReplyOnlyOutsideBusinessHours", "businessHours", "wordpressSiteUrl", "wordpressApiKey"
        FROM sites WHERE id = $1`,
@@ -153,12 +155,13 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
       [
         {
           role: 'system',
-          content: `${site.aiSystemPrompt || ''}\n\n${SAFETY_PROMPT}\nحداکثر ${policy.maxProducts} محصول انتخاب کن.`,
+          content: `${site.aiSystemPrompt || ''}\n\nهویت همین گفتگو: ${JSON.stringify({ storeName: plainText(site.name).slice(0, 255), assistantName: plainText(site.aiBotName).slice(0, 100) })}\nفقط نماینده همین فروشگاه هستی؛ نام یا اطلاعات فروشگاه دیگری را جایگزین هویت این گفتگو نکن.\n${SAFETY_PROMPT}\nحداکثر ${policy.maxProducts} محصول انتخاب کن.`,
         },
         // منابع هرگز به دستور سطح سیستم تبدیل نمی‌شوند.
         {
           role: 'user',
           content: JSON.stringify({
+            storeName: plainText(site.name).slice(0, 255),
             sources: sources.map((s) => ({ ...s, content: redactSensitive(s.content) })),
             products: website.products,
             history,

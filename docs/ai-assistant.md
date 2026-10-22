@@ -124,3 +124,22 @@ Verified locally on 2026-10-22: DeepSeek `deepseek-v4-flash` passed shipping, pr
 and missing-evidence checks. A separate queued call recorded 385 input and 101 output tokens
 and a final USD 0.0001183 charge. This is a small functional check, not a broad quality
 benchmark. Luna and a public production deployment have not been verified.
+
+## Store identity
+
+The store name is editable in the AI identity settings. Each widget session receives only
+its own site's public name and assistant identity. The worker loads that site's name for
+bot replies, copilot suggestions and summaries; retrieved documents, products and usage
+remain scoped to the same site. No existing site is automatically renamed. New sample
+sites and the demo use Mira branding. Legacy development login and widget-key identifiers
+remain unchanged for upgrade compatibility; they are not customer-facing store identity.
+
+A browser fixture opens two independent stores with different widget keys and verifies their
+headers and queued replies keep the correct store name. This tests tenant routing and prompt
+context, not a guarantee that a model can never hallucinate a brand name.
+
+Use a distinct site record and widget key for each independent store, with only that store's
+origins registered. Sharing one widget key across unrelated stores intentionally gives them
+one identity and one conversation space. The current dashboard session belongs to one site;
+central account switching and hosted customer provisioning are separate work, not delivered
+by this identity change. `SEED_SITE_NAME` only names newly created sites.

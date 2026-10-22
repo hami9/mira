@@ -42,7 +42,7 @@ one installation serves many websites, each isolated by `siteId`.
 ### AI assistant controls
 
 The widget now supports product cards, source links, suggested questions and live processing
-states. The AI settings panel controls sources, forbidden topics, retrieval relevance, model
+states. Each store keeps its own name and sources. The AI settings panel controls sources, forbidden topics, retrieval relevance, model
 and reply limits. Admins can also review visitor token usage, average usage, AvalAI credit,
 actual charges and model cost estimates, with a link to the official payment page.
 See [AI assistant setup and boundaries](docs/ai-assistant.md).

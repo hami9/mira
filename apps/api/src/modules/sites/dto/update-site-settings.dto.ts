@@ -112,8 +112,10 @@ export class UpdateSiteSettingsRequestDto implements UpdateSiteSettingsDto {
   @Type(() => AiPolicyDto)
   aiPolicy?: AiPolicyDto;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
+  @Matches(/\S/, { message: 'نام فروشگاه نمی‌تواند خالی باشد' })
+  @MaxLength(255)
   name?: string;
 
   @IsOptional()

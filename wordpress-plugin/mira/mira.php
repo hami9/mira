@@ -6,7 +6,7 @@
  * Version:           1.0.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
- * Author:            KG Kala
+ * Author:            Mira
  * Text Domain:       mira
  * Domain Path:       /languages
  * License:           GPLv2 or later

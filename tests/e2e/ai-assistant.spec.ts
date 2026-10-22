@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { DEFAULT_AI_POLICY } from '@mira/shared-types';
 import { Client } from 'pg';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
 
 const dashboardUrl = process.env.E2E_DASHBOARD_URL || 'http://localhost:5173';
 test.describe('AI assistant through the live queue', () => {
@@ -43,6 +44,7 @@ test.describe('AI assistant through the live queue', () => {
         aiReplyOnlyOutsideBusinessHours: original.aiReplyOnlyOutsideBusinessHours,
         aiBotName: original.aiBotName,
         aiPolicy: original.aiPolicy,
+        name: original.name,
       },
     });
   });
@@ -88,6 +90,13 @@ test.describe('AI assistant through the live queue', () => {
   });
 
   test('validates policy and saves it from the admin panel', async ({ page, request }) => {
+    for (const name of ['', '   ', null, 'x'.repeat(256)]) {
+      const rejected = await request.patch('/v1/sites/me', {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { name },
+      });
+      expect(rejected.status()).toBe(400);
+    }
     for (const aiPolicy of [
       null,
       { ...DEFAULT_AI_POLICY, maxProducts: 100 },
@@ -120,6 +129,7 @@ test.describe('AI assistant through the live queue', () => {
     await billing.scrollIntoViewIfNeeded();
     await billing.screenshot({ path: 'test-results/ai-billing.png' });
     const section = page.getByRole('region', { name: 'مرکز هوش مصنوعی' });
+    await section.getByLabel('نام فروشگاه', { exact: false }).fill('فروشگاه نمونه میرا');
     await section.getByRole('button', { name: 'گاردریل‌ها', exact: true }).click();
     await section.getByLabel('موضوع‌های ممنوع', { exact: false }).fill('اطلاعات حساب دیگران');
     await section.getByRole('button', { name: 'ذخیره تنظیمات AI' }).click();
@@ -128,6 +138,7 @@ test.describe('AI assistant through the live queue', () => {
       await request.get('/v1/sites/me', { headers: { Authorization: `Bearer ${token}` } })
     ).json();
     expect(saved.aiPolicy.blockedTopics).toEqual(['اطلاعات حساب دیگران']);
+    expect(saved.name).toBe('فروشگاه نمونه میرا');
     expect(saved.wordpressApiKey).toBeNull();
     await section.locator('header').scrollIntoViewIfNeeded();
     await page.screenshot({ path: 'test-results/ai-settings.png' });
@@ -197,6 +208,65 @@ test.describe('AI assistant through the live queue', () => {
       await expect(page.locator('.mira-product')).toHaveAttribute('href', product.url);
       await page.screenshot({ path: 'test-results/ai-products.png' });
     } finally {
+      await db.end();
+    }
+  });
+
+  test('keeps two live widgets and queued answers under their own store names', async ({
+    browser,
+  }) => {
+    const db = new Client({
+      connectionString: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+    });
+    await db.connect();
+    const sites: string[] = [];
+    try {
+      for (const name of ['فروشگاه آبی', 'فروشگاه سبز']) {
+        const key = crypto.randomUUID();
+        const siteId = (
+          await db.query(
+            `INSERT INTO sites (name, "widgetKey", "allowedDomains", "aiEnabled", "aiReplyOnlyOutsideBusinessHours", "aiPolicy") VALUES ($1, $2, $3, true, false, $4) RETURNING id`,
+            [
+              name,
+              key,
+              [new URL(process.env.E2E_API_URL || 'http://localhost:3000').origin],
+              {
+                ...DEFAULT_AI_POLICY,
+                useKnowledgeBase: false,
+                serverContext: 'ارسال سفارش دو روز کاری زمان می‌برد.',
+              },
+            ],
+          )
+        ).rows[0].id;
+        sites.push(siteId);
+        const context = await browser.newContext();
+        const fixturePath = `apps/api/public/widget-dist/store-${key}.html`;
+        try {
+          const page = await context.newPage();
+          // صفحه از HTTP واقعی می‌آید؛ پاسخ مصنوعی route در Chromium جدید اتصال محلی سوکت را مسدود می‌کند.
+          await writeFile(
+            fixturePath,
+            (await readFile('apps/api/public/demo.html', 'utf8')).replace('kgkala-demo-key', key),
+          );
+          await page.goto(`/widget-dist/store-${key}.html`);
+          await page.locator('.mira-bubble').click();
+          await expect(page.locator('.mira-header-sub')).toContainText(name);
+          await page.locator('.mira-input').fill('شرایط ارسال چیست؟');
+          await page.locator('.mira-send').click();
+          await expect(page.locator('.mira-msg-bot')).toContainText(name);
+          await expect(page.locator('.mira-msg-bot')).not.toContainText(
+            name === 'فروشگاه آبی' ? 'فروشگاه سبز' : 'فروشگاه آبی',
+          );
+          await page.screenshot({ path: `test-results/ai-store-${sites.length}.png` });
+        } finally {
+          await context.close();
+          await unlink(fixturePath).catch(() => undefined);
+        }
+      }
+    } finally {
+      for (const table of ['messages', 'conversations', 'visitors'])
+        await db.query(`DELETE FROM ${table} WHERE "siteId" = ANY($1::uuid[])`, [sites]);
+      await db.query('DELETE FROM sites WHERE id = ANY($1::uuid[])', [sites]);
       await db.end();
     }
   });

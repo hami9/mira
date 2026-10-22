@@ -37,7 +37,7 @@ const server = createServer(async (req, res) => {
             role: 'assistant',
             content: JSON.stringify({
               confidence: 0.95,
-              answer: 'ارسال سفارش دو روز کاری زمان می‌برد.',
+              answer: `${content.storeName ? `${content.storeName}: ` : ''}ارسال سفارش دو روز کاری زمان می‌برد.`,
               sourceIds: content.sources?.length ? [content.sources[0].id] : [],
               productIds: content.products?.slice(0, 1).map((p) => p.id) || [],
             }),

@@ -86,6 +86,56 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
       events.mock.calls.filter((call) => call[1] === 'ai:status').map((call) => call[2].stage),
     ).toEqual(['retrieving', 'thinking', 'idle']);
   });
+  it('keeps two stores names and approved context separate', async () => {
+    await db.query('UPDATE sites SET name = $2 WHERE id = $1', [siteId, 'فروشگاه آبی']);
+    const other = await createSite(db, 'فروشگاه سبز', crypto.randomUUID());
+    sites.push(other);
+    const otherConversation = await createConversation(db, other, await createVisitor(db, other));
+    const otherMessage = (
+      await db.query(
+        `INSERT INTO messages ("siteId", "conversationId", "senderType", content) VALUES ($1, $2, 'visitor', 'شرایط ارسال چیست؟') RETURNING id`,
+        [other, otherConversation],
+      )
+    ).rows[0].id;
+    await db.query(`UPDATE sites SET "aiPolicy" = $2 WHERE id = $1`, [
+      other,
+      {
+        ...DEFAULT_AI_POLICY,
+        useKnowledgeBase: false,
+        serverContext: 'ارسال هفت روز زمان می‌برد.',
+      },
+    ]);
+    model.mockImplementation(async (turns) => {
+      const context = JSON.parse(turns[1].content);
+      return JSON.stringify({
+        confidence: 0.95,
+        answer: `${context.storeName}: ${context.sources[0].content}`,
+        productIds: [],
+        sourceIds: ['server:approved'],
+      });
+    });
+    await processBotReply(job());
+    await processBotReply({
+      siteId: other,
+      conversationId: otherConversation,
+      visitorMessageId: otherMessage,
+    });
+    const [first, second] = model.mock.calls.map((call) => call[0]);
+    expect(first[0].content).toContain('فروشگاه آبی');
+    expect(first[0].content).not.toContain('فروشگاه سبز');
+    expect(second[0].content).toContain('فروشگاه سبز');
+    expect(JSON.parse(second[1].content).sources[0].content).toContain('هفت روز');
+    expect((await messages())[0].content).toContain('فروشگاه آبی');
+    expect((await messages())[0].content).not.toContain('هفت روز');
+    const otherReply = (
+      await db.query(
+        `SELECT content FROM messages WHERE "siteId" = $1 AND "conversationId" = $2 AND "senderType" = 'bot'`,
+        [other, otherConversation],
+      )
+    ).rows[0];
+    expect(otherReply.content).toContain('فروشگاه سبز');
+    expect(otherReply.content).not.toContain('فروشگاه آبی');
+  });
   it('serializes duplicate jobs without a second model call or message', async () => {
     await Promise.all([processBotReply(job()), processBotReply(job())]);
     expect(await messages()).toHaveLength(1);

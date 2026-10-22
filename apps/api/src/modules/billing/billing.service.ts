@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { createHash } from 'node:crypto';
 import { AiBillingDto, parseAiModelPrices } from '@mira/shared-types';
 
 const TOP_UP_URL = 'https://chat.avalai.ir/platform/billing';
@@ -21,8 +20,10 @@ export function billingNumber(value: unknown, allowNegative = false): number | n
 
 @Injectable()
 export class BillingService {
-  private cache: { key: string; expiresAt: number; value: AiBillingDto } | null = null;
-  private pending: { key: string; value: Promise<AiBillingDto> } | null = null;
+  private cache: { key: number; expiresAt: number; value: AiBillingDto } | null = null;
+  private pending: { key: number; value: Promise<AiBillingDto> } | null = null;
+  private account: { siteId: string; apiKey: string } | null = null;
+  private revision = 0;
 
   constructor(
     private readonly config: ConfigService,
@@ -49,12 +50,20 @@ export class BillingService {
       warnings: [],
     };
     if (!apiKey || boundSite !== siteId) return empty;
-    const key = createHash('sha256').update(`${siteId}:${apiKey}`).digest('hex');
+    // اعتبارنامه مثل ConfigService فقط در حافظه است؛ تغییر آن نسل کش را عوض می‌کند.
+    if (this.account?.siteId !== siteId || this.account.apiKey !== apiKey) {
+      this.account = { siteId, apiKey };
+      this.revision++;
+      this.cache = null;
+      this.pending = null;
+    }
+    const key = this.revision;
     if (this.cache?.key === key && this.cache.expiresAt > Date.now()) return this.cache.value;
     if (this.pending?.key === key) return this.pending.value;
     const value = this.load(apiKey, empty, siteId)
       .then((result) => {
-        this.cache = { key, expiresAt: Date.now() + CACHE_MS, value: result };
+        if (this.revision === key)
+          this.cache = { key, expiresAt: Date.now() + CACHE_MS, value: result };
         return result;
       })
       .finally(() => {

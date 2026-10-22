@@ -509,7 +509,7 @@ when billing is opened/refreshed, in batches of 100 after 30 seconds. Missing us
 unknown or pending, never an invented zero. Account totals can include other applications.
 Quick payment opens the official provider page. See the assistant guide for setup and limits.
 
-Local verification now includes 112 unit tests, 45 real-database integration tests, a real
+Local verification now includes 113 unit tests, 45 real-database integration tests, a real
 WordPress/WooCommerce fixture contract check, and a bounded DeepSeek AvalAI queued call with
 actual token and transaction-cost reconciliation. This supersedes the earlier statement that
 the plugin has never been installed: it was installed on a disposable local fixture, not a

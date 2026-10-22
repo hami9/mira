@@ -16,7 +16,11 @@ function setup(config: Record<string, string> = {}) {
     AVALAI_SITE_ID: 'site-a',
     ...config,
   });
-  return { query, service: new BillingService(settings, { query } as unknown as DataSource) };
+  return {
+    query,
+    settings,
+    service: new BillingService(settings, { query } as unknown as DataSource),
+  };
 }
 function provider() {
   return vi.fn(
@@ -94,6 +98,16 @@ describe('AI cost calculation', () => {
 });
 
 describe('AvalAI billing boundary', () => {
+  it('invalidates the account cache when the server key rotates', async () => {
+    const fetcher = provider();
+    vi.stubGlobal('fetch', fetcher);
+    const { service, settings } = setup();
+    await service.overview('site-a', 'admin');
+    settings.set('AVALAI_API_KEY', 'fixture-rotated');
+    const result = await service.overview('site-a', 'admin');
+    expect(fetcher).toHaveBeenCalledTimes(6);
+    expect(JSON.stringify(result)).not.toContain('fixture-rotated');
+  });
   it('reconciles only pending request IDs for the bound site', async () => {
     const { service, query } = setup();
     query.mockImplementation(async (sql: string) =>

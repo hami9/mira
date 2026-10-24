@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { runtimeLimits } from '@mira/shared-types';
 import {
   SiteEntity,
+  AiUsageEntity,
   AgentEntity,
   VisitorEntity,
   ConversationEntity,
@@ -28,6 +30,7 @@ import {
         url: config.get<string>('DATABASE_URL'),
         entities: [
           SiteEntity,
+          AiUsageEntity,
           AgentEntity,
           VisitorEntity,
           ConversationEntity,
@@ -56,7 +59,7 @@ import {
           idleTimeoutMillis: 30_000,
           // اگه اتصال جدید در این مدت برقرار نشد، به‌جای انتظار بی‌پایان خطا بده
           connectionTimeoutMillis: 10_000,
-          max: 10,
+          max: runtimeLimits({ API_DB_POOL_MAX: config.get('API_DB_POOL_MAX') }).apiPool,
         },
       }),
     }),

@@ -49,7 +49,7 @@ docker compose up -d --build
   (⚠️ فقط پیش‌فرض توسعه؛ در `NODE_ENV=production` بدون `SEED_ADMIN_PASSWORD` اصلاً seed اجرا نمی‌شود)
 - دموی ویجت: `http://localhost:3000/demo.html`
 
-lint/format روی host (فقط Node ۲۰+ لازم دارد):
+lint/format روی host (Node نسخه 22.12 یا بالاتر لازم دارد):
 
 ```bash
 npm ci && npm run lint && npm run format:check && npm test

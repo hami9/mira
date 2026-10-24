@@ -1,4 +1,5 @@
 import { MessageSenderType, ConversationStatus } from './enums';
+import type { AiMessageMetadata } from './ai';
 
 // نام رویدادهای Socket.io مشترک بین api/dashboard/widget — تغییرشون فقط باید اینجا انجام شه
 export enum SocketEvent {
@@ -15,9 +16,11 @@ export enum SocketEvent {
   ConnectionError = 'connection:error',
   // server -> client: پاسخ پیشنهادی Copilot برای اپراتور (نتیجه‌ی صف ai-suggest-reply) آماده شد
   AiReplySuggested = 'ai:reply-suggested',
+  AiStatus = 'ai:status',
 }
 
 export interface MessagePayload {
+  aiMetadata?: AiMessageMetadata | null;
   id: string;
   conversationId: string;
   senderType: MessageSenderType;

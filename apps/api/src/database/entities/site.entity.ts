@@ -5,11 +5,14 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { BusinessHours, TriggerMessageConfig } from '@mira/shared-types';
+import { BusinessHours, TriggerMessageConfig, AiPolicy } from '@mira/shared-types';
 
 // هر ردیف این جدول یک سایت/کسب‌وکار متصل‌شده به میرا است (پایه چندمستأجری بودن سیستم)
 @Entity('sites')
 export class SiteEntity {
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  aiPolicy!: AiPolicy;
+
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

@@ -27,6 +27,7 @@ function ConversationRow({
   const isUrgent = conversation.priority === 'high';
   return (
     <button
+      data-conversation-id={conversation.id}
       onClick={() => onSelect(conversation)}
       className={`flex w-full items-start justify-between border-b border-gray-100 p-3 text-right text-sm transition-colors hover:bg-gray-50 ${
         selected ? 'bg-primary-50 hover:bg-primary-50' : ''

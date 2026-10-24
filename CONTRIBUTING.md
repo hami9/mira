@@ -51,7 +51,7 @@ docker compose up -d --build
   without `SEED_ADMIN_PASSWORD`)
 - Widget demo: `http://localhost:3000/demo.html`
 
-Lint/format on the host (needs only Node 20+):
+Lint/format on the host (needs Node >=22.12):
 
 ```bash
 npm ci && npm run lint && npm run format:check && npm test

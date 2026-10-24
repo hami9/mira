@@ -14,6 +14,7 @@ export default tseslint.config(
       'apps/api/public/widget-dist/**',
       'playwright-report/**',
       'test-results/**',
+      'apps/api/dashboard/**',
     ],
   },
   js.configs.recommended,
@@ -32,16 +33,27 @@ export default tseslint.config(
       globals: {
         process: 'readonly',
         console: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        setTimeout: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        crypto: 'readonly',
       },
     },
   },
   {
+    files: ['package/hosting/app.cjs'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     // اسکریپت‌های استاتیک مرورگر (مثل config.js زمان اجرای داشبورد)
-    files: ['**/public/**/*.js'],
+    files: ['**/public/**/*.js', 'package/hosting/configure.js'],
     languageOptions: {
       globals: {
         window: 'readonly',
         document: 'readonly',
+        Uint8Array: 'readonly',
       },
     },
   },

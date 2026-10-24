@@ -21,6 +21,7 @@ export function connectDashboardSocket(
   const socket = io(API_URL, {
     auth: { token: accessToken },
     transports: ['websocket', 'polling'],
+    tryAllTransports: true,
   });
 
   socket.on(SocketEvent.ConversationUpdated, handlers.onConversationUpdated);

@@ -39,6 +39,7 @@ export class AiQueueService implements OnModuleDestroy {
   async enqueueBotReply(data: AiBotReplyJobData): Promise<void> {
     // اگه ربات جواب نده مشکلی نیست (مکالمه دست‌نخورده برای اپراتور می‌مونه)، پس retry زیاد لازم نیست
     await this.botReplyQueue.add('reply', data, {
+      jobId: `bot-${data.visitorMessageId}`,
       attempts: 1,
       removeOnComplete: true,
       removeOnFail: 100,

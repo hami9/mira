@@ -14,16 +14,17 @@ export async function processEmbedDocument(data: AiEmbedDocumentJobData): Promis
   try {
     const chunks = chunkText(document.content);
     if (chunks.length === 0) {
-      await setStatus(data.documentId, 'failed');
+      await setStatus(data.documentId, data.siteId, 'failed');
       return;
     }
 
-    const embeddings = await embedTexts(chunks);
+    const embeddings = await embedTexts(chunks, { siteId: data.siteId, kind: 'document' });
 
     // idempotent: اگه قبلاً chunk داشته (re-embed دستی)، اول پاکش کن
-    await pool.query(`DELETE FROM knowledge_base_chunks WHERE "documentId" = $1`, [
-      data.documentId,
-    ]);
+    await pool.query(
+      `DELETE FROM knowledge_base_chunks WHERE "documentId" = $1 AND "siteId" = $2`,
+      [data.documentId, data.siteId],
+    );
 
     for (let i = 0; i < chunks.length; i++) {
       const vectorLiteral = `[${embeddings[i].join(',')}]`;
@@ -34,16 +35,20 @@ export async function processEmbedDocument(data: AiEmbedDocumentJobData): Promis
       );
     }
 
-    await setStatus(data.documentId, 'ready');
+    await setStatus(data.documentId, data.siteId, 'ready');
   } catch (error) {
-    await setStatus(data.documentId, 'failed');
+    await setStatus(data.documentId, data.siteId, 'failed');
     throw error;
   }
 }
 
-async function setStatus(documentId: string, status: 'ready' | 'failed'): Promise<void> {
-  await pool.query(`UPDATE knowledge_base_documents SET status = $1 WHERE id = $2`, [
-    status,
-    documentId,
-  ]);
+async function setStatus(
+  documentId: string,
+  siteId: string,
+  status: 'ready' | 'failed',
+): Promise<void> {
+  await pool.query(
+    `UPDATE knowledge_base_documents SET status = $1 WHERE id = $2 AND "siteId" = $3`,
+    [status, documentId, siteId],
+  );
 }

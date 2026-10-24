@@ -1,0 +1,114 @@
+# Standalone low-resource deployment beside an existing web server.
+# docker compose -f docker-compose.lite.yml up -d --build
+name: ${COMPOSE_PROJECT_NAME:-mira}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '5m'
+    max-file: '2'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kgchat}
+      POSTGRES_USER: ${POSTGRES_USER:-kgchat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    command:
+      [
+        'postgres',
+        '-c',
+        'max_connections=40',
+        '-c',
+        'shared_buffers=64MB',
+        '-c',
+        'work_mem=4MB',
+        '-c',
+        'maintenance_work_mem=32MB',
+      ]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-384m}
+    cpus: ${POSTGRES_CPU_LIMIT:-0.5}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '96mb',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    volumes: [redis_data:/data]
+    mem_limit: ${REDIS_MEMORY_LIMIT:-192m}
+    cpus: ${REDIS_CPU_LIMIT:-0.25}
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  api:
+    image: ghcr.io/hami9/mira-api:${MIRA_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: ${MIRA_ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      API_PORT: '3000'
+      PORT: '3000'
+      SERVE_DASHBOARD: 'true'
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: ''
+      NODE_OPTIONS: --max-old-space-size=256
+    ports: ['${MIRA_BIND_ADDRESS:-127.0.0.1}:${MIRA_HTTP_PORT:-3300}:3000']
+    mem_limit: ${API_MEMORY_LIMIT:-384m}
+    cpus: ${API_CPU_LIMIT:-0.75}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  worker:
+    image: ghcr.io/hami9/mira-worker:${MIRA_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    env_file: ${MIRA_ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: ''
+      NODE_OPTIONS: --max-old-space-size=160
+    mem_limit: ${WORKER_MEMORY_LIMIT:-256m}
+    cpus: ${WORKER_CPU_LIMIT:-0.5}
+    depends_on:
+      api: { condition: service_healthy }
+    logging: *logging
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -2,6 +2,9 @@
 
 **English** · [فارسی](INSTALL.fa.md)
 
+For a lightweight installation beside an existing website, a single public address, and
+control-panel uploads without SSH, see [Hosting Mira](HOSTING.md).
+
 This guide covers a complete installation of **Mira** (the self-hosted AI-powered live chat
 support platform) on a Linux server — from nothing to a working dashboard with automatic SSL.
 

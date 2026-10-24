@@ -5,6 +5,31 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.4.0] — 2026-10-24
+
+Mira now provides grounded AI support, usage and billing reports, and lighter installation options. All shipped self-hosted features remain free of Mira subscriptions and activation keys; hosting and AI provider charges are separate.
+
+### Added
+
+- Persian chat with thinking states, suggested questions, verified product cards, source links, mobile layouts and durable human handoff.
+- Site-specific assistant identity, knowledge sources and guardrails. Store names and retrieved data stay scoped to each site.
+- Admin usage reports with token totals and per-visitor averages, plus AvalAI credit, model prices, transaction-cost reconciliation and a link to the provider's payment page.
+- A four-service Docker Lite profile, a compiled hosting archive with an offline configuration helper, and direct chat and embed links in installation settings.
+- Admin resource diagnostics, bounded database pools and shared AI task concurrency. Production images use Node 22, omit development tools and run without root.
+- Copyright attribution to hami9 and https://hami9.ir in NOTICE and distribution files. The future private sales/subscription panel is outside this repository.
+
+### Fixed
+
+- Paused conversations, outside-hours behavior, late AI replies and provider configuration defaults.
+- Same-origin polling when WebSocket is unavailable, and incomplete settings responses after saving AI policy.
+- Local `.env.*` files entering installation payloads, and the CLI evaluating dotenv files as shell scripts.
+
+### Validation and limits
+
+Unit and real-database tests cover tenant isolation, usage, permissions and resource controls. Live Chromium scenarios exercise visitor/operator chat, queued AI, two independent stores and the compiled hosting launcher, including a host that rejects WebSocket upgrades. The WordPress integration was installed on a disposable WooCommerce fixture, and DeepSeek through AvalAI was tested with real usage and cost reconciliation.
+
+PHP-only hosting can embed Mira but cannot run its backend. Hosting the backend requires compatible Node support, PostgreSQL with pgvector, Redis and a persistent worker. Real cPanel/DirectAdmin deployment, production TLS, a complete Debian installation cycle and Luna remain unverified. See [the hosting guide](package/HOSTING.md).
+
 ## [1.3.0] — 2026-07-28
 
 Phase 0's test harness is now complete: the project has a **real end-to-end browser test**

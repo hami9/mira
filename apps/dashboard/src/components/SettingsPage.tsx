@@ -14,6 +14,9 @@ import { AutomationRulesSection } from './AutomationRulesSection';
 import { WebhooksSection } from './WebhooksSection';
 import { TwoFactorSection } from './TwoFactorSection';
 import { AiSettingsSection } from './AiSettingsSection';
+import { AiBillingSection } from './AiBillingSection';
+import { SystemSection } from './SystemSection';
+import { InstallSection } from './InstallSection';
 
 const KB_STATUS_LABELS: Record<string, string> = {
   pending: 'در حال پردازش...',
@@ -22,6 +25,7 @@ const KB_STATUS_LABELS: Record<string, string> = {
 };
 
 interface SettingsPageProps {
+  isAdmin?: boolean;
   canManageSiteSettings: boolean;
   canManageKnowledgeBase: boolean;
   canManageAutomation: boolean;
@@ -48,6 +52,7 @@ function defaultBusinessHours(): BusinessHours {
 }
 
 export function SettingsPage({
+  isAdmin = false,
   canManageSiteSettings,
   canManageKnowledgeBase,
   canManageAutomation,
@@ -106,13 +111,15 @@ export function SettingsPage({
   async function handleSave(): Promise<void> {
     setSaving(true);
     try {
-      await apiClient.updateSiteSettings({
+      const updated = await apiClient.updateSiteSettings({
         businessHours,
         offlineMessage,
         triggerMessage,
         wordpressSiteUrl: wordpressSiteUrl.trim() || null,
-        wordpressApiKey: wordpressApiKey.trim() || null,
+        ...(wordpressApiKey.trim() ? { wordpressApiKey: wordpressApiKey.trim() } : {}),
       });
+      setSettings(updated);
+      setWordpressApiKey('');
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 2000);
     } finally {
@@ -175,7 +182,7 @@ export function SettingsPage({
   // اپراتوری که هیچ دسترسی تنظیماتی ندارد، فقط بخش امنیتی حساب خودش را می‌بیند
   if (!hasAnySettingsAccess) {
     return (
-      <div className="mx-auto max-w-2xl overflow-y-auto p-6">
+      <div className="mx-auto w-full max-w-6xl overflow-y-auto p-4 sm:p-6">
         <h1 className="mb-4 text-lg font-bold text-gray-800">تنظیمات حساب من</h1>
         <TwoFactorSection />
       </div>
@@ -187,10 +194,16 @@ export function SettingsPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl overflow-y-auto p-6">
+    <div className="mx-auto w-full max-w-6xl overflow-y-auto p-4 sm:p-6">
       <h1 className="mb-4 text-lg font-bold text-gray-800">تنظیمات {settings.name}</h1>
 
       <TwoFactorSection />
+
+      {canManageSiteSettings && (
+        <InstallSection settings={settings} onSave={handleSaveAiSettings} />
+      )}
+      {isAdmin && <AiBillingSection />}
+      {isAdmin && <SystemSection />}
 
       {canManageSiteSettings && (
         <section className="mb-6 rounded border border-gray-200 bg-white p-4">
@@ -293,8 +306,13 @@ export function SettingsPage({
             <label className="mb-1 block text-gray-600">کلید API (مشترک با افزونه وردپرس)</label>
             <input
               value={wordpressApiKey}
+              type="password"
               onChange={(e) => setWordpressApiKey(e.target.value)}
-              placeholder="همون مقداری که در تنظیمات افزونه وردپرس ساختی"
+              placeholder={
+                settings.wordpressApiKeyConfigured
+                  ? 'کلید ذخیره شده؛ برای تغییر، کلید جدید وارد کنید'
+                  : 'کلید ساخته‌شده در افزونه وردپرس'
+              }
               className="w-full rounded border border-gray-300 p-1.5"
             />
           </div>

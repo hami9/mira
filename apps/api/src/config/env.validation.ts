@@ -1,5 +1,7 @@
 // اعتبارسنجی حداقلی متغیرهای محیطی الزامی هنگام بالا آمدن سرویس
 // اگر یکی از این‌ها ست نشده باشه، سرویس عمداً بالا نمی‌آد (fail-fast به‌جای رفتار نامشخص بعداً)
+import { runtimeLimits } from '@mira/shared-types';
+
 const REQUIRED_ENV_VARS = [
   'DATABASE_URL',
   'REDIS_HOST',
@@ -10,6 +12,7 @@ const REQUIRED_ENV_VARS = [
 ] as const;
 
 export function validateEnv(config: Record<string, unknown>): Record<string, unknown> {
+  runtimeLimits(config);
   const missing = REQUIRED_ENV_VARS.filter((key) => !config[key]);
   if (missing.length > 0) {
     throw new Error(`متغیرهای محیطی الزامی تنظیم نشده‌اند: ${missing.join(', ')}`);

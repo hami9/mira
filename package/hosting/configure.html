@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'"
+    />
+    <title>آماده‌سازی میرا</title>
+    <style>
+      body {
+        font:
+          14px/1.9 Tahoma,
+          sans-serif;
+        background: #f4f7fc;
+        color: #243452;
+        margin: 0;
+      }
+      main {
+        max-width: 700px;
+        margin: 24px auto;
+        padding: 24px;
+        background: white;
+        border-radius: 16px;
+      }
+      label {
+        display: block;
+        margin: 14px 0;
+      }
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccd5e3;
+        border-radius: 6px;
+        font: inherit;
+      }
+      button {
+        padding: 12px 18px;
+        border: 0;
+        border-radius: 8px;
+        background: #2e6be6;
+        color: white;
+        cursor: pointer;
+      }
+      small {
+        color: #596b85;
+      }
+      #status {
+        white-space: pre-wrap;
+      }
+      a {
+        color: #2e6be6;
+      }
+    </style>
+    <script src="configure.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>آماده‌سازی میرا</h1>
+      <p>
+        این فایل را روی کامپیوتر خودتان باز کنید. اطلاعات به هیچ سروری ارسال نمی‌شود. فایل تنظیمات
+        تولیدشده محرمانه است؛ آن را در پوشه خصوصی برنامه و بیرون public_html بارگذاری کنید.
+      </p>
+      <p>
+        پیش‌نیاز: Node.js ۲۲٫۱۲ یا جدیدتر، PostgreSQL با pgvector، Redis و اجازه اجرای دائمی
+        پردازشگر پس‌زمینه. هاست فقط PHP برای موتور کامل کافی نیست.
+      </p>
+      <form id="configure-form">
+        <label
+          >آدرس عمومی میرا (روی دامنه دلخواه با HTTPS)<input
+            name="publicUrl"
+            type="url"
+            placeholder="https://chat.example.com"
+            required
+            dir="ltr"
+        /></label>
+        <label
+          >آدرس سایت شما<input
+            name="shopUrl"
+            type="url"
+            placeholder="https://shop.example.com"
+            required
+            dir="ltr"
+        /></label>
+        <label>نام فروشگاه<input name="siteName" required maxlength="255" /></label>
+        <label>ایمیل مدیر<input name="email" type="email" required dir="ltr" /></label>
+        <label
+          >رمز مدیر (حداقل ۱۲ کاراکتر)<input
+            name="password"
+            type="password"
+            required
+            minlength="12"
+            autocomplete="new-password"
+        /></label>
+        <label
+          >اتصال PostgreSQL<input
+            name="database"
+            type="password"
+            placeholder="postgresql://user:password@host:5432/database"
+            required
+            dir="ltr"
+        /></label>
+        <small
+          >دیتابیس خالی مخصوص میرا استفاده کنید؛ افزونه vector باید فعال یا قابل ساخت باشد. رمز داخل
+          URL باید URL-encode شده باشد.</small
+        >
+        <label>میزبان Redis<input name="redisHost" required value="localhost" dir="ltr" /></label>
+        <label
+          >پورت Redis<input
+            name="redisPort"
+            type="number"
+            required
+            value="6379"
+            min="1"
+            max="65535"
+            dir="ltr"
+        /></label>
+        <label
+          >رمز Redis (اگر لازم است)<input name="redisPassword" type="password" dir="ltr"
+        /></label>
+        <button type="submit">ساخت و دریافت فایل تنظیمات</button>
+      </form>
+      <p id="status" role="status"></p>
+      <p>
+        <small
+          >همه امکانات نسخه نصبی رایگان‌اند؛ هزینه میزبان و API جداست. سازنده:
+          <a href="https://hami9.ir" target="_blank" rel="noreferrer">hami9.ir</a> — مجوز
+          AGPL-3.0</small
+        >
+      </p>
+    </main>
+  </body>
+</html>

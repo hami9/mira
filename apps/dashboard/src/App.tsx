@@ -233,6 +233,7 @@ export default function App() {
     if (effectiveView === 'settings') {
       return (
         <SettingsPage
+          isAdmin={isAdmin}
           canManageSiteSettings={can('manageSiteSettings')}
           canManageKnowledgeBase={can('manageKnowledgeBase')}
           canManageAutomation={can('manageAutomation')}

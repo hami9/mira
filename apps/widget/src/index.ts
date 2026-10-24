@@ -6,6 +6,7 @@ import { WidgetUi } from './ui';
 import { getStoredVisitorRef, newClientMessageId, storeVisitorRef } from './storage';
 
 interface WidgetConfig {
+  autoOpen: boolean;
   widgetKey: string;
   apiUrl: string;
   color?: string;
@@ -27,8 +28,13 @@ function readConfig(): WidgetConfig | null {
   }
   const apiUrl = scriptEl?.dataset.apiUrl ?? new URL(scriptEl!.src).origin;
   const triggerDelayRaw = scriptEl?.dataset.triggerDelay;
-  const position = scriptEl?.dataset.position === 'bottom-left' ? 'bottom-left' : 'bottom-right';
+  const position = scriptEl?.dataset.position
+    ? scriptEl.dataset.position === 'bottom-left'
+      ? 'bottom-left'
+      : 'bottom-right'
+    : undefined;
   return {
+    autoOpen: scriptEl?.dataset.autoOpen === 'true',
     widgetKey,
     apiUrl,
     color: scriptEl?.dataset.color || undefined,
@@ -49,6 +55,7 @@ async function main(): Promise<void> {
   let conversationId: string | null = null;
   let socket: Socket | null = null;
   let triggerTimeout: ReturnType<typeof setTimeout> | null = null;
+  let pendingSend: { content: string; id: string } | null = null;
 
   function cancelTrigger(): void {
     if (triggerTimeout) {
@@ -61,23 +68,22 @@ async function main(): Promise<void> {
     {
       onSend: async (content) => {
         cancelTrigger();
-        try {
-          if (!conversationId) {
-            const started = await api.startConversation(visitorToken);
-            conversationId = started.conversationId;
-            socket?.emit(SocketEvent.ConversationJoin, { conversationId });
-          }
-          // پیام خودمون رو اینجا رندر نمی‌کنیم؛ سرور همون پیام رو به همین اتاق پخش می‌کنه (تک منبع حقیقت)
-          // clientMessageId برای idempotency: اگه سوکت وسط ارسال قطع/وصل شه و پیام دوباره
-          // فرستاده شه، سرور پیام تکراری نمی‌سازه (فاز ۷)
-          socket?.emit(SocketEvent.MessageSend, {
-            conversationId,
-            content,
-            clientMessageId: newClientMessageId(),
-          });
-        } catch {
-          ui.showError('ارسال پیام ناموفق بود، دوباره تلاش کنید');
+        if (!socket?.connected || !visitorToken) throw new Error('اتصال برقرار نیست');
+        if (!conversationId) {
+          const started = await api.startConversation(visitorToken);
+          conversationId = started.conversationId;
+          socket?.emit(SocketEvent.ConversationJoin, { conversationId });
         }
+        // پیام خودمون رو اینجا رندر نمی‌کنیم؛ سرور همون پیام رو به همین اتاق پخش می‌کنه (تک منبع حقیقت)
+        // clientMessageId برای idempotency: اگه سوکت وسط ارسال قطع/وصل شه و پیام دوباره
+        // فرستاده شه، سرور پیام تکراری نمی‌سازه (فاز ۷)
+        if (pendingSend?.content !== content) pendingSend = { content, id: newClientMessageId() };
+        await socket.timeout(12_000).emitWithAck(SocketEvent.MessageSend, {
+          conversationId,
+          content,
+          clientMessageId: pendingSend.id,
+        });
+        pendingSend = null;
       },
       onTypingChange: (isTyping) => {
         if (!conversationId || !socket) return;
@@ -88,6 +94,7 @@ async function main(): Promise<void> {
     },
     { color: config.color, position: config.position },
   );
+  if (config.autoOpen) ui.openPanel();
 
   function showCsatPromptFor(targetConversationId: string): void {
     ui.showCsatPrompt((score, comment) => {
@@ -106,6 +113,11 @@ async function main(): Promise<void> {
       email: config.visitorEmail,
     });
     visitorToken = session.visitorToken;
+    ui.configureAppearance({
+      color: config.color || session.appearance?.color,
+      position: config.position || session.appearance?.position,
+    });
+    ui.configureAssistant(session.assistant);
     storeVisitorRef(session.visitorRef);
     conversationId = session.activeConversationId ?? session.pendingRatingConversationId;
 
@@ -130,7 +142,10 @@ async function main(): Promise<void> {
       onMessage: (message) => {
         if (message.conversationId !== conversationId) return;
         ui.hideCsatPrompt(); // پیام تازه یعنی گفتگو ادامه داره؛ پرامپت امتیازدهی قبلی دیگه معتبر نیست
-        ui.appendMessage(message.content, message.senderType);
+        ui.appendMessage(message.content, message.senderType, message);
+      },
+      onAiStatus: (payload) => {
+        if (payload.conversationId === conversationId) ui.setAiStatus(payload);
       },
       onTyping: (payload) => {
         if (payload.conversationId !== conversationId) return;
@@ -139,6 +154,7 @@ async function main(): Promise<void> {
       onConversationUpdated: (payload) => {
         if (payload.conversationId !== conversationId) return;
         if (payload.status === ConversationStatus.RESOLVED) {
+          ui.clearAiStatus();
           showCsatPromptFor(payload.conversationId);
         } else if (payload.status === ConversationStatus.OPEN) {
           ui.hideCsatPrompt();
@@ -148,12 +164,13 @@ async function main(): Promise<void> {
     });
 
     socket.on('connect', async () => {
+      ui.setConnected(true);
       if (conversationId) {
         socket?.emit(SocketEvent.ConversationJoin, { conversationId });
         try {
           const history = await api.getMessages(visitorToken, conversationId);
           for (const message of history) {
-            ui.appendMessage(message.content, message.senderType);
+            ui.appendMessage(message.content, message.senderType, message);
           }
           if (session.pendingRatingConversationId === conversationId) {
             showCsatPromptFor(conversationId);
@@ -163,6 +180,8 @@ async function main(): Promise<void> {
         }
       }
     });
+    socket.on('disconnect', () => ui.setConnected(false));
+    socket.on('connect_error', () => ui.setConnected(false));
   } catch {
     ui.showError('اتصال به سرور پشتیبانی برقرار نشد');
   }

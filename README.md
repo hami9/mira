@@ -39,6 +39,14 @@ one installation serves many websites, each isolated by `siteId`.
 
 </div>
 
+### AI assistant controls
+
+The widget now supports product cards, source links, suggested questions and live processing
+states. Each store keeps its own name and sources. The AI settings panel controls sources, forbidden topics, retrieval relevance, model
+and reply limits. Admins can also review visitor token usage, average usage, AvalAI credit,
+actual charges and model cost estimates, with a link to the official payment page.
+See [AI assistant setup and boundaries](docs/ai-assistant.md).
+
 ## Features
 
 - **Realtime chat** — Socket.io, typing indicators, unread badges, idempotent message
@@ -102,7 +110,7 @@ Operator (dashboard) ─────────┘        │
 
 | Layer               | Technology                                   |
 | ------------------- | -------------------------------------------- |
-| Backend + realtime  | Node.js 20, NestJS, Socket.io                |
+| Backend + realtime  | Node.js 22.12+, NestJS, Socket.io            |
 | Background jobs     | BullMQ on Redis                              |
 | Database            | PostgreSQL 16 + pgvector                     |
 | Dashboard           | React, Vite, TypeScript, Tailwind CSS        |
@@ -142,11 +150,20 @@ tenant isolation, secrets handling) before opening a PR.
 Phases 0 through 7 of the roadmap are complete — see the release badge above for the current
 version, and [`CHANGELOG.md`](CHANGELOG.md) for what changed. Honest caveats (untested
 surfaces, known technical debt) are listed in [`AGENTS.md`](AGENTS.md) rather than hidden.
-Testing: 55 unit tests and 27 integration tests (real Postgres + Redis) run in CI. An
-end-to-end browser suite does not exist yet, and the stack has never run on a real server —
-see [`ROADMAP.md`](ROADMAP.md) and [`docs/PHASE0-RUNBOOK.md`](docs/PHASE0-RUNBOOK.md).
+Unit tests, integration tests against real Postgres + Redis, and live browser E2E tests run
+in CI. Control-panel deployment, public TLS and workload-specific resource sizing require
+verification on the target host; local test results do not certify a production deployment.
 
 ## License
+
+All shipped self-hosted features are free of Mira subscriptions, activation keys and paid
+feature gates. Hosting and external AI usage have their own provider costs. Copyright:
+**hami9 — [hami9.ir](https://hami9.ir)**. See [NOTICE](NOTICE).
+
+For resource limits, running beside an existing website, one-address installation,
+control-panel uploads without SSH, and ordinary shared-hosting connections, see
+[Hosting Mira](package/HOSTING.md). Full backend hosting requires Node.js, PostgreSQL with
+pgvector, Redis and a persistent worker; the WordPress plugin alone is not the backend.
 
 Mira is licensed under the **[AGPL-3.0](LICENSE)**: you may use, modify and host it freely,
 but if you offer a modified version to others — including as a network service — you must

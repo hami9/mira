@@ -1,0 +1,18 @@
+Mira — self-hosted live chat and AI support
+Copyright (c) 2026 hami9
+Author website: https://hami9.ir
+Source: https://github.com/hami9/mira
+
+The Mira application is licensed under AGPL-3.0-only; see LICENSE.
+The WordPress plugin is licensed under GPL-2.0-or-later; see its license headers.
+Third-party components retain their respective copyrights and licenses.
+
+All features shipped in the self-hosted application are available without a Mira
+subscription, activation server, license key, operator quota, or paid feature gate.
+Hosting and external AI provider charges are paid to those providers separately.
+Store names, widget colors, assistant identity, and installation domains can be
+customized. Preserve the applicable copyright and license notices when distributing
+the software, as required by its licenses. This notice adds no license restriction.
+
+A future commercial service for selling or managing hosted Mira subscriptions is
+outside this repository. It is not required to run the self-hosted application.

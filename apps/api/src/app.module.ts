@@ -24,6 +24,8 @@ import { AutomationModule } from './modules/automation/automation.module';
 import { InternalNotesModule } from './modules/internal-notes/internal-notes.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PublicApiModule } from './modules/public-api/public-api.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { SystemModule } from './modules/system/system.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { PublicApiModule } from './modules/public-api/public-api.module';
     InternalNotesModule,
     WebhooksModule,
     PublicApiModule,
+    BillingModule,
+    SystemModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

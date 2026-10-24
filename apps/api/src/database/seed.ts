@@ -9,7 +9,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // در توسعه مقدار پیش‌فرض راحت داریم؛ در پروداکشن اجبار به ست‌کردن env
 // تا هیچ استقراری با یک رمز عمومیِ معلوم بالا نیاید (الزام امنیتی فاز ۷).
-const SITE_NAME = process.env.SEED_SITE_NAME || 'KG Kala (نمونه)';
+const SITE_NAME = process.env.SEED_SITE_NAME || 'فروشگاه نمونه میرا';
 const WIDGET_KEY = process.env.SEED_WIDGET_KEY || 'kgkala-demo-key';
 const ALLOWED_DOMAINS = (process.env.SEED_ALLOWED_DOMAINS || 'http://localhost:3000')
   .split(',')
@@ -75,7 +75,7 @@ async function seed(): Promise<void> {
   await AppDataSource.destroy();
 }
 
-seed().catch((error) => {
-  console.error('اجرای seed با خطا مواجه شد:', error);
+seed().catch(() => {
+  console.error('اجرای seed با خطا مواجه شد؛ تنظیمات و دسترسی دیتابیس را بررسی کنید.');
   process.exit(1);
 });

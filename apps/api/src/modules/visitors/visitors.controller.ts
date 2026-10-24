@@ -17,6 +17,7 @@ import {
   MessageSenderType,
   WidgetSessionResponseDto,
   StartConversationResponseDto,
+  DEFAULT_AI_POLICY,
 } from '@mira/shared-types';
 import { VisitorJwtGuard } from '../../common/guards/visitor-jwt.guard';
 import { CurrentVisitor } from '../../common/decorators/current-visitor.decorator';
@@ -81,11 +82,26 @@ export class VisitorsController {
 
     return {
       visitorToken,
+      appearance: {
+        color:
+          typeof site.appearance.color === 'string' && /^#[0-9a-f]{6}$/i.test(site.appearance.color)
+            ? site.appearance.color
+            : undefined,
+        position: site.appearance.position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
+      },
       visitorRef: visitor.visitorRef,
       siteId: site.id,
       activeConversationId: activeConversation?.id ?? null,
       pendingRatingConversationId: pendingRatingConversation?.id ?? null,
       triggerMessage: site.triggerMessage.enabled ? site.triggerMessage : null,
+      assistant: {
+        siteName: site.name,
+        enabled: site.aiEnabled,
+        name: site.aiBotName,
+        avatarUrl: site.aiBotAvatarUrl,
+        greeting: site.aiGreetingMessage,
+        quickReplies: site.aiPolicy.quickReplies ?? DEFAULT_AI_POLICY.quickReplies,
+      },
     };
   }
 

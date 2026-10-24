@@ -1,12 +1,13 @@
 <?php
 /**
  * Plugin Name:       میرا
- * Plugin URI:        https://mira.example.com
+ * Plugin URI:        https://github.com/hami9/mira
  * Description:       اتصال ویجت لایو چت میرا (خودمیزبان) به وردپرس/ووکامرس — نمایش ویجت در فرانت‌اند و پنل مشتری ووکامرس کنار گفتگو.
- * Version:           1.0.0
+ * Version:           1.4.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
- * Author:            KG Kala
+ * Author:            hami9
+ * Author URI:        https://hami9.ir
  * Text Domain:       mira
  * Domain Path:       /languages
  * License:           GPLv2 or later
@@ -18,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MIRA_VERSION', '1.0.0' );
+define( 'MIRA_VERSION', '1.4.0' );
 define( 'MIRA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MIRA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

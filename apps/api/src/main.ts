@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './modules/chat/redis-io.adapter';
 import { SitesService } from './modules/sites/sites.service';
@@ -49,6 +50,15 @@ async function bootstrap(): Promise<void> {
   // فایل‌های استاتیک: خروجی build ویجت (`/widget-dist/widget.js`) که در production هم لازم است
   app.useStaticAssets(join(__dirname, '..', 'public'));
 
+  // حالت یک‌آدرسی برای نصب سبک و پنل‌های میزبانی؛ فایل تنظیم فقط آدرس عمومی دارد.
+  if (config.get<string>('SERVE_DASHBOARD') === 'true') {
+    app.use('/config.js', (_req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('application/javascript').send('window.__MIRA_API_URL__ = window.location.origin;');
+    });
+    app.useStaticAssets(join(__dirname, '..', 'dashboard'));
+  }
+
   const dashboardOrigins = (config.get<string>('CORS_ALLOWED_ORIGINS') ?? '')
     .split(',')
     .map((origin) => origin.trim())
@@ -75,7 +85,8 @@ async function bootstrap(): Promise<void> {
 
   app.useWebSocketAdapter(new RedisIoAdapter(app));
 
-  const port = config.get<number>('API_PORT', 3000);
+  app.enableShutdownHooks();
+  const port = config.get<number>('PORT') || config.get<number>('API_PORT', 3000);
   await app.listen(port, '0.0.0.0');
   Logger.log(`میرا API روی پورت ${port} بالا آمد`, 'Bootstrap');
 }

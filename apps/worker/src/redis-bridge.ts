@@ -12,6 +12,10 @@ export async function closeSocketPublisher(): Promise<void> {
   await publisher.quit();
 }
 
+export async function writeWorkerStatus(status: unknown): Promise<void> {
+  await publisher.set(`${config.queuePrefix}:runtime:worker`, JSON.stringify(status), 'EX', 45);
+}
+
 export async function publishSocketEvent(
   room: string,
   event: string,

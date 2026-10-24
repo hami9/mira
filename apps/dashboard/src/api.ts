@@ -35,6 +35,7 @@ import type {
   VisitorProfileDto,
   AiBillingDto,
   AiUsageReport,
+  SystemStatusDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
@@ -60,6 +61,9 @@ export interface ListConversationsParams {
 }
 
 class ApiClient {
+  getSystemStatus(): Promise<SystemStatusDto> {
+    return this.authedGet<SystemStatusDto>('/v1/system');
+  }
   getAiBilling(): Promise<AiBillingDto> {
     return this.authedGet<AiBillingDto>('/v1/ai/billing');
   }

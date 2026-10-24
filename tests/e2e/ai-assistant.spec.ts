@@ -132,7 +132,17 @@ test.describe('AI assistant through the live queue', () => {
     await section.getByLabel('نام فروشگاه', { exact: false }).fill('فروشگاه نمونه میرا');
     await section.getByRole('button', { name: 'گاردریل‌ها', exact: true }).click();
     await section.getByLabel('موضوع‌های ممنوع', { exact: false }).fill('اطلاعات حساب دیگران');
-    await section.getByRole('button', { name: 'ذخیره تنظیمات AI' }).click();
+    const [updatedResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/v1/sites/me') && response.request().method() === 'PATCH',
+      ),
+      section.getByRole('button', { name: 'ذخیره تنظیمات AI' }).click(),
+    ]);
+    expect(updatedResponse.ok()).toBe(true);
+    const updatedSettings = await updatedResponse.json();
+    expect(Array.isArray(updatedSettings.allowedDomains)).toBe(true);
+    expect(updatedSettings.appearance).toBeTruthy();
     await expect(section.getByRole('status')).toContainText('ذخیره شد');
     const saved = await (
       await request.get('/v1/sites/me', { headers: { Authorization: `Bearer ${token}` } })

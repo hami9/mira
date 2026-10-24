@@ -15,6 +15,8 @@ import { WebhooksSection } from './WebhooksSection';
 import { TwoFactorSection } from './TwoFactorSection';
 import { AiSettingsSection } from './AiSettingsSection';
 import { AiBillingSection } from './AiBillingSection';
+import { SystemSection } from './SystemSection';
+import { InstallSection } from './InstallSection';
 
 const KB_STATUS_LABELS: Record<string, string> = {
   pending: 'در حال پردازش...',
@@ -197,7 +199,11 @@ export function SettingsPage({
 
       <TwoFactorSection />
 
+      {canManageSiteSettings && (
+        <InstallSection settings={settings} onSave={handleSaveAiSettings} />
+      )}
       {isAdmin && <AiBillingSection />}
+      {isAdmin && <SystemSection />}
 
       {canManageSiteSettings && (
         <section className="mb-6 rounded border border-gray-200 bg-white p-4">

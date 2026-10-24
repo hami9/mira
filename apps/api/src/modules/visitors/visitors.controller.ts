@@ -82,6 +82,13 @@ export class VisitorsController {
 
     return {
       visitorToken,
+      appearance: {
+        color:
+          typeof site.appearance.color === 'string' && /^#[0-9a-f]{6}$/i.test(site.appearance.color)
+            ? site.appearance.color
+            : undefined,
+        position: site.appearance.position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
+      },
       visitorRef: visitor.visitorRef,
       siteId: site.id,
       activeConversationId: activeConversation?.id ?? null,

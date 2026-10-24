@@ -289,6 +289,19 @@ export class WidgetUi {
     this.inputEl.focus();
   }
 
+  configureAppearance(options: WidgetUiOptions): void {
+    for (const element of [this.bubble, this.triggerEl, this.panel]) {
+      if (options.color) {
+        element.style.setProperty('--mira-color', options.color);
+        element.style.setProperty('--mira-gradient', options.color);
+      }
+      if (options.position) {
+        element.classList.toggle('mira-pos-left', options.position === 'bottom-left');
+        element.classList.toggle('mira-pos-right', options.position === 'bottom-right');
+      }
+    }
+  }
+
   private togglePanel(): void {
     const isOpen = this.panel.classList.toggle('mira-open');
     this.bubble.classList.toggle('mira-bubble-open', isOpen);

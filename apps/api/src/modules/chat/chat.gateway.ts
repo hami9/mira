@@ -36,6 +36,7 @@ import {
 } from '../conversations/conversations.service';
 import { MessagesService } from '../messages/messages.service';
 import { AgentsService } from '../agents/agents.service';
+import { socketOrigin } from '../../common/security/socket-origin';
 
 type SocketRole = 'agent' | 'visitor';
 
@@ -99,7 +100,7 @@ export class ChatGateway
       return;
     }
 
-    const origin = client.handshake.headers.origin;
+    const origin = socketOrigin(client.handshake.headers, client.conn.transport.name);
 
     // ابتدا به‌عنوان اپراتور امتحان می‌کنیم، چون سکرت‌های access/visitor مستقل‌اند
     // و امتحان خطا فقط یک verify سریع JWT است (بدون هزینه‌ی قابل‌توجه)

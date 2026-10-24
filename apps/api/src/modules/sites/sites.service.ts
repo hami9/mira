@@ -51,7 +51,11 @@ export class SitesService {
 
   async updateSettings(siteId: string, dto: UpdateSiteSettingsDto): Promise<SiteEntity> {
     const site = await this.findById(siteId);
-    Object.assign(site, dto);
+    // فیلد اختیاری DTO ممکن است در زمان اجرا undefined باشد؛ مقدار ذخیره‌شده نباید با آن پاک شود.
+    Object.assign(
+      site,
+      Object.fromEntries(Object.entries(dto).filter(([, value]) => value !== undefined)),
+    );
     const saved = await this.sitesRepository.save(site);
     // اگه allowedDomains تغییر کرده باشه، کش رو باطل کن تا فوراً اعمال بشه (نه بعد از TTL)
     this.allDomainsCache = null;

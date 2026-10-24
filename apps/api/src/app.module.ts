@@ -25,6 +25,7 @@ import { InternalNotesModule } from './modules/internal-notes/internal-notes.mod
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PublicApiModule } from './modules/public-api/public-api.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { SystemModule } from './modules/system/system.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { BillingModule } from './modules/billing/billing.module';
     WebhooksModule,
     PublicApiModule,
     BillingModule,
+    SystemModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -8,6 +8,10 @@ import { processSuggestReply } from './jobs/suggest-reply';
 import { processSummarizeConversation } from './jobs/summarize-conversation';
 import { processDispatchWebhook } from './jobs/dispatch-webhook';
 import { closeSocketPublisher } from './redis-bridge';
+import { createTaskLimiter } from './task-limit';
+import { startTelemetry } from './telemetry';
+
+const run = createTaskLimiter(config.limits.workerConcurrency);
 
 const connection = {
   host: config.redis.host,
@@ -17,27 +21,27 @@ const connection = {
 };
 
 const workers = [
-  new Worker(AI_QUEUE_NAMES.EmbedDocument, (job) => processEmbedDocument(job.data), {
+  new Worker(AI_QUEUE_NAMES.EmbedDocument, (job) => run(() => processEmbedDocument(job.data)), {
     connection,
     prefix: config.queuePrefix,
   }),
-  new Worker(AI_QUEUE_NAMES.BotReply, (job) => processBotReply(job.data), {
+  new Worker(AI_QUEUE_NAMES.BotReply, (job) => run(() => processBotReply(job.data)), {
     connection,
     prefix: config.queuePrefix,
   }),
-  new Worker(AI_QUEUE_NAMES.SuggestReply, (job) => processSuggestReply(job.data), {
+  new Worker(AI_QUEUE_NAMES.SuggestReply, (job) => run(() => processSuggestReply(job.data)), {
     connection,
     prefix: config.queuePrefix,
   }),
   new Worker(
     AI_QUEUE_NAMES.SummarizeConversation,
-    (job) => processSummarizeConversation(job.data),
+    (job) => run(() => processSummarizeConversation(job.data)),
     {
       connection,
       prefix: config.queuePrefix,
     },
   ),
-  new Worker(WEBHOOK_QUEUE_NAME, (job) => processDispatchWebhook(job.data), {
+  new Worker(WEBHOOK_QUEUE_NAME, (job) => run(() => processDispatchWebhook(job.data)), {
     connection,
     prefix: config.queuePrefix,
   }),
@@ -52,9 +56,11 @@ for (const worker of workers) {
   );
 }
 
+const stopTelemetry = startTelemetry();
 console.log('میرا Worker — پردازشگرهای AI (فاز ۴) در حال گوش‌دادن به صف‌ها هستند.');
 
 async function shutdown(): Promise<void> {
+  stopTelemetry();
   console.log('[worker] در حال خاموش شدن...');
   await Promise.all(workers.map((worker) => worker.close()));
   await pool.end();
@@ -64,3 +70,5 @@ async function shutdown(): Promise<void> {
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+// در اجرای پنل میزبانی، مرگ ناگهانی والد هم نباید worker یتیم باقی بگذارد.
+process.on('disconnect', shutdown);

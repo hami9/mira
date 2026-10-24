@@ -37,6 +37,7 @@ tar -C "$REPO_ROOT" -cf - \
   --exclude='node_modules' \
   --exclude='dist' \
   --exclude='.env' \
+  --exclude='.env.*' \
   . | tar -C "$APP_DEST" -xf -
 
 # ---------- CLI و سرویس systemd ----------
@@ -46,6 +47,9 @@ install -D -m 644 "$SCRIPT_DIR/systemd/mira.service" "$STAGING/usr/lib/systemd/s
 # ---------- مستندات ----------
 install -D -m 644 "$SCRIPT_DIR/INSTALL.md" "$STAGING/usr/share/doc/mira/INSTALL.md"
 install -D -m 644 "$SCRIPT_DIR/INSTALL.fa.md" "$STAGING/usr/share/doc/mira/INSTALL.fa.md"
+install -D -m 644 "$SCRIPT_DIR/HOSTING.md" "$STAGING/usr/share/doc/mira/HOSTING.md"
+install -D -m 644 "$SCRIPT_DIR/HOSTING.fa.md" "$STAGING/usr/share/doc/mira/HOSTING.fa.md"
+install -D -m 644 "$REPO_ROOT/NOTICE" "$STAGING/usr/share/doc/mira/NOTICE"
 install -D -m 644 "$REPO_ROOT/LICENSE" "$STAGING/usr/share/doc/mira/copyright" 2>/dev/null || \
   echo "AGPL-3.0 — https://github.com/hami9/mira" > "$STAGING/usr/share/doc/mira/copyright"
 

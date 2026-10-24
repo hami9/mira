@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { join } from 'path';
+import { runtimeLimits } from '@mira/shared-types';
 
 dotenv.config({ path: join(__dirname, '../../../.env') });
 
@@ -10,6 +11,7 @@ function env(key: string, fallback = ''): string {
 const useAvalai = !env('OPENAI_API_KEY') && Boolean(env('AVALAI_API_KEY'));
 
 export const config = {
+  limits: runtimeLimits(process.env),
   databaseUrl: env('DATABASE_URL'),
   redis: {
     host: env('REDIS_HOST', 'localhost'),

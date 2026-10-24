@@ -6,6 +6,7 @@ import { WidgetUi } from './ui';
 import { getStoredVisitorRef, newClientMessageId, storeVisitorRef } from './storage';
 
 interface WidgetConfig {
+  autoOpen: boolean;
   widgetKey: string;
   apiUrl: string;
   color?: string;
@@ -27,8 +28,13 @@ function readConfig(): WidgetConfig | null {
   }
   const apiUrl = scriptEl?.dataset.apiUrl ?? new URL(scriptEl!.src).origin;
   const triggerDelayRaw = scriptEl?.dataset.triggerDelay;
-  const position = scriptEl?.dataset.position === 'bottom-left' ? 'bottom-left' : 'bottom-right';
+  const position = scriptEl?.dataset.position
+    ? scriptEl.dataset.position === 'bottom-left'
+      ? 'bottom-left'
+      : 'bottom-right'
+    : undefined;
   return {
+    autoOpen: scriptEl?.dataset.autoOpen === 'true',
     widgetKey,
     apiUrl,
     color: scriptEl?.dataset.color || undefined,
@@ -88,6 +94,7 @@ async function main(): Promise<void> {
     },
     { color: config.color, position: config.position },
   );
+  if (config.autoOpen) ui.openPanel();
 
   function showCsatPromptFor(targetConversationId: string): void {
     ui.showCsatPrompt((score, comment) => {
@@ -106,6 +113,10 @@ async function main(): Promise<void> {
       email: config.visitorEmail,
     });
     visitorToken = session.visitorToken;
+    ui.configureAppearance({
+      color: config.color || session.appearance?.color,
+      position: config.position || session.appearance?.position,
+    });
     ui.configureAssistant(session.assistant);
     storeVisitorRef(session.visitorRef);
     conversationId = session.activeConversationId ?? session.pendingRatingConversationId;

@@ -42,12 +42,16 @@ tar -C "$REPO_ROOT" -cf - \
   --exclude='node_modules' \
   --exclude='dist' \
   --exclude='.env' \
+  --exclude='.env.*' \
   . | tar -C "$APP_DIR" -xf -
 
 install -D -m 755 "$SCRIPT_DIR/bin/mira" /usr/local/bin/mira
 install -D -m 644 "$SCRIPT_DIR/systemd/mira.service" /etc/systemd/system/mira.service
 install -D -m 644 "$SCRIPT_DIR/INSTALL.md" /usr/share/doc/mira/INSTALL.md
 install -D -m 644 "$SCRIPT_DIR/INSTALL.fa.md" /usr/share/doc/mira/INSTALL.fa.md
+install -D -m 644 "$SCRIPT_DIR/HOSTING.md" /usr/share/doc/mira/HOSTING.md
+install -D -m 644 "$SCRIPT_DIR/HOSTING.fa.md" /usr/share/doc/mira/HOSTING.fa.md
+install -D -m 644 "$REPO_ROOT/NOTICE" /usr/share/doc/mira/NOTICE
 systemctl daemon-reload
 
 echo ""

@@ -23,6 +23,7 @@ export function connectWidgetSocket(
   const socket = io(baseUrl, {
     auth: { token: visitorToken },
     transports: ['websocket', 'polling'],
+    tryAllTransports: true,
   });
 
   socket.on(SocketEvent.MessageNew, handlers.onMessage);

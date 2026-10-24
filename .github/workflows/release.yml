@@ -15,7 +15,7 @@ on:
         required: true
         type: string
       attach_artifacts:
-        description: 'Build and attach the deb package and the WordPress plugin zip'
+        description: 'Build and attach Debian, hosting and WordPress packages'
         required: false
         default: true
         type: boolean
@@ -68,6 +68,14 @@ jobs:
 
           WordPress plugin: install `mira-wordpress-plugin.zip` from the WordPress admin.
 
+          ## Install from a hosting panel
+
+          Use `mira-hosting-*.tar.gz` with a compatible Node hosting panel. The backend
+          requires Node >=22.12, PostgreSQL with pgvector, Redis and a persistent worker.
+          PHP-only hosting can embed the widget using a Mira backend hosted elsewhere.
+          [Hosting guide](https://github.com/hami9/mira/blob/main/package/HOSTING.md)
+          · [فارسی](https://github.com/hami9/mira/blob/main/package/HOSTING.fa.md)
+
           ## Docker images
 
           ```
@@ -87,6 +95,16 @@ jobs:
           cd wordpress-plugin
           zip -r ../package/dist/mira-wordpress-plugin.zip mira
 
+      - uses: actions/setup-node@v7
+        if: github.event_name == 'push' || inputs.attach_artifacts
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build hosting archive
+        if: github.event_name == 'push' || inputs.attach_artifacts
+        run: npm ci && npm run package:hosting
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -97,3 +115,4 @@ jobs:
           files: |
             package/dist/*.deb
             package/dist/mira-wordpress-plugin.zip
+            package/dist/mira-hosting-*.tar.gz

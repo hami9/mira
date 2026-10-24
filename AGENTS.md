@@ -308,6 +308,24 @@ code.** This is the most important section of this file.
     explicit OpenAI key is empty, the worker now selects the AvalAI key, endpoint and model
     together. The environment-example defaults are covered by a regression test.
 
+11. **Same-origin polling lacked an Origin header.** Browsers omit it on the initial GET,
+    so the visitor gateway rejected the fallback after a failed WebSocket handshake. The
+    gateway now recovers the Referer origin only for same-origin polling with Fetch Metadata;
+    explicit Origin headers always win and still must match the signed visitor domain.
+
+12. **Local environment variants could enter installation payloads.** Debian/manual tar and
+    Docker exclusions previously covered only `.env`. They now also exclude `.env.*`; the
+    hosting archive uses an explicit file allowlist. Never package local credentials.
+
+13. **Undefined optional DTO fields erased the PATCH response shape.** Assigning the DTO
+    directly over the loaded site replaced untouched fields with undefined. TypeORM ignored
+    those fields on disk, but the returned settings omitted origins/appearance and crashed the
+    installation UI. Updates now copy only defined fields; explicit null remains supported.
+
+14. **The CLI treated dotenv data as shell code.** Names containing spaces broke doctor and
+    backups, and shell substitutions could execute. Doctor now reads only selected values
+    without evaluation; backup/restore read PostgreSQL credentials inside its container.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have
@@ -501,6 +519,51 @@ worker, and a handoff did not stop future bot replies. The new worker also reche
 ownership/status and newer messages before posting, and deduplicates jobs with a stored reply ID.
 Real-provider answer quality and production deployment are separate from deterministic fixture tests.
 
+## 13. Hosting and resources
+
+The runtime now requires Node.js >=22.12 (the locked sanitizer requires it). Docker images and
+CI use Node 22. Production images use locked `npm ci`, omit development dependencies, run as
+the unprivileged node user, and start compiled migrations/seed without ts-node.
+
+`docker-compose.lite.yml` is a standalone four-service profile: PostgreSQL, Redis, API with
+the static dashboard, and a separate worker. It does not bind 80/443 or start reserved MinIO,
+Vite, nginx or Caddy. Its default loopback port is 3300; use an existing HTTPS reverse proxy.
+Memory/CPU ceilings are configurable. Do not mistake the sum of memory ceilings for measured
+usage. This profile needs its own backup schedule. Never switch an existing deployment to a
+different Compose project/volume/database without migrating its actual data.
+
+Runtime defaults are API pool 5, worker pool 3 and shared worker concurrency 2. The worker
+pool must exceed concurrency because usage recording may need a separate connection while
+an AI job holds a conversation lock. A process-wide task limiter covers all five queues.
+The worker publishes a small Redis heartbeat every 15 seconds, expiring after 45 seconds.
+`GET /v1/system` checks a fresh tenant-scoped admin role and exact `SYSTEM_SITE_ID` binding
+before exposing installation-wide metrics; never grant every tenant access to host stats.
+
+`SERVE_DASHBOARD=true` serves the compiled dashboard at the API origin with runtime config;
+`PORT` is accepted for hosting panels. `/chat.html?key=...` is a public direct-chat page using
+the existing widget/session authorization. Its origin must still be in that site's allowed
+origins. Settings provide copyable chat/embed links, color/position and allowed origins;
+public sessions expose only validated appearance values. Socket clients try polling when
+WebSocket fails. Each installation must retain its own database and queue namespace.
+
+`npm run package:hosting` builds a whitelist-only archive with compiled apps and a local
+configuration helper. The helper makes no network requests. Upload outside public_html,
+install production npm dependencies in the host's Node app panel, and run app.cjs. The
+launcher migrates/seeds, then starts HTTP and forks the existing independent queue worker.
+This needs a compatible Node/Passenger-style host allowing always-on child processes plus
+PostgreSQL/vector and Redis. PHP-only shared hosting can embed/connect the widget, but cannot
+run this backend. DirectAdmin Nginx Unit compatibility and real cPanel/DirectAdmin deployment
+are not certified. Do not market the archive as universal shared-hosting support.
+
+All shipped self-hosted features remain free of Mira subscriptions/activation keys; provider
+and hosting charges are separate. NOTICE credits hami9 and https://hami9.ir without modifying
+the AGPL license text or removing third-party notices. The future private sales/subscription
+control plane is not part of this repository. See package/HOSTING.md and its Persian mirror.
+
+Packaging correction: the old Debian/manual/Docker exclusions covered only `.env`, so local
+`.env.*` secrets could enter a source payload. All three now exclude those variants; the
+hosting archive copies an explicit allowlist and never reads or packages environment files.
+
 Migration `1737300900000-AiUsage` adds a tenant-scoped provider usage ledger. The worker records
 reply, retrieval, copilot, summary and document embedding tokens. Admin-only reports show
 1/7/30-day totals and per-visitor averages. AvalAI account data requires `AVALAI_SITE_ID` and
@@ -509,7 +572,7 @@ when billing is opened/refreshed, in batches of 100 after 30 seconds. Missing us
 unknown or pending, never an invented zero. Account totals can include other applications.
 Quick payment opens the official provider page. See the assistant guide for setup and limits.
 
-Local verification now includes 113 unit tests, 45 real-database integration tests, a real
+Local verification now includes 118 unit tests, 47 real-database integration tests, a real
 WordPress/WooCommerce fixture contract check, and a bounded DeepSeek AvalAI queued call with
 actual token and transaction-cost reconciliation. This supersedes the earlier statement that
 the plugin has never been installed: it was installed on a disposable local fixture, not a
@@ -520,4 +583,8 @@ settings can update the site name; existing records are never renamed by this ch
 Sample branding is Mira, while legacy development credentials/widget keys and the `kgchat`
 database name stay compatible. Tenant identity is verified with two independent fixture stores.
 
-Seven live browser scenarios now pass, including two independent store widgets and queued replies.
+Nine live browser scenarios now pass, including two independent store widgets, queued replies,
+the compiled hosting launcher and actual HTTP polling through a proxy that rejects WebSocket.
+The Lite runtime was built and run with Node 22 without TypeScript/ts-node; replacing its API
+and worker containers preserved an existing fixture conversation and message. These are local
+runtime checks, not a production load benchmark or certification of hosting panels.

@@ -17,7 +17,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -32,6 +32,9 @@ jobs:
       # ترتیب مهم است: shared-types باید قبل از بقیه build شود (اسکریپت ریشه رعایت می‌کند)
       - name: Build all workspaces
         run: npm run build
+
+      - name: Build hosting archive
+        run: node package/build-hosting.mjs
 
       - name: 'Widget size report (budget: 50KB gzip)'
         run: |
@@ -85,7 +88,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -171,7 +174,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -240,6 +243,36 @@ jobs:
       - name: Run E2E tests
         run: npx playwright test
 
+      - name: Start hosting archive
+        run: |
+          node package/build-hosting.mjs
+          mkdir -p /tmp/mira-hosting-check
+          tar -xzf package/dist/mira-hosting-*.tar.gz -C /tmp/mira-hosting-check
+          cd /tmp/mira-hosting-check/mira
+          npm ci --omit=dev
+          export API_PORT=3100
+          export PORT=3100
+          export PUBLIC_API_URL=http://localhost:3100
+          export DASHBOARD_URL=http://localhost:3100
+          export CORS_ALLOWED_ORIGINS=http://localhost:3100
+          export QUEUE_PREFIX=mira-hosting-ci
+          export SYSTEM_SITE_ID=$(psql "$DATABASE_URL" -Atc "SELECT id FROM sites WHERE \"widgetKey\" = 'kgkala-demo-key'")
+          node --max-old-space-size=256 app.cjs > /tmp/mira-hosting.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3100/health >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          tail -60 /tmp/mira-hosting.log
+          exit 1
+
+      - name: Test hosting archive
+        env:
+          HOSTING_E2E: '1'
+          E2E_API_URL: http://localhost:3100
+          E2E_DASHBOARD_URL: http://localhost:3100
+          TEST_DATABASE_URL: postgresql://kgchat:kgchat_ci@localhost:5432/kgchat
+        run: npx playwright test tests/e2e/hosting.spec.ts
+
       - name: API log on failure
         if: failure()
         run: tail -100 /tmp/mira-api.log
@@ -261,6 +294,9 @@ jobs:
 
       - name: Build .deb
         run: bash package/build-deb.sh
+
+      - name: Test CLI configuration parsing
+        run: docker run --rm -e MIRA_CLI_FIXTURE=1 -v "$PWD:/repo:ro" ubuntu:24.04 bash /repo/tests/fixtures/cli-check.sh
 
       - name: Upload package
         uses: actions/upload-artifact@v7

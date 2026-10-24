@@ -75,7 +75,7 @@ async function seed(): Promise<void> {
   await AppDataSource.destroy();
 }
 
-seed().catch((error) => {
-  console.error('اجرای seed با خطا مواجه شد:', error);
+seed().catch(() => {
+  console.error('اجرای seed با خطا مواجه شد؛ تنظیمات و دسترسی دیتابیس را بررسی کنید.');
   process.exit(1);
 });

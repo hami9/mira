@@ -11,6 +11,7 @@ const options = {
   format: 'iife',
   target: ['es2018'],
   platform: 'browser',
+  banner: { js: '/*! Mira | Copyright (c) 2026 hami9 | https://hami9.ir | AGPL-3.0-only */' },
 };
 
 if (watch) {

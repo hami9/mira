@@ -8,4 +8,5 @@ export const pool = new Pool({
   connectionTimeoutMillis: 10_000,
   idleTimeoutMillis: 30_000,
   keepAlive: true,
+  max: config.limits.workerPool,
 });

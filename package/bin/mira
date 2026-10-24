@@ -50,6 +50,17 @@ uses_ghcr() {
 rand_hex() { openssl rand -hex 32; }
 rand_pass() { openssl rand -base64 18 | tr -d '/+=' | cut -c1-16; }
 
+env_value() {
+  # فایل dotenv داده است، نه اسکریپت شل؛ نام فروشگاه یا رمز نباید اجرا شود.
+  local value
+  value=$(sed -n "s/^${1}=//p" "$ENV_FILE" | head -n 1)
+  value=${value%$'\r'}
+  if [[ "$value" == \"*\" ]] || [[ "$value" == \'*\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  printf '%s' "$value"
+}
+
 ask() {
   # ask "question" "default"
   local prompt="$1" default="${2:-}" answer
@@ -86,9 +97,11 @@ cmd_setup() {
   command -v openssl >/dev/null 2>&1 || die "openssl is required (apt install openssl)."
 
   have_docker || install_docker_prompt
+  mkdir -p "$ETC_DIR"
 
   local mode="production"
   if [ "${1:-}" = "--local" ]; then mode="local"; fi
+  if [ "${1:-}" = "--lite" ]; then mode="lite"; fi
 
   echo
   echo "${C_BOLD}Mira setup — mode: $mode${C_OFF}"
@@ -98,7 +111,15 @@ cmd_setup() {
   local app_domain="" dashboard_domain="" acme_email="" public_api_url="" cors_origins=""
   local node_env="production"
 
-  if [ "$mode" = "production" ]; then
+  if [ "$mode" = "lite" ]; then
+    echo "Use an existing web server and HTTPS hostname. Mira binds to 127.0.0.1:3300."
+    app_domain=$(ask "Hostname for Mira (e.g. chat.example.com)")
+    dashboard_domain="$app_domain"
+    acme_email="admin@example.com"
+    public_api_url="https://$app_domain"
+    cors_origins="$public_api_url"
+    echo "-f docker-compose.lite.yml" > "$COMPOSE_FILES_FILE.tmp"
+  elif [ "$mode" = "production" ]; then
     echo "— two DNS A records must already point at this server's IP —"
     app_domain=$(ask "Domain for the API and widget (e.g. chat.example.com)")
     dashboard_domain=$(ask "Domain for the operator dashboard (e.g. panel.example.com)")
@@ -132,8 +153,9 @@ cmd_setup() {
   admin_email=$(ask "Email for the dashboard admin account")
   admin_name=$(ask "Admin name" "Administrator")
   site_name=$(ask "Site/shop name" "My Shop")
-  if [ "$mode" = "production" ]; then
+  if [ "$mode" != "local" ]; then
     widget_domains=$(ask "Domain(s) where the widget will be installed (comma separated)" "https://shop.example.com")
+    widget_domains="$widget_domains,$public_api_url"
   else
     widget_domains="http://localhost:3000"
   fi
@@ -163,6 +185,13 @@ API_PORT=3000
 PUBLIC_API_URL=$public_api_url
 DASHBOARD_URL=https://$dashboard_domain
 CORS_ALLOWED_ORIGINS=$cors_origins
+SERVE_DASHBOARD=true
+SYSTEM_SITE_ID=
+API_DB_POOL_MAX=5
+WORKER_DB_POOL_MAX=3
+WORKER_CONCURRENCY=2
+MIRA_BIND_ADDRESS=127.0.0.1
+MIRA_HTTP_PORT=3300
 
 # ---------- PostgreSQL ----------
 POSTGRES_HOST=postgres
@@ -321,9 +350,7 @@ cmd_backup() {
   need_root backup
   [ -f "$ENV_FILE" ] || die "Not set up yet."
   local out="$APP_DIR/backups/mira-manual-$(date -u +%Y%m%d-%H%M%S).sql.gz"
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-  docker exec mira_postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > "$out"
+  compose exec -T postgres sh -c 'exec pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$out"
   ok "Backup created: $out"
 }
 
@@ -332,13 +359,11 @@ cmd_restore() {
   local file="${1:-}"
   [ -n "$file" ] || die "Give the path to a backup file: sudo mira restore /opt/mira/app/backups/mira-....sql.gz"
   [ -f "$file" ] || die "File not found: $file"
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
   warn "Restoring overwrites the current data."
   read -r -p "Continue? (y/n) " yn
   case "$yn" in
     y|Y)
-      gunzip -c "$file" | docker exec -i mira_postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+      gunzip -c "$file" | compose exec -T postgres sh -c 'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
       ok "Restore complete."
       ;;
     *) echo "Cancelled." ;;
@@ -359,12 +384,10 @@ cmd_doctor() {
 
   if [ -f "$ENV_FILE" ]; then
     ok "Configuration file: $ENV_FILE"
-    # shellcheck disable=SC1090
-    . "$ENV_FILE"
-    if [ -z "${SEED_ADMIN_PASSWORD:-}" ] && [ "${NODE_ENV:-}" = "production" ]; then
+    if [ -z "$(env_value SEED_ADMIN_PASSWORD)" ] && [ "$(env_value NODE_ENV)" = "production" ]; then
       err "SEED_ADMIN_PASSWORD is empty — in production this puts the api in a restart loop. Run 'mira setup' again."
     fi
-    for d in "${APP_DOMAIN:-}" "${DASHBOARD_DOMAIN:-}"; do
+    for d in "$(env_value APP_DOMAIN)" "$(env_value DASHBOARD_DOMAIN)"; do
       if [ -n "$d" ] && [ "$d" != "chat.example.com" ] && [ "$d" != "panel.example.com" ]; then
         if getent hosts "$d" >/dev/null 2>&1; then
           ok "DNS for $d resolves."
@@ -383,8 +406,8 @@ cmd_doctor() {
     warn "No .env in $APP_DIR (it is created by setup)."
   fi
 
-  if have_docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^mira_api$'; then
-    if docker exec mira_api wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1; then
+  if have_docker && [ -n "$(compose ps -q api 2>/dev/null)" ]; then
+    if compose exec -T api wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1; then
       ok "The api container is running and healthy."
     else
       warn "The api container is up but /health did not respond — check 'mira logs api'."
@@ -400,12 +423,12 @@ mira — server management tool for the Mira live chat platform
 Usage: mira <command>
 
 Commands:
-  setup [--local]   First-time setup: generate configuration and secure secrets
-                    (production or local mode)
+  setup [--local|--lite]  First-time setup (production, local, or existing web server)
   start             Build the images, start every service, enable start on boot
   stop              Stop the services
   restart           Apply configuration changes and bring the services back up
   status            Container status and API health
+  resources         Current CPU and memory usage of this installation's containers
   logs [service]    Follow the live log (api, worker, dashboard, postgres, caddy, ...)
   update            Rebuild the images after installing a new version of the package
   backup            Immediate database backup into /opt/mira/app/backups
@@ -424,6 +447,7 @@ case "${1:-help}" in
   stop)    cmd_stop ;;
   restart) cmd_restart ;;
   status)  cmd_status ;;
+  resources) compose stats --no-stream ;;
   logs)    shift || true; cmd_logs "${1:-}" ;;
   update)  cmd_update ;;
   backup)  cmd_backup ;;

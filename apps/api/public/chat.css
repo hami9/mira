@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  background: #f4f7fc;
+  color: #22334e;
+  font-family: Tahoma, Arial, sans-serif;
+}
+main {
+  padding: 12px;
+  text-align: center;
+}
+h1 {
+  font-size: 18px;
+  margin: 8px 0;
+}
+p {
+  font-size: 13px;
+  margin: 4px 0;
+}
+body .mira-panel.mira-pos-right,
+body .mira-panel.mira-pos-left {
+  inset: 80px auto 16px 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: auto;
+  max-height: none;
+  max-width: calc(100vw - 24px);
+}
+body .mira-panel.mira-open {
+  transform: translateX(-50%);
+}
+body .mira-bubble.mira-bubble-open,
+body .mira-trigger,
+body .mira-header-close {
+  display: none;
+}

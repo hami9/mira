@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { CannedResponseDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 interface CannedResponsesPickerProps {
   onPick: (content: string) => void;
 }
 
 export function CannedResponsesPicker({ onPick }: CannedResponsesPickerProps) {
+  const apiClient = useApiClient();
   const [open, setOpen] = useState(false);
   const [responses, setResponses] = useState<CannedResponseDto[]>([]);
   const [loaded, setLoaded] = useState(false);

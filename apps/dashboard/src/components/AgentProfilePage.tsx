@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AGENT_PERMISSIONS, PERMISSION_LABELS, type AgentProfileDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
+import { AvatarUpload } from './AvatarUpload';
 
 interface AgentProfilePageProps {
   // اگر null باشد یعنی پروفایل خودِ کاربر وارد‌شده (قابل ویرایش)
@@ -11,6 +12,7 @@ interface AgentProfilePageProps {
 const ROLE_LABELS: Record<string, string> = { admin: 'ادمین', agent: 'اپراتور' };
 
 export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
+  const apiClient = useApiClient();
   const isOwnProfile = agentId === null;
   const [profile, setProfile] = useState<AgentProfileDto | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -194,12 +196,14 @@ export function AgentProfilePage({ agentId, onClose }: AgentProfilePageProps) {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-xs text-gray-600">آدرس تصویر پروفایل (URL)</label>
-                <input
+                <AvatarUpload
+                  label="تصویر پروفایل"
+                  target="me"
                   value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded border border-gray-300 p-2 text-xs"
+                  onChange={(url) => {
+                    setAvatarUrl(url);
+                    setProfile((p) => (p ? { ...p, avatarUrl: url } : p));
+                  }}
                 />
               </div>
               <div className="sm:col-span-2">

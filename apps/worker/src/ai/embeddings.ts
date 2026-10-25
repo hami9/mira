@@ -24,6 +24,7 @@ export async function embedTexts(texts: string[], context?: AiUsageContext): Pro
         model: config.ai.openaiEmbeddingModel,
         input: texts,
         dimensions: EMBEDDING_DIMENSIONS,
+        encoding_format: 'float',
       })
       .withResponse();
     await recordAiUsage(context, {

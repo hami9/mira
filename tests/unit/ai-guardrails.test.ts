@@ -31,6 +31,31 @@ const answer = {
 };
 
 describe('AI response boundary', () => {
+  it('allows disabling store topic rules while keeping the input size limit', () => {
+    const policy = { ...DEFAULT_AI_POLICY, guardrailsEnabled: false, blockedTopics: ['گارانتی'] };
+    expect(blockedInput('شرایط گارانتی چیست؟', policy)).toBe(false);
+    expect(blockedInput('x'.repeat(policy.maxInputChars + 1), policy)).toBe(true);
+    expect(blockedInput('شرایط گارانتی چیست؟', { ...policy, guardrailsEnabled: true })).toBe(true);
+  });
+  it('keeps source and sensitive-output checks when store guardrails are off', () => {
+    const policy = { ...DEFAULT_AI_POLICY, guardrailsEnabled: false };
+    expect(
+      parseGroundedAnswer(
+        JSON.stringify({ ...answer, sourceIds: ['foreign'] }),
+        products,
+        sources,
+        policy,
+      ),
+    ).toBeNull();
+    expect(
+      parseGroundedAnswer(
+        JSON.stringify({ ...answer, answer: 'password=secret' }),
+        products,
+        sources,
+        policy,
+      ),
+    ).toBeNull();
+  });
   it('uses product data from the server and ignores invented fields', () => {
     const result = parseGroundedAnswer(
       JSON.stringify({ ...answer, products: [{ price: '0' }] }),

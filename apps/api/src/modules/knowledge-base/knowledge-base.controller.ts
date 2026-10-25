@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { CreateKnowledgeDocumentRequestDto } from './dto/create-knowledge-document.dto';
+import { UpdateKnowledgeDocumentRequestDto } from './dto/update-knowledge-document.dto';
 
 @Controller('v1/knowledge-base')
 export class KnowledgeBaseController {
@@ -24,6 +25,28 @@ export class KnowledgeBaseController {
     @Body() dto: CreateKnowledgeDocumentRequestDto,
   ) {
     return this.knowledgeBaseService.create(agent.siteId, dto);
+  }
+
+  @Get(':id')
+  @UseGuards(AgentJwtGuard)
+  get(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
+    return this.knowledgeBaseService.get(agent.siteId, id);
+  }
+
+  @Patch(':id')
+  @RequirePermission('manageKnowledgeBase')
+  update(
+    @CurrentAgent() agent: AgentAccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateKnowledgeDocumentRequestDto,
+  ) {
+    return this.knowledgeBaseService.update(agent.siteId, id, dto);
+  }
+
+  @Post(':id/reindex')
+  @RequirePermission('manageKnowledgeBase')
+  reindex(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
+    return this.knowledgeBaseService.reindex(agent.siteId, id);
   }
 
   @Delete(':id')

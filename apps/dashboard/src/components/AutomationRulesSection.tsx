@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AutomationActionType, AutomationRuleDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 const ACTION_LABELS: Record<AutomationActionType, string> = {
   set_department: 'انتقال به دپارتمان',
@@ -9,6 +9,7 @@ const ACTION_LABELS: Record<AutomationActionType, string> = {
 };
 
 export function AutomationRulesSection() {
+  const apiClient = useApiClient();
   const [rules, setRules] = useState<AutomationRuleDto[]>([]);
   const [name, setName] = useState('');
   const [triggerValue, setTriggerValue] = useState('');

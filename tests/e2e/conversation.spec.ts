@@ -84,7 +84,9 @@ async function openConversationWith(
   const item = page.locator(`button[data-conversation-id="${conversationId}"]`);
   await expect(item).toBeVisible({ timeout: 30_000 });
   await item.click();
-  await expect(page.getByText(text, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('log', { name: 'پیام‌های گفتگو', exact: true }).getByText(text, { exact: true }),
+  ).toBeVisible();
 }
 
 test.describe('live conversation, end to end', () => {

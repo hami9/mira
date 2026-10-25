@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { PublicApiKeyStatusDto, WebhookDto, WebhookEventType } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 const ALL_EVENTS: { value: WebhookEventType; label: string }[] = [
   { value: 'message.created', label: 'پیام جدید' },
@@ -8,6 +8,7 @@ const ALL_EVENTS: { value: WebhookEventType; label: string }[] = [
 ];
 
 export function WebhooksSection() {
+  const apiClient = useApiClient();
   const [webhooks, setWebhooks] = useState<WebhookDto[]>([]);
   const [url, setUrl] = useState('');
   const [events, setEvents] = useState<WebhookEventType[]>(['message.created']);

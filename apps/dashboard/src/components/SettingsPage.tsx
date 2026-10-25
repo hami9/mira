@@ -3,13 +3,12 @@ import {
   WEEKDAYS,
   type BusinessHours,
   type CannedResponseDto,
-  type KnowledgeDocumentDto,
   type SiteSettingsDto,
   type TriggerMessageConfig,
   type UpdateSiteSettingsDto,
   type Weekday,
 } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 import { AutomationRulesSection } from './AutomationRulesSection';
 import { WebhooksSection } from './WebhooksSection';
 import { TwoFactorSection } from './TwoFactorSection';
@@ -17,14 +16,10 @@ import { AiSettingsSection } from './AiSettingsSection';
 import { AiBillingSection } from './AiBillingSection';
 import { SystemSection } from './SystemSection';
 import { InstallSection } from './InstallSection';
-
-const KB_STATUS_LABELS: Record<string, string> = {
-  pending: 'در حال پردازش...',
-  ready: 'آماده ✓',
-  failed: 'خطا در پردازش ✗',
-};
+import { KnowledgeSection } from './KnowledgeSection';
 
 interface SettingsPageProps {
+  onSiteNameChange?: (name: string) => void;
   isAdmin?: boolean;
   canManageSiteSettings: boolean;
   canManageKnowledgeBase: boolean;
@@ -52,6 +47,7 @@ function defaultBusinessHours(): BusinessHours {
 }
 
 export function SettingsPage({
+  onSiteNameChange,
   isAdmin = false,
   canManageSiteSettings,
   canManageKnowledgeBase,
@@ -59,6 +55,29 @@ export function SettingsPage({
   canManageCannedResponses,
   canManageWebhooks,
 }: SettingsPageProps) {
+  const apiClient = useApiClient();
+  const [tab, setTab] = useState('ai');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const tabs = [
+    { key: 'ai', label: 'هوش مصنوعی', allowed: canManageSiteSettings },
+    { key: 'knowledge', label: 'پایگاه دانش', allowed: canManageKnowledgeBase },
+    { key: 'install', label: 'نصب و اتصال', allowed: canManageSiteSettings },
+    {
+      key: 'operations',
+      label: 'عملیات',
+      allowed:
+        canManageSiteSettings ||
+        canManageAutomation ||
+        canManageCannedResponses ||
+        canManageWebhooks,
+    },
+    { key: 'billing', label: 'هزینه و مصرف', allowed: isAdmin },
+    { key: 'system', label: 'سیستم', allowed: isAdmin },
+    { key: 'account', label: 'امنیت حساب', allowed: true },
+  ].filter((item) => item.allowed);
+  const activeTab = tabs.some((item) => item.key === tab) ? tab : tabs[0].key;
   // هر بخش تنظیمات دسترسی خودش را دارد؛ اگر اپراتور هیچ‌کدام را نداشته باشد فقط 2FA خودش را می‌بیند
   const hasAnySettingsAccess =
     canManageSiteSettings ||
@@ -79,11 +98,6 @@ export function SettingsPage({
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
 
-  const [knowledgeDocuments, setKnowledgeDocuments] = useState<KnowledgeDocumentDto[]>([]);
-  const [newKbTitle, setNewKbTitle] = useState('');
-  const [newKbContent, setNewKbContent] = useState('');
-  const [kbSaving, setKbSaving] = useState(false);
-
   const [cannedResponses, setCannedResponses] = useState<CannedResponseDto[]>([]);
   const [newShortcut, setNewShortcut] = useState('');
   const [newTitle, setNewTitle] = useState('');
@@ -92,24 +106,28 @@ export function SettingsPage({
   useEffect(() => {
     // اپراتور غیر-ادمین فقط بخش 2FA خودش رو می‌بینه، پس تنظیمات سایت رو هم اصلاً نمی‌خونیم
     if (!hasAnySettingsAccess) return;
-    apiClient.getSiteSettings().then((data) => {
-      setSettings(data);
-      setBusinessHours(data.businessHours ?? defaultBusinessHours());
-      setOfflineMessage(data.offlineMessage ?? '');
-      setTriggerMessage(data.triggerMessage);
-      setWordpressSiteUrl(data.wordpressSiteUrl ?? '');
-      setWordpressApiKey(data.wordpressApiKey ?? '');
-    });
-    apiClient.listCannedResponses().then(setCannedResponses);
-    refreshKnowledgeDocuments();
-  }, [hasAnySettingsAccess]);
-
-  function refreshKnowledgeDocuments(): void {
-    apiClient.listKnowledgeDocuments().then(setKnowledgeDocuments);
-  }
+    setLoadError('');
+    apiClient
+      .getSiteSettings()
+      .then((data) => {
+        setSettings(data);
+        setBusinessHours(data.businessHours ?? defaultBusinessHours());
+        setOfflineMessage(data.offlineMessage ?? '');
+        setTriggerMessage(data.triggerMessage);
+        setWordpressSiteUrl(data.wordpressSiteUrl ?? '');
+        setWordpressApiKey(data.wordpressApiKey ?? '');
+      })
+      .catch(() => setLoadError('دریافت تنظیمات ناموفق بود.'));
+    if (canManageCannedResponses)
+      apiClient
+        .listCannedResponses()
+        .then(setCannedResponses)
+        .catch(() => {});
+  }, [hasAnySettingsAccess, loadAttempt, apiClient, canManageCannedResponses]);
 
   async function handleSave(): Promise<void> {
     setSaving(true);
+    setSaveError('');
     try {
       const updated = await apiClient.updateSiteSettings({
         businessHours,
@@ -122,6 +140,8 @@ export function SettingsPage({
       setWordpressApiKey('');
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 2000);
+    } catch {
+      setSaveError('ذخیره تنظیمات ناموفق بود؛ دوباره تلاش کنید.');
     } finally {
       setSaving(false);
     }
@@ -132,27 +152,7 @@ export function SettingsPage({
   async function handleSaveAiSettings(patch: UpdateSiteSettingsDto): Promise<void> {
     const updated = await apiClient.updateSiteSettings(patch);
     setSettings(updated);
-  }
-
-  async function handleAddKnowledgeDocument(): Promise<void> {
-    if (!newKbTitle.trim() || !newKbContent.trim()) return;
-    setKbSaving(true);
-    try {
-      const created = await apiClient.createKnowledgeDocument({
-        title: newKbTitle.trim(),
-        content: newKbContent.trim(),
-      });
-      setKnowledgeDocuments((prev) => [created, ...prev]);
-      setNewKbTitle('');
-      setNewKbContent('');
-    } finally {
-      setKbSaving(false);
-    }
-  }
-
-  async function handleDeleteKnowledgeDocument(id: string): Promise<void> {
-    await apiClient.deleteKnowledgeDocument(id);
-    setKnowledgeDocuments((prev) => prev.filter((document) => document.id !== id));
+    onSiteNameChange?.(updated.name);
   }
 
   function updateDay(day: Weekday, patch: Partial<BusinessHours['days'][Weekday]>): void {
@@ -190,22 +190,60 @@ export function SettingsPage({
   }
 
   if (!settings) {
-    return <div className="p-4 text-sm text-gray-400">در حال بارگذاری تنظیمات...</div>;
+    return (
+      <div className="p-6 text-sm text-gray-400">
+        {loadError || 'در حال بارگذاری تنظیمات...'}
+        {loadError && (
+          <button
+            onClick={() => setLoadAttempt((value) => value + 1)}
+            className="mr-3 text-primary-600"
+          >
+            تلاش دوباره
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto w-full max-w-6xl overflow-y-auto p-4 sm:p-6">
-      <h1 className="mb-4 text-lg font-bold text-gray-800">تنظیمات {settings.name}</h1>
+      <div className="mb-5">
+        <h1 className="text-xl font-bold tracking-tight text-gray-800">تنظیمات {settings.name}</h1>
+        <p className="mt-1 text-xs text-gray-400">
+          دستیار، منابع و عملیات فروشگاه را از یکجا مدیریت کنید.
+        </p>
+      </div>
+      <nav
+        aria-label="بخش‌های تنظیمات"
+        className="sticky top-0 z-10 mb-6 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm"
+      >
+        {tabs.map((item) => (
+          <button
+            type="button"
+            key={item.key}
+            onClick={() => setTab(item.key)}
+            aria-pressed={activeTab === item.key}
+            className={`shrink-0 rounded-lg px-4 py-2.5 text-xs transition-colors ${activeTab === item.key ? 'bg-primary-50 font-bold text-primary-700' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+      {saveError && (
+        <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-xs text-red-600">
+          {saveError}
+        </p>
+      )}
 
-      <TwoFactorSection />
+      {activeTab === 'account' && <TwoFactorSection />}
 
-      {canManageSiteSettings && (
+      {activeTab === 'install' && canManageSiteSettings && (
         <InstallSection settings={settings} onSave={handleSaveAiSettings} />
       )}
-      {isAdmin && <AiBillingSection />}
-      {isAdmin && <SystemSection />}
+      {activeTab === 'billing' && isAdmin && <AiBillingSection />}
+      {activeTab === 'system' && isAdmin && <SystemSection />}
 
-      {canManageSiteSettings && (
+      {activeTab === 'operations' && canManageSiteSettings && (
         <section className="mb-6 rounded border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-bold text-gray-700">ساعت کاری</h2>
           {WEEKDAYS.map((day) => (
@@ -285,7 +323,7 @@ export function SettingsPage({
         </section>
       )}
 
-      {canManageSiteSettings && (
+      {activeTab === 'install' && canManageSiteSettings && (
         <section className="mb-6 rounded border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-bold text-gray-700">اتصال وردپرس/ووکامرس</h2>
           <p className="mb-3 text-gray-500">
@@ -330,70 +368,23 @@ export function SettingsPage({
         </section>
       )}
 
-      {canManageSiteSettings && (
-        <AiSettingsSection settings={settings} onSave={handleSaveAiSettings} />
+      {activeTab === 'ai' && canManageSiteSettings && (
+        <AiSettingsSection
+          settings={settings}
+          onSave={handleSaveAiSettings}
+          onAvatarChange={(url) =>
+            setSettings((previous) => (previous ? { ...previous, aiBotAvatarUrl: url } : previous))
+          }
+        />
       )}
 
-      {canManageKnowledgeBase && (
-        <section className="mb-6 rounded border border-gray-200 bg-white p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-700">پایگاه دانش (منبع پاسخ ربات)</h2>
-            <button onClick={refreshKnowledgeDocuments} className="text-xs text-primary-600">
-              به‌روزرسانی لیست
-            </button>
-          </div>
-          {knowledgeDocuments.length === 0 && (
-            <p className="mb-3 text-xs text-gray-400">هنوز سندی اضافه نشده است.</p>
-          )}
-          {knowledgeDocuments.map((document) => (
-            <div
-              key={document.id}
-              className="mb-2 flex items-start justify-between border-b border-gray-100 pb-2 text-xs"
-            >
-              <div>
-                <div className="font-medium text-gray-800">{document.title}</div>
-                <div className="text-gray-500">
-                  {KB_STATUS_LABELS[document.status] ?? document.status} · {document.chunkCount} بخش
-                </div>
-              </div>
-              <button
-                onClick={() => handleDeleteKnowledgeDocument(document.id)}
-                className="text-red-600"
-              >
-                حذف
-              </button>
-            </div>
-          ))}
-          <div className="mt-3 space-y-2 rounded bg-gray-50 p-2">
-            <input
-              value={newKbTitle}
-              onChange={(e) => setNewKbTitle(e.target.value)}
-              placeholder="عنوان سند (مثلاً «راهنمای گارانتی»)"
-              className="w-full rounded border border-gray-300 p-1.5 text-xs"
-            />
-            <textarea
-              value={newKbContent}
-              onChange={(e) => setNewKbContent(e.target.value)}
-              placeholder="متن کامل سند — ربات فقط از همین متن برای پاسخ استفاده می‌کند"
-              className="w-full rounded border border-gray-300 p-1.5 text-xs"
-              rows={4}
-            />
-            <button
-              onClick={handleAddKnowledgeDocument}
-              disabled={kbSaving}
-              className="rounded-lg bg-primary-600 transition-colors hover:bg-primary-700 px-3 py-1.5 text-xs text-white disabled:opacity-60"
-            >
-              {kbSaving ? 'در حال افزودن...' : 'افزودن سند'}
-            </button>
-          </div>
-        </section>
-      )}
+      {activeTab === 'knowledge' && canManageKnowledgeBase && <KnowledgeSection />}
 
-      {canManageAutomation && <AutomationRulesSection />}
+      {activeTab === 'operations' && canManageAutomation && <AutomationRulesSection />}
 
-      {canManageWebhooks && <WebhooksSection />}
+      {activeTab === 'operations' && canManageWebhooks && <WebhooksSection />}
 
-      {canManageCannedResponses && (
+      {activeTab === 'operations' && canManageCannedResponses && (
         <section className="rounded border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-bold text-gray-700">پاسخ‌های آماده</h2>
           {cannedResponses.map((response) => (

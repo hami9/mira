@@ -93,11 +93,12 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
     await status(data, 'retrieving');
     const question = redactSensitive(visitor.content);
     const sources: (AiSource & { content: string })[] = [];
+    const knowledge = new Map<string, { id: string; revision: number }>();
     const hasKnowledge =
       policy.useKnowledgeBase &&
       (
         await client.query(
-          `SELECT 1 FROM knowledge_base_documents WHERE "siteId" = $1 AND status = 'ready' LIMIT 1`,
+          `SELECT 1 FROM knowledge_base_documents WHERE "siteId" = $1 AND status = 'ready' AND enabled=true LIMIT 1`,
           [data.siteId],
         )
       ).rowCount;
@@ -109,13 +110,25 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
       });
       if (!embedding || embedding.length !== 768 || !embedding.every(Number.isFinite))
         throw new Error('بردار نامعتبر');
-      const chunks = await client.query<{ id: string; title: string; content: string }>(
-        `SELECT c.id, d.title, c.content FROM knowledge_base_chunks c
+      const chunks = await client.query<{
+        id: string;
+        title: string;
+        content: string;
+        documentId: string;
+        revision: number;
+      }>(
+        `SELECT c.id, d.title, c.content, d.id AS "documentId", d.revision FROM knowledge_base_chunks c
          JOIN knowledge_base_documents d ON d.id = c."documentId" AND d."siteId" = c."siteId"
-         WHERE c."siteId" = $1 AND d.status = 'ready' AND 1 - (c.embedding <=> $2::vector) >= $3
+         WHERE c."siteId" = $1 AND d.status = 'ready' AND d.enabled=true AND 1 - (c.embedding <=> $2::vector) >= $3
          ORDER BY c.embedding <=> $2::vector LIMIT 5`,
-        [data.siteId, `[${embedding.join(',')}]`, policy.minSimilarity],
+        [
+          data.siteId,
+          `[${embedding.join(',')}]`,
+          policy.guardrailsEnabled === false ? -1 : policy.minSimilarity,
+        ],
       );
+      for (const chunk of chunks.rows)
+        knowledge.set(`kb:${chunk.id}`, { id: chunk.documentId, revision: chunk.revision });
       sources.push(
         ...chunks.rows.map((c) => ({
           ...c,
@@ -175,16 +188,35 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
       { siteId: data.siteId, conversationId: data.conversationId, kind: 'reply' },
     );
     const result = parseGroundedAnswer(raw, website.products, sources, policy);
-    if (!result || result.confidence === 0 || result.confidence < site.aiConfidenceThreshold) {
+    if (
+      !result ||
+      (policy.guardrailsEnabled !== false &&
+        (result.confidence === 0 || result.confidence < site.aiConfidenceThreshold))
+    ) {
       await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
       return;
     }
-    await postReply(client, data, result.answer, {
-      products: result.products,
-      sources: policy.showSources
-        ? result.sources.map(({ id, title, url }) => ({ id, title, ...(url ? { url } : {}) }))
-        : [],
-    });
+    const posted = await postReply(
+      client,
+      data,
+      result.answer,
+      {
+        products: result.products,
+        sources: policy.showSources
+          ? result.sources.map(({ id, title, url }) => ({ id, title, ...(url ? { url } : {}) }))
+          : [],
+      },
+      [
+        ...new Map(
+          result.sources
+            .map((source) => knowledge.get(source.id))
+            .filter((value): value is { id: string; revision: number } => Boolean(value))
+            .map((value) => [value.id, value]),
+        ).values(),
+      ],
+    );
+    if (!posted)
+      await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
   } catch {
     // خطای SDK ممکن است حاوی درخواست یا کلید باشد؛ به مشتری و لاگ منتقل نمی‌شود.
     if (started)
@@ -248,20 +280,31 @@ async function postReply(
   data: AiBotReplyJobData,
   content: string,
   metadata: AiMessageMetadata,
-): Promise<void> {
+  usedKnowledge: { id: string; revision: number }[] = [],
+): Promise<boolean> {
   await client.query('BEGIN');
   let row: { id: string; createdAt: Date } | undefined;
   try {
     if (!(await eligible(client, data, true))) {
       await client.query('ROLLBACK');
-      return;
+      return false;
     }
     const enabled = (
       await client.query(`SELECT "aiEnabled" FROM sites WHERE id = $1`, [data.siteId])
     ).rows[0]?.aiEnabled;
     if (!enabled) {
       await client.query('ROLLBACK');
-      return;
+      return false;
+    }
+    if (usedKnowledge.length) {
+      const fresh = await client.query(
+        `SELECT d.id FROM knowledge_base_documents d JOIN jsonb_to_recordset($2::jsonb) AS expected(id uuid,revision integer) ON expected.id=d.id AND expected.revision=d.revision WHERE d."siteId"=$1 AND d.enabled=true AND d.status='ready' FOR SHARE OF d`,
+        [data.siteId, JSON.stringify(usedKnowledge)],
+      );
+      if (fresh.rowCount !== usedKnowledge.length) {
+        await client.query('ROLLBACK');
+        return false;
+      }
     }
     row = (
       await client.query<{ id: string; createdAt: Date }>(
@@ -276,6 +319,11 @@ async function postReply(
         ],
       )
     ).rows[0];
+    if (row && usedKnowledge.length)
+      await client.query(
+        `UPDATE knowledge_base_documents SET "usageCount"="usageCount"+1,"lastUsedAt"=now() WHERE "siteId"=$1 AND id=ANY($2::uuid[])`,
+        [data.siteId, usedKnowledge.map((value) => value.id)],
+      );
     if (metadata.handoff)
       await client.query(
         `UPDATE conversations SET "aiPaused" = true WHERE id = $1 AND "siteId" = $2`,
@@ -286,7 +334,7 @@ async function postReply(
     await client.query('ROLLBACK');
     throw error;
   }
-  if (!row) return;
+  if (!row) return false;
   const payload = {
     id: row.id,
     conversationId: data.conversationId,
@@ -301,4 +349,5 @@ async function postReply(
     conversationId: data.conversationId,
     lastMessage: payload,
   });
+  return true;
 }

@@ -64,6 +64,12 @@ export class VisitorsService {
     url: string,
     title?: string,
   ): Promise<void> {
+    await this.visitorsRepository.update({ id: visitorId, siteId }, { lastSeenAt: new Date() });
+    const previous = await this.pageViewsRepository.findOne({
+      where: { siteId, visitorId },
+      order: { visitedAt: 'DESC' },
+    });
+    if (previous?.url === url && previous.title === (title ?? null)) return;
     const pageView = this.pageViewsRepository.create({
       siteId,
       visitorId,
@@ -73,9 +79,9 @@ export class VisitorsService {
     await this.pageViewsRepository.save(pageView);
   }
 
-  async listRecentPageViews(visitorId: string): Promise<VisitorPageViewEntity[]> {
+  async listRecentPageViews(visitorId: string, siteId: string): Promise<VisitorPageViewEntity[]> {
     return this.pageViewsRepository.find({
-      where: { visitorId },
+      where: { visitorId, siteId },
       order: { visitedAt: 'DESC' },
       take: RECENT_PAGE_VIEWS_LIMIT,
     });

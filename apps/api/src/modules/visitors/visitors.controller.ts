@@ -31,6 +31,7 @@ import { VisitorsService } from './visitors.service';
 import { WidgetSessionDto } from './dto/widget-session.dto';
 import { ReportPageViewRequestDto } from './dto/report-page-view.dto';
 import { SubmitCsatRequestDto } from './dto/submit-csat.dto';
+import { StartConversationDto } from './dto/start-conversation.dto';
 
 @Controller('v1/widget')
 export class VisitorsController {
@@ -69,10 +70,13 @@ export class VisitorsController {
       userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader,
     });
 
-    const activeConversation = await this.conversationsService.findActiveForVisitor(visitor.id);
+    const activeConversation = await this.conversationsService.findActiveForVisitor(
+      visitor.id,
+      site.id,
+    );
     const pendingRatingConversation = activeConversation
       ? null
-      : await this.conversationsService.findPendingRatingForVisitor(visitor.id);
+      : await this.conversationsService.findPendingRatingForVisitor(visitor.id, site.id);
 
     const visitorToken = this.tokenService.signVisitorToken({
       sub: visitor.id,
@@ -110,13 +114,17 @@ export class VisitorsController {
   @UseGuards(VisitorJwtGuard)
   async startConversation(
     @CurrentVisitor() visitor: VisitorTokenPayload,
+    @Body() dto: StartConversationDto,
   ): Promise<StartConversationResponseDto> {
     const allowed = await this.rateLimiter.consume(`widget-start:${visitor.sub}`, 10, 60);
     if (!allowed) {
       throw new HttpException('تعداد درخواست‌ها بیش از حد مجاز است', HttpStatus.TOO_MANY_REQUESTS);
     }
 
-    const existing = await this.conversationsService.findActiveForVisitor(visitor.sub);
+    const existing = await this.conversationsService.findActiveForVisitor(
+      visitor.sub,
+      visitor.siteId,
+    );
     if (existing) {
       return { conversationId: existing.id, status: existing.status };
     }
@@ -124,6 +132,7 @@ export class VisitorsController {
     const conversation = await this.conversationsService.createConversation(
       visitor.siteId,
       visitor.sub,
+      dto.pageUrl ? { url: dto.pageUrl, title: dto.pageTitle ?? null } : undefined,
     );
 
     // اگه خارج از ساعت کاری تنظیم‌شده‌ی سایت باشیم، همون اول یک پیام خودکار (bot) در مکالمه بگذار

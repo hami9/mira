@@ -44,6 +44,11 @@ export class ConversationsController {
     });
   }
 
+  @Get('unread')
+  unread(@CurrentAgent() agent: AgentAccessTokenPayload) {
+    return this.conversationsService.unreadForSite(agent.siteId, agent.sub);
+  }
+
   @Get(':id')
   getOne(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
     return this.conversationsService.findByIdForSite(id, agent.siteId);

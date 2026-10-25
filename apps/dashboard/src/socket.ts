@@ -15,11 +15,14 @@ export interface DashboardSocketHandlers {
 }
 
 export function connectDashboardSocket(
-  accessToken: string,
+  accessToken: string | (() => string | null),
   handlers: DashboardSocketHandlers,
 ): Socket {
   const socket = io(API_URL, {
-    auth: { token: accessToken },
+    auth: (callback) =>
+      callback({ token: typeof accessToken === 'function' ? accessToken() : accessToken }),
+    // هر حساب اتصال مستقل دارد؛ manager مشترک نباید هویت فروشگاه‌ها را مخلوط کند.
+    forceNew: true,
     transports: ['websocket', 'polling'],
     tryAllTransports: true,
   });

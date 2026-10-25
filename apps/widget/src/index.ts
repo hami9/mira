@@ -121,10 +121,36 @@ async function main(): Promise<void> {
     storeVisitorRef(session.visitorRef);
     conversationId = session.activeConversationId ?? session.pendingRatingConversationId;
 
-    // گزارش صفحه‌ی فعلی برای پنل اطلاعات بازدیدکننده در داشبورد (خطای این درخواست بی‌اهمیته)
-    api
-      .reportPageView(visitorToken, { url: window.location.href, title: document.title })
-      .catch(() => undefined);
+    // تغییر صفحه در سایت‌های SPA هم ثبت می‌شود؛ heartbeat فقط در تب نمایان است.
+    let lastPage = '';
+    let lastReportAt = 0;
+    let reporting = false;
+    const reportPage = async () => {
+      if (document.visibilityState !== 'visible' || reporting) return;
+      const page = `${window.location.href}\n${document.title}`;
+      if (page === lastPage && Date.now() - lastReportAt < 45_000) return;
+      reporting = true;
+      try {
+        await api.reportPageView(visitorToken, {
+          url: window.location.href.slice(0, 1024),
+          title: document.title.slice(0, 255),
+        });
+        lastPage = page;
+        lastReportAt = Date.now();
+      } catch {
+        /* گزارش بازدید مسیر گفتگو را متوقف نمی‌کند. */
+      } finally {
+        reporting = false;
+      }
+    };
+    void reportPage();
+    const pageTimer = setInterval(() => {
+      void reportPage();
+    }, 5_000);
+    document.addEventListener('visibilitychange', reportPage);
+    window.addEventListener('pagehide', (event) => {
+      if (!event.persisted) clearInterval(pageTimer);
+    });
 
     // اولویت با پیام محرک اختصاصی صفحه (مثلاً سبد خرید رهاشده در ووکامرس)؛ اگه نبود، پیام محرک عمومی سایت
     const trigger = config.triggerText
@@ -139,8 +165,21 @@ async function main(): Promise<void> {
     }
 
     socket = connectWidgetSocket(config.apiUrl, visitorToken, {
+      onConversationStarted: async (id) => {
+        if (conversationId === id) return;
+        conversationId = id;
+        socket?.emit(SocketEvent.ConversationJoin, { conversationId: id });
+        try {
+          const history = await api.getMessages(visitorToken, id);
+          for (const message of history)
+            ui.appendMessage(message.content, message.senderType, message);
+        } catch {
+          /* هنگام اتصال دوباره تاریخچه دریافت می‌شود. */
+        }
+      },
       onMessage: (message) => {
         if (message.conversationId !== conversationId) return;
+        if (message.senderType === 'agent') ui.openPanel();
         ui.hideCsatPrompt(); // پیام تازه یعنی گفتگو ادامه داره؛ پرامپت امتیازدهی قبلی دیگه معتبر نیست
         ui.appendMessage(message.content, message.senderType, message);
       },

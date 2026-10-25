@@ -52,17 +52,25 @@ test.describe('AI assistant through the live queue', () => {
   test('shows thinking, sources, one persisted answer, and a durable human handoff', async ({
     page,
     request,
-  }) => {
+  }, testInfo) => {
     await page.goto('/demo.html');
     await page.locator('.mira-bubble').click();
     await expect(page.locator('.mira-header-title')).toHaveText('دستیار فروش میرا');
     await page.locator('.mira-input').fill('شرایط ارسال سفارش چیست؟');
     await page.locator('.mira-send').click();
     await expect(page.locator('.mira-ai-status')).toContainText('در حال');
+    await testInfo.attach('widget-thinking', {
+      body: await page.screenshot({ path: 'test-results/widget-thinking.png' }),
+      contentType: 'image/png',
+    });
     await expect(page.locator('.mira-msg-bot')).toHaveCount(1);
     await expect(page.locator('.mira-msg-bot')).toContainText('دو روز کاری');
     await expect(page.locator('.mira-source')).toContainText('اطلاعات تأییدشده فروشگاه');
     await expect(page.locator('.mira-ai-status')).toBeEmpty();
+    await testInfo.attach('widget-answer', {
+      body: await page.screenshot({ path: 'test-results/widget-answer.png' }),
+      contentType: 'image/png',
+    });
     const usage = await request.get('/v1/ai/billing/usage?days=7', {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -117,6 +125,10 @@ test.describe('AI assistant through the live queue', () => {
       .fill(process.env.E2E_ADMIN_PASSWORD || 'ChangeMe123!');
     await page.locator('button[type="submit"]').click();
     await page.getByRole('button', { name: 'تنظیمات', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'بخش‌های تنظیمات', exact: true })
+      .getByRole('button', { name: 'هزینه و مصرف', exact: true })
+      .click();
     const billing = page.getByRole('region', { name: 'هزینه و اعتبار آوالای' });
     await expect(billing.getByRole('heading', { name: 'مصرف کاربران میرا' })).toBeVisible();
     await expect(billing.getByRole('columnheader', { name: 'کل توکن', exact: true })).toBeVisible();
@@ -128,6 +140,10 @@ test.describe('AI assistant through the live queue', () => {
     );
     await billing.scrollIntoViewIfNeeded();
     await billing.screenshot({ path: 'test-results/ai-billing.png' });
+    await page
+      .getByRole('navigation', { name: 'بخش‌های تنظیمات', exact: true })
+      .getByRole('button', { name: 'هوش مصنوعی', exact: true })
+      .click();
     const section = page.getByRole('region', { name: 'مرکز هوش مصنوعی' });
     await section.getByLabel('نام فروشگاه', { exact: false }).fill('فروشگاه نمونه میرا');
     await section.getByRole('button', { name: 'گاردریل‌ها', exact: true }).click();

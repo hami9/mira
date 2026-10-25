@@ -14,10 +14,12 @@ describe.skipIf(!hasDatabase)('installation resource authorization', () => {
   let admin: string;
   let otherAdmin: string;
   let service: SystemService;
+  const originalQueuePrefix = process.env.QUEUE_PREFIX;
 
   beforeAll(async () => {
     db = await connect();
     owner = await createSite(db, 'Resource owner', `system-${crypto.randomUUID()}`);
+    process.env.QUEUE_PREFIX = `system-test-${owner}`;
     other = await createSite(db, 'Other store', `system-${crypto.randomUUID()}`);
     const addAdmin = async (site: string) =>
       (
@@ -43,6 +45,8 @@ describe.skipIf(!hasDatabase)('installation resource authorization', () => {
   });
 
   afterAll(async () => {
+    if (originalQueuePrefix === undefined) delete process.env.QUEUE_PREFIX;
+    else process.env.QUEUE_PREFIX = originalQueuePrefix;
     await redis?.quit();
     if (db) {
       await cleanup(db, [owner, other].filter(Boolean));

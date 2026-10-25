@@ -326,6 +326,16 @@ code.** This is the most important section of this file.
     backups, and shell substitutions could execute. Doctor now reads only selected values
     without evaluation; backup/restore read PostgreSQL credentials inside its container.
 
+15. **Markdown was rejected by a database check despite the entity using a varchar.**
+    `knowledge_base_documents_sourceType_check` originally allowed only file/url/text.
+    The knowledge-controls migration extends the existing constraint to Markdown. Test
+    actual inserts after migration; changing a DTO or entity alone is insufficient.
+
+16. **The embedding fixture ignored the SDK's requested base64 encoding.** The SDK decoded
+    numeric arrays as base64 and the worker rejected the resulting vector length. Requests
+    now explicitly ask for float embeddings, and the fixture supports both response formats.
+    The queued Markdown E2E exercises the real SDK and stored vector dimensions.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have
@@ -588,3 +598,68 @@ the compiled hosting launcher and actual HTTP polling through a proxy that rejec
 The Lite runtime was built and run with Node 22 without TypeScript/ts-node; replacing its API
 and worker containers preserved an existing fixture conversation and message. These are local
 runtime checks, not a production load benchmark or certification of hosting panels.
+
+## 14. Operator workspace and knowledge controls
+
+The dashboard has one authenticated ApiClient and Socket.io manager per signed-in store.
+ApiProvider scopes every page and child component; switching accounts unmounts the prior
+views. Tokens and refresh tokens remain in memory. Do not replace this with a mutable global
+active token: delayed requests could write the previous store's data into the next view.
+Unread totals use GET /v1/conversations/unread and include all conversations, not just the
+current list page. Background sockets refresh counts and label notifications by store.
+
+Migration 1737301000000 adds nullable conversations.entryPage. Visitor starts snapshot their
+URL/title; operator starts snapshot the last reported page. No historical entries are filled
+in. Both start paths serialize on a tenant-scoped visitor row lock to avoid duplicate active
+conversations. Operator starts require viewVisitors, reuse open/pending chats without stealing
+ownership, and pause AI for newly human-owned chats. The gateway binds visitors to a tenant-
+scoped visitor room and sends messages to the union of visitor/conversation rooms; Socket.io
+must deduplicate recipients. Existing widgets recover active chats on reconnect.
+
+Visible widget tabs report navigation at five-second granularity and activity every 45 seconds.
+Repeated pages refresh lastSeenAt without appending duplicate history. Online is still a
+five-minute activity window. The chat information panel refreshes every ten seconds, visitor
+lists every fifteen. These are last reported values, not exact browser presence.
+
+Migration 1737301100000 adds knowledge enabled/keywords/revision/usageCount/lastUsedAt and
+extends the original sourceType check. Existing content/chunks remain; counters start at zero.
+Lists return metadata only; GET /v1/knowledge-base/:id returns source text for editing/download.
+Markdown is UTF-8 plain text, with a 64 KiB file limit and 80,000-byte API content limit. Never
+render its HTML or fetch its URLs. Source changes and activation are tenant-scoped and require
+manageKnowledgeBase. Retry is POST /v1/knowledge-base/:id/reindex.
+
+Title and keywords prefix embedding input. Jobs have document/revision identities. The worker
+rechecks enabled/revision under a row lock before atomically replacing chunks; an old result
+cannot overwrite a newer edit. Retrieval only uses ready, enabled documents. Before a bot
+answer commits, selected source revisions are rechecked; disabling/changing a source causes
+human handoff. Usage increments once per source only for a newly persisted answer, even with
+public citations hidden. Never reconstruct counters by changing historical messages.
+
+AiPolicy.guardrailsEnabled defaults to true. False bypasses only custom topic, similarity and
+confidence rules. Tenant isolation, source IDs, safe links, sensitive-output rejection, length
+limits, reply caps and explicit human handoff remain enforced. Settings tabs prevent unrelated
+billing/resource views from loading with every settings visit. Host metrics remain manual and
+bound to SYSTEM_SITE_ID plus fresh admin authorization.
+
+Local verification includes 120 unit tests and 62 real-Postgres integration tests. Browser
+coverage now includes store switching with 2FA/background delivery/late-response isolation,
+operator-started chats and current versus entry pages on desktop/mobile, and queued Markdown
+import/source edits/guardrail persistence. Keep actual browser results separate from production
+plugin installation and load benchmarking. The production base runtime was installed on Ubuntu
+with an existing nginx website, real TLS and a verified backup restore into a disposable DB;
+the interactive mira setup flow and cPanel/DirectAdmin remain separate, unverified paths.
+
+The ConfigService version in this repository prefers process.env over constructor defaults.
+Integration fixtures must isolate and restore QUEUE_PREFIX when checking absent worker state;
+a concurrently running fixture worker must not satisfy another test's heartbeat check.
+See docs/operator-workspace.md and its Persian mirror for behavior and limits.
+
+Migration 1737301200000 adds bounded avatar bytes keyed by site/owner. Assistant uploads
+require manageSiteSettings; operators upload only their own image. Multipart input is capped
+at 10 MiB. Sharp checks decoded PNG/JPEG/WebP, rejects animation, bounds decoded pixels,
+and produces a masked 256-pixel PNG; browser crop is not a validation boundary. Only two
+decodes run concurrently, with one processing thread and a small cache. Public image reads
+include site/owner/version; replacing an image replaces its bytes and rotates the URL.
+Keep optional platform dependencies in the API production install: Sharp needs them.
+Image confirmation persists immediately, independently of the surrounding settings form.
+The widget animates queue states and completed answers, respecting reduced motion.

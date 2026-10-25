@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ConversationStatus } from '@mira/shared-types';
-import { apiClient, ConversationDto } from '../api';
+import { ConversationDto } from '../api';
+import { useApiClient } from '../api-context';
 
 interface ConversationMetaProps {
   conversation: ConversationDto;
@@ -8,6 +9,7 @@ interface ConversationMetaProps {
 }
 
 export function ConversationMeta({ conversation, onUpdated }: ConversationMetaProps) {
+  const apiClient = useApiClient();
   const [department, setDepartment] = useState(conversation.department ?? '');
   const [tagsInput, setTagsInput] = useState(conversation.tags.join(', '));
   const [saving, setSaving] = useState(false);

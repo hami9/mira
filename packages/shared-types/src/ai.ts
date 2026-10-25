@@ -13,6 +13,7 @@ export interface AiBotReplyJobData {
 }
 
 export interface AiEmbedDocumentJobData {
+  revision?: number;
   siteId: string;
   documentId: string;
 }
@@ -31,20 +32,32 @@ export interface AiSummarizeConversationJobData {
 export type KnowledgeDocumentStatus = 'pending' | 'ready' | 'failed';
 
 export interface KnowledgeDocumentDto {
+  enabled: boolean;
+  keywords: string[];
+  sourceType: string;
+  usageCount: number;
+  lastUsedAt: string | null;
+  contentLength: number;
   id: string;
   title: string;
-  content: string;
+  content?: string;
   status: KnowledgeDocumentStatus;
   chunkCount: number;
   createdAt: string;
 }
 
 export interface CreateKnowledgeDocumentDto {
+  enabled?: boolean;
+  keywords?: string[];
+  sourceType?: 'text' | 'markdown';
   title: string;
   content: string;
 }
 
+export type UpdateKnowledgeDocumentDto = Partial<CreateKnowledgeDocumentDto>;
+
 export interface AiPolicy {
+  guardrailsEnabled?: boolean;
   useKnowledgeBase: boolean;
   useWebsite: boolean;
   useProducts: boolean;
@@ -59,6 +72,7 @@ export interface AiPolicy {
 }
 
 export const DEFAULT_AI_POLICY: AiPolicy = {
+  guardrailsEnabled: true,
   useKnowledgeBase: true,
   useWebsite: false,
   useProducts: false,

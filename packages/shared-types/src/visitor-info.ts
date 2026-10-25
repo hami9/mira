@@ -5,6 +5,9 @@ export interface PageViewDto {
 }
 
 export interface VisitorInfoDto {
+  isOnline: boolean;
+  currentPage: PageViewDto | null;
+  entryPage: { url: string; title: string | null } | null;
   id: string;
   name: string | null;
   email: string | null;

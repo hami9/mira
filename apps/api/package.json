@@ -1,6 +1,6 @@
 {
   "name": "@mira/api",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "repository": {
@@ -44,6 +44,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sanitize-html": "^2.13.1",
+    "sharp": "^0.35.5",
     "socket.io": "^4.8.0",
     "typeorm": "^0.3.20",
     "ua-parser-js": "^1.0.39"

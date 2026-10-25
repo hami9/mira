@@ -12,9 +12,13 @@ export interface VisitorListItemDto {
   // آخرین صفحه‌ای که بازدیدکننده روی سایت دیده — برای فهمیدن «الان کجاست»
   currentPageUrl: string | null;
   currentPageTitle: string | null;
+  currentPageVisitedAt: string | null;
+  latestConversationId: string | null;
+  entryPage: { url: string; title: string | null } | null;
 }
 
 export interface VisitorConversationSummaryDto {
+  entryPage: { url: string; title: string | null } | null;
   id: string;
   status: string;
   department: string | null;

@@ -26,6 +26,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PublicApiModule } from './modules/public-api/public-api.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SystemModule } from './modules/system/system.module';
+import { AvatarsModule } from './modules/avatars/avatars.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SystemModule } from './modules/system/system.module';
     PublicApiModule,
     BillingModule,
     SystemModule,
+    AvatarsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

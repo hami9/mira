@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { In, Repository } from 'typeorm';
-import { ConversationStatus } from '@mira/shared-types';
+import { ConversationStatus, type ConversationUnreadDto } from '@mira/shared-types';
 import {
   ConversationEntity,
   ConversationReadEntity,
@@ -55,30 +55,103 @@ export class ConversationsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async createConversation(siteId: string, visitorId: string): Promise<ConversationEntity> {
-    const conversation = this.conversationsRepository.create({
+  async createConversation(
+    siteId: string,
+    visitorId: string,
+    entryPage?: { url: string; title: string | null },
+  ): Promise<ConversationEntity> {
+    return this.conversationsRepository.manager.transaction(async (manager) => {
+      const visitors = await manager.query(
+        `SELECT id FROM visitors WHERE id=$1 AND "siteId"=$2 FOR UPDATE`,
+        [visitorId, siteId],
+      );
+      if (!visitors.length) throw new NotFoundException('بازدیدکننده پیدا نشد');
+      const repository = manager.getRepository(ConversationEntity);
+      const existing = await repository.findOne({
+        where: {
+          siteId,
+          visitorId,
+          status: In([ConversationStatus.OPEN, ConversationStatus.PENDING]),
+        },
+        order: { createdAt: 'DESC' },
+      });
+      if (existing) return existing;
+      return repository.save(
+        repository.create({
+          siteId,
+          visitorId,
+          status: ConversationStatus.OPEN,
+          entryPage: entryPage ?? null,
+        }),
+      );
+    });
+  }
+
+  async openForVisitor(
+    siteId: string,
+    visitorId: string,
+    agentId: string,
+  ): Promise<ConversationEntity> {
+    const id = await this.conversationsRepository.manager.transaction(async (manager) => {
+      const visitors = await manager.query(
+        `SELECT id FROM visitors WHERE id=$1 AND "siteId"=$2 FOR UPDATE`,
+        [visitorId, siteId],
+      );
+      if (!visitors.length) throw new NotFoundException('بازدیدکننده پیدا نشد');
+      const agents = await manager.query(`SELECT id FROM agents WHERE id=$1 AND "siteId"=$2`, [
+        agentId,
+        siteId,
+      ]);
+      if (!agents.length) throw new ForbiddenException('دسترسی به این فروشگاه مجاز نیست');
+      const active = await manager.query(
+        `SELECT id FROM conversations WHERE "visitorId"=$1 AND "siteId"=$2 AND status IN ('open','pending') ORDER BY "createdAt" DESC LIMIT 1`,
+        [visitorId, siteId],
+      );
+      if (active.length) return active[0].id as string;
+      const pages = await manager.query(
+        `SELECT url,title FROM visitor_page_views WHERE "visitorId"=$1 AND "siteId"=$2 ORDER BY "visitedAt" DESC LIMIT 1`,
+        [visitorId, siteId],
+      );
+      const rows = await manager.query(
+        `INSERT INTO conversations ("siteId","visitorId","assignedAgentId","aiPaused","entryPage") VALUES ($1,$2,$3,true,$4) RETURNING id`,
+        [siteId, visitorId, agentId, pages[0] ? JSON.stringify(pages[0]) : null],
+      );
+      return rows[0].id as string;
+    });
+    await this.eventEmitter.emitAsync('conversation.operator-started', {
       siteId,
       visitorId,
-      status: ConversationStatus.OPEN,
+      conversationId: id,
     });
-    return this.conversationsRepository.save(conversation);
+    return this.findByIdForSite(id, siteId);
   }
 
   // برای وقتی ویجت دوباره باز می‌شه: اگه مکالمه باز/در انتظار داره همون رو برگردون، تا تاریخچه گم نشه
-  async findActiveForVisitor(visitorId: string): Promise<ConversationEntity | null> {
+  async findActiveForVisitor(
+    visitorId: string,
+    siteId: string,
+  ): Promise<ConversationEntity | null> {
     return this.conversationsRepository.findOne({
-      where: { visitorId, status: In([ConversationStatus.OPEN, ConversationStatus.PENDING]) },
+      where: {
+        visitorId,
+        siteId,
+        status: In([ConversationStatus.OPEN, ConversationStatus.PENDING]),
+      },
       order: { createdAt: 'DESC' },
     });
   }
 
   // مکالمه‌ی به‌تازگی حل‌شده‌ای که هنوز CSAT نگرفته — برای نشون دادن دوباره‌ی پرامپت امتیازدهی بعد از رفرش
-  async findPendingRatingForVisitor(visitorId: string): Promise<ConversationEntity | null> {
+  async findPendingRatingForVisitor(
+    visitorId: string,
+    siteId: string,
+  ): Promise<ConversationEntity | null> {
     const windowStart = new Date(Date.now() - PENDING_RATING_WINDOW_HOURS * 60 * 60 * 1000);
     return this.conversationsRepository
       .createQueryBuilder('conversation')
       .leftJoin('csat_ratings', 'csat', 'csat."conversationId" = conversation.id')
       .where('conversation.visitorId = :visitorId', { visitorId })
+      .andWhere('conversation.siteId = :siteId', { siteId })
       .andWhere('conversation.status = :status', { status: ConversationStatus.RESOLVED })
       .andWhere('conversation.resolvedAt > :windowStart', { windowStart })
       .andWhere('csat.id IS NULL')
@@ -156,6 +229,24 @@ export class ConversationsService {
       ...entity,
       unreadCount: parseInt(raw[index]?.unreadCount ?? '0', 10),
     }));
+  }
+
+  async unreadForSite(siteId: string, agentId: string): Promise<ConversationUnreadDto> {
+    // شمارنده به صفحه‌بندی صندوق وابسته نیست و دسترسی همین حساب دوباره بررسی می‌شود.
+    const rows = await this.conversationsRepository.manager.query(
+      `SELECT COUNT(m.id)::int AS "unreadCount"
+       FROM agents a
+       LEFT JOIN conversations c ON c."siteId" = $1
+       LEFT JOIN conversation_reads r ON r."conversationId" = c.id AND r."agentId" = a.id
+       LEFT JOIN messages m ON m."conversationId" = c.id AND m."siteId" = $1
+         AND m."senderType" != 'agent'
+         AND m."createdAt" > COALESCE(r."lastReadAt", 'epoch')
+       WHERE a.id = $2 AND a."siteId" = $1
+       GROUP BY a.id`,
+      [siteId, agentId],
+    );
+    if (!rows.length) throw new ForbiddenException('دسترسی به این فروشگاه مجاز نیست');
+    return { unreadCount: Number(rows[0].unreadCount) };
   }
 
   async assignAgent(

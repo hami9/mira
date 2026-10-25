@@ -8,6 +8,7 @@ import {
 } from '@mira/shared-types';
 
 export interface WidgetSocketHandlers {
+  onConversationStarted: (conversationId: string) => void;
   onAiStatus: (payload: AiStatusPayload) => void;
   onMessage: (message: MessagePayload) => void;
   onTyping: (payload: TypingPayload) => void;
@@ -27,6 +28,9 @@ export function connectWidgetSocket(
   });
 
   socket.on(SocketEvent.MessageNew, handlers.onMessage);
+  socket.on(SocketEvent.ConversationStarted, (payload: { conversationId: string }) =>
+    handlers.onConversationStarted(payload.conversationId),
+  );
   socket.on(SocketEvent.Typing, handlers.onTyping);
   socket.on(SocketEvent.AiStatus, handlers.onAiStatus);
   socket.on(SocketEvent.ConversationUpdated, handlers.onConversationUpdated);

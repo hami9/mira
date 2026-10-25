@@ -11,6 +11,21 @@ import { KnowledgeDocumentStatus } from '@mira/shared-types';
 // یک سند پایگاه دانش (فعلاً فقط متن مستقیم — نه فایل/URL) که برای پاسخ ربات RAG استفاده می‌شه
 @Entity('knowledge_base_documents')
 export class KnowledgeBaseDocumentEntity {
+  @Column({ type: 'boolean', default: true })
+  enabled!: boolean;
+
+  @Column({ type: 'text', array: true, default: () => "'{}'" })
+  keywords!: string[];
+
+  @Column({ type: 'integer', default: 1 })
+  revision!: number;
+
+  @Column({ type: 'integer', default: 0 })
+  usageCount!: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastUsedAt!: Date | null;
+
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

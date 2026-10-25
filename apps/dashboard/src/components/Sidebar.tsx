@@ -144,6 +144,8 @@ function NavItem({ icon, label, active, badge, onClick }: NavItemProps) {
   return (
     <button
       onClick={onClick}
+      aria-label={label}
+      title={label}
       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
         active
           ? 'bg-primary-50 font-bold text-primary-700'
@@ -151,7 +153,7 @@ function NavItem({ icon, label, active, badge, onClick }: NavItemProps) {
       }`}
     >
       <span className={active ? 'text-primary-600' : 'text-gray-400'}>{icon}</span>
-      <span className="flex-1 text-right">{label}</span>
+      <span className="hidden flex-1 text-right md:block">{label}</span>
       {badge != null && badge > 0 && (
         <span className="rounded-full bg-accent-500 px-2 py-0.5 text-[10px] font-bold text-white">
           {Math.min(badge, 99).toLocaleString('fa-IR')}
@@ -175,11 +177,11 @@ export function Sidebar({
   onLogout,
 }: SidebarProps) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-l border-gray-200 bg-white">
+    <aside className="flex w-16 shrink-0 flex-col border-l border-gray-200 bg-white md:w-52">
       {/* لوگو و نام برند */}
-      <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4">
+      <div className="flex items-center gap-3 border-b border-gray-100 px-3 py-4 md:px-4">
         <MiraLogo size={36} animated />
-        <div className="leading-tight">
+        <div className="hidden leading-tight md:block">
           <div className="text-base font-extrabold text-primary-800">میرا</div>
           <div className="text-[11px] text-gray-400">داشبورد اپراتور</div>
         </div>
@@ -239,7 +241,7 @@ export function Sidebar({
       {/* بلوک پروفایل اپراتور */}
       <div className="border-t border-gray-100 p-3">
         <div
-          className={`flex items-center gap-2 rounded-lg p-2 transition-colors ${
+          className={`flex flex-col items-center gap-2 rounded-lg p-0 transition-colors md:flex-row md:p-2 ${
             activeItem === 'profile' ? 'bg-primary-50' : 'hover:bg-gray-50'
           }`}
         >
@@ -254,7 +256,7 @@ export function Sidebar({
                 {profileName ? profileName.charAt(0) : '؟'}
               </span>
             )}
-            <span className="min-w-0">
+            <span className="hidden min-w-0 md:block">
               <span className="block truncate text-sm font-medium text-gray-800">
                 {profileName || '—'}
               </span>
@@ -265,7 +267,7 @@ export function Sidebar({
           </button>
           <button
             onClick={onLogout}
-            title="خروج از حساب"
+            title="خروج از این فروشگاه"
             className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <IconLogout />

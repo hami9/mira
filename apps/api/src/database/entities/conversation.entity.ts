@@ -10,6 +10,9 @@ import { ConversationStatus } from '@mira/shared-types';
 
 @Entity('conversations')
 export class ConversationEntity {
+  @Column({ type: 'jsonb', nullable: true })
+  entryPage!: { url: string; title: string | null } | null;
+
   @Column({ type: 'boolean', default: false })
   aiPaused!: boolean;
 

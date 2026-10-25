@@ -81,6 +81,12 @@ export class AvatarsController {
     try {
       let data: Buffer;
       try {
+        const bytes = file.buffer;
+        const supported =
+          bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ||
+          bytes.subarray(0, 3).equals(Buffer.from([255, 216, 255])) ||
+          (bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP');
+        if (!supported) throw new Error('format');
         const image = sharp(file.buffer, { limitInputPixels: 16_777_216, animated: false });
         const metadata = await image.metadata();
         if (!['png', 'jpeg', 'webp'].includes(metadata.format || '') || (metadata.pages || 1) > 1) {

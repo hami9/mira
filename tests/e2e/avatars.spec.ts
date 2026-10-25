@@ -31,7 +31,11 @@ test('crops and persists a circular avatar with bounded uploads and tenant owner
     await page.goto(process.env.E2E_DASHBOARD_URL || 'http://localhost:5173');
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill(password);
+    const authentication = page.waitForResponse(
+      (r) => r.url().endsWith('/v1/auth/login') && r.request().method() === 'POST',
+    );
     await page.getByRole('button', { name: 'ورود به داشبورد', exact: true }).click();
+    const { accessToken } = await (await authentication).json();
     await page.getByRole('button', { name: 'تنظیمات', exact: true }).click();
     const ai = page.getByRole('region', { name: 'مرکز هوش مصنوعی', exact: true });
     const picker = ai.getByLabel('تصویر دستیار', { exact: true });
@@ -86,8 +90,7 @@ test('crops and persists a circular avatar with bounded uploads and tenant owner
         })
       ).status(),
     ).toBe(401);
-    const login = await request.post(`${api}/v1/auth/login`, { data: { email, password } });
-    const headers = { Authorization: `Bearer ${(await login.json()).accessToken}` };
+    const headers = { Authorization: `Bearer ${accessToken}` };
     expect(
       (
         await request.post(`${api}/v1/avatars/assistant`, {

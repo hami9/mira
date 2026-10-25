@@ -11,13 +11,18 @@ const password = 'Store-fixture-only-123!';
 async function login(page: Page, email: string, secret?: string) {
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith('/v1/auth/login') && r.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'ورود به داشبورد', exact: true }).click();
+  const auth = await (await response).json();
   if (secret) {
     await expect(page.getByRole('heading', { name: 'تأیید دومرحله‌ای' })).toBeVisible();
     await page.locator('input[inputmode="numeric"]').fill(authenticator.generate(secret));
     await page.getByRole('button', { name: 'تأیید و ورود', exact: true }).click();
   }
   await expect(page.locator('#store-switch')).toBeVisible();
+  return auth.accessToken as string;
 }
 
 test('switches isolated stores and labels background messages without losing the other login', async ({
@@ -56,7 +61,7 @@ test('switches isolated stores and labels background messages without losing the
       );
     }
     await page.goto(dashboardUrl);
-    await login(page, emails[0]);
+    const accessToken = await login(page, emails[0]);
     await expect(page.locator('#store-switch')).toHaveValue(siteIds[0]);
     await page.getByRole('button', { name: 'افزودن فروشگاه', exact: true }).click();
     await page.locator('input[type="email"]').fill(emails[1]);
@@ -69,7 +74,7 @@ test('switches isolated stores and labels background messages without losing the
     await login(page, emails[1], secret);
     await expect(page.locator('#store-switch option')).toHaveCount(2);
     await page.locator('#store-switch').selectOption(siteIds[0]);
-    await expect(page.getByText(names[0], { exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByText(names[0], { exact: true })).toBeVisible();
 
     const visitor = await browser.newPage();
     visitors.push(visitor);
@@ -134,9 +139,6 @@ test('switches isolated stores and labels background messages without losing the
     await page.unroute('**/v1/conversations?search=*');
 
     // مسیر HTTP هم توکن هر فروشگاه را مستقل اعتبارسنجی می‌کند.
-    const access = await request.post('/v1/auth/login', { data: { email: emails[0], password } });
-    expect(access.ok()).toBe(true);
-    const { accessToken } = await access.json();
     const denied = await request.get(`/v1/conversations/${conversationId}/messages`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });

@@ -21,13 +21,13 @@
     "dotenv": "^16.4.5",
     "ioredis": "^5.4.1",
     "openai": "^4.73.1",
-    "pg": "^8.13.0",
-    "sanitize-html": "^2.13.1"
+    "pg": "^8.23.1",
+    "sanitize-html": "^2.18.1"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
-    "@types/pg": "^8.11.10",
-    "@types/sanitize-html": "^2.13.0",
+    "@types/pg": "^8.23.1",
+    "@types/sanitize-html": "^2.16.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0"
   }

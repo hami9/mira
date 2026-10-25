@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { VisitorProfileDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
+import { PageLocation } from './PageLocation';
 
 interface VisitorProfilePageProps {
   visitorId: string;
   onClose: () => void;
+  onChat: () => Promise<void>;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -13,9 +15,21 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'حل‌شده',
 };
 
-export function VisitorProfilePage({ visitorId, onClose }: VisitorProfilePageProps) {
+export function VisitorProfilePage({ visitorId, onClose, onChat }: VisitorProfilePageProps) {
+  const apiClient = useApiClient();
   const [profile, setProfile] = useState<VisitorProfileDto | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  async function openChat() {
+    setOpening(true);
+    try {
+      await onChat();
+    } catch {
+      setError('بازکردن گفتگو ناموفق بود');
+    } finally {
+      setOpening(false);
+    }
+  }
 
   useEffect(() => {
     setProfile(null);
@@ -47,7 +61,24 @@ export function VisitorProfilePage({ visitorId, onClose }: VisitorProfilePagePro
         </button>
       </div>
 
-      <section className="mb-4 rounded border border-gray-200 bg-white p-4">
+      <div className="mb-4 flex justify-end">
+        <button onClick={openChat} disabled={opening} className="btn-primary px-4 py-2 text-xs">
+          {opening ? 'در حال بازکردن…' : 'بازکردن گفتگو'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="mb-3 text-xs text-red-600">
+          {error}
+        </p>
+      )}
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <PageLocation
+          label={profile.isOnline ? 'صفحهٔ فعلی' : 'آخرین صفحهٔ ثبت‌شده'}
+          page={profile.pageViews[0] ?? null}
+        />
+        <PageLocation label="آغاز آخرین گفتگو" page={profile.conversations[0]?.entryPage ?? null} />
+      </div>
+      <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-xl font-bold text-gray-600">
             {displayName.charAt(0)}

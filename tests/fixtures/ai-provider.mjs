@@ -17,7 +17,15 @@ const server = createServer(async (req, res) => {
     res.end(
       JSON.stringify({
         usage: { prompt_tokens: 20, total_tokens: 20 },
-        data: input.map((_, index) => ({ index, embedding: [1, ...Array(767).fill(0)] })),
+        data: input.map((_, index) => {
+          const vector = [1, ...Array(767).fill(0)];
+          const encoded = Buffer.alloc(768 * 4);
+          vector.forEach((value, offset) => encoded.writeFloatLE(value, offset * 4));
+          return {
+            index,
+            embedding: body.encoding_format === 'base64' ? encoded.toString('base64') : vector,
+          };
+        }),
       }),
     );
     return;

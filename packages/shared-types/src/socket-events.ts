@@ -12,6 +12,7 @@ export enum SocketEvent {
   MessageNew = 'message:new',
   Typing = 'typing',
   ConversationCreated = 'conversation:created',
+  ConversationStarted = 'conversation:started',
   ConversationUpdated = 'conversation:updated',
   ConnectionError = 'connection:error',
   // server -> client: پاسخ پیشنهادی Copilot برای اپراتور (نتیجه‌ی صف ai-suggest-reply) آماده شد

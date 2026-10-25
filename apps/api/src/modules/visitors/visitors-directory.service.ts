@@ -54,14 +54,19 @@ export class VisitorsDirectoryService {
       `SELECT
          v.id, v."visitorRef", v.name, v.email, v."firstSeenAt", v."lastSeenAt",
          (v."lastSeenAt" > now() - ($2 || ' minutes')::interval) AS "isOnline",
-         (SELECT COUNT(*) FROM conversations c WHERE c."visitorId" = v.id)::int AS "conversationCount",
+         (SELECT COUNT(*) FROM conversations c WHERE c."visitorId" = v.id AND c."siteId"=$1)::int AS "conversationCount",
+         lastc.id AS "latestConversationId", lastc."entryPage",
+         lastpv."visitedAt" AS "currentPageVisitedAt",
          lastpv.url AS "currentPageUrl",
          lastpv.title AS "currentPageTitle"
        FROM visitors v
        LEFT JOIN LATERAL (
-         SELECT pv.url, pv.title FROM visitor_page_views pv
-         WHERE pv."visitorId" = v.id ORDER BY pv."visitedAt" DESC LIMIT 1
+         SELECT pv.url, pv.title, pv."visitedAt" FROM visitor_page_views pv
+         WHERE pv."visitorId" = v.id AND pv."siteId"=$1 ORDER BY pv."visitedAt" DESC LIMIT 1
        ) lastpv ON true
+       LEFT JOIN LATERAL (
+         SELECT c.id,c."entryPage" FROM conversations c WHERE c."visitorId"=v.id AND c."siteId"=$1 ORDER BY c."createdAt" DESC LIMIT 1
+       ) lastc ON true
        WHERE v."siteId" = $1 ${filters.length ? 'AND ' + filters.join(' AND ') : ''}
        ORDER BY v."lastSeenAt" DESC
        LIMIT $${params.length}`,
@@ -79,6 +84,11 @@ export class VisitorsDirectoryService {
       conversationCount: row.conversationCount as number,
       currentPageUrl: (row.currentPageUrl as string | null) ?? null,
       currentPageTitle: (row.currentPageTitle as string | null) ?? null,
+      currentPageVisitedAt: row.currentPageVisitedAt
+        ? (row.currentPageVisitedAt as Date).toISOString()
+        : null,
+      latestConversationId: (row.latestConversationId as string | null) ?? null,
+      entryPage: (row.entryPage as VisitorListItemDto['entryPage']) ?? null,
     }));
   }
 
@@ -107,20 +117,20 @@ export class VisitorsDirectoryService {
     }
 
     const conversations = await this.dataSource.query(
-      `SELECT c.id, c.status, c.department, c.priority, c."createdAt", c."resolvedAt",
-              (SELECT COUNT(*) FROM messages m WHERE m."conversationId" = c.id)::int AS "messageCount",
+      `SELECT c.id, c.status, c.department, c.priority, c."createdAt", c."resolvedAt", c."entryPage",
+              (SELECT COUNT(*) FROM messages m WHERE m."conversationId" = c.id AND m."siteId"=$2)::int AS "messageCount",
               cs.score AS "csatScore"
        FROM conversations c
-       LEFT JOIN csat_ratings cs ON cs."conversationId" = c.id
-       WHERE c."visitorId" = $1
+       LEFT JOIN csat_ratings cs ON cs."conversationId" = c.id AND cs."siteId"=$2
+       WHERE c."visitorId" = $1 AND c."siteId"=$2
        ORDER BY c."createdAt" DESC`,
-      [visitorId],
+      [visitorId, siteId],
     );
 
     const pageViews = await this.dataSource.query(
       `SELECT url, title, "visitedAt" FROM visitor_page_views
-       WHERE "visitorId" = $1 ORDER BY "visitedAt" DESC LIMIT 50`,
-      [visitorId],
+       WHERE "visitorId" = $1 AND "siteId"=$2 ORDER BY "visitedAt" DESC LIMIT 50`,
+      [visitorId, siteId],
     );
 
     const { browser, os, deviceType } = parseUserAgent(visitor.userAgent);
@@ -138,6 +148,7 @@ export class VisitorsDirectoryService {
       lastSeenAt: visitor.lastSeenAt.toISOString(),
       isOnline: visitor.isOnline,
       conversations: conversations.map((row: Record<string, unknown>) => ({
+        entryPage: (row.entryPage as VisitorListItemDto['entryPage']) ?? null,
         id: row.id as string,
         status: row.status as string,
         department: row.department as string | null,

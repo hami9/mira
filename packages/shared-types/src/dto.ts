@@ -47,6 +47,10 @@ export interface StartConversationResponseDto {
   status: string;
 }
 
+export interface ConversationUnreadDto {
+  unreadCount: number;
+}
+
 export interface SubmitCsatDto {
   score: number; // ۱ تا ۵
   comment?: string;

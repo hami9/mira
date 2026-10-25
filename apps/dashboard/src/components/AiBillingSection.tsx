@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { estimateAiCost, type AiBillingDto, type AiUsageReport } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 const number = (value: number | null | undefined, digits = 0) =>
   value == null ? '—' : value.toLocaleString('fa-IR', { maximumFractionDigits: digits });
 
 export function AiBillingSection() {
+  const apiClient = useApiClient();
   const [data, setData] = useState<AiBillingDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

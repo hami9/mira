@@ -111,6 +111,10 @@ test.describe('hosting installation', () => {
       await page.locator('button[type="submit"]').click();
       await expect(page.locator('aside')).toBeVisible();
       await page.getByRole('button', { name: 'تنظیمات', exact: true }).click();
+      await page
+        .getByRole('navigation', { name: 'بخش‌های تنظیمات', exact: true })
+        .getByRole('button', { name: 'نصب و اتصال', exact: true })
+        .click();
       await expect(
         page.getByRole('heading', { name: 'نصب و شخصی‌سازی', exact: true }),
       ).toBeVisible();
@@ -131,11 +135,15 @@ test.describe('hosting installation', () => {
         new URL(process.env.E2E_API_URL || 'http://localhost:4300').origin,
       );
       expect(customized.appearance.color).toBe('#17b8a6');
-      await page.getByRole('button', { name: 'بررسی منابع', exact: true }).click();
-      await expect(page.getByText('حافظه API', { exact: true })).toBeVisible();
       await page
         .getByRole('region', { name: 'نصب و شخصی‌سازی' })
         .screenshot({ path: 'test-results/hosting-install.png' });
+      await page
+        .getByRole('navigation', { name: 'بخش‌های تنظیمات', exact: true })
+        .getByRole('button', { name: 'سیستم', exact: true })
+        .click();
+      await page.getByRole('button', { name: 'بررسی منابع', exact: true }).click();
+      await expect(page.getByText('حافظه API', { exact: true })).toBeVisible();
       await page
         .getByRole('region', { name: 'منابع سیستم' })
         .screenshot({ path: 'test-results/hosting-resources.png' });

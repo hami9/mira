@@ -1,12 +1,14 @@
 import { FormEvent, useState, type ReactNode } from 'react';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 import { MiraLogo } from './MiraLogo';
 
 interface LoginPageProps {
-  onLoggedIn: () => void;
+  onLoggedIn: () => void | Promise<void>;
+  onCancel?: () => void;
 }
 
-export function LoginPage({ onLoggedIn }: LoginPageProps) {
+export function LoginPage({ onLoggedIn, onCancel }: LoginPageProps) {
+  const apiClient = useApiClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
       }
       if (result.accessToken && result.refreshToken) {
         apiClient.setTokens(result.accessToken, result.refreshToken);
-        onLoggedIn();
+        await onLoggedIn();
       }
     } catch {
       setError('ورود ناموفق بود — ایمیل یا رمز عبور را بررسی کنید');
@@ -45,7 +47,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
       const result = await apiClient.verifyTwoFactorLogin(twoFactorToken, code.trim());
       if (result.accessToken && result.refreshToken) {
         apiClient.setTokens(result.accessToken, result.refreshToken);
-        onLoggedIn();
+        await onLoggedIn();
       }
     } catch {
       setError('کد تأیید نادرست است یا مهلت آن تمام شده');
@@ -69,6 +71,15 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
               <p className="mt-1 text-xs text-gray-400">پلتفرم چت پشتیبانی هوشمند</p>
             </div>
             {content}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="mt-4 w-full text-sm text-gray-600"
+              >
+                بازگشت به فروشگاه‌ها
+              </button>
+            )}
           </div>
           <p className="mt-4 text-center text-[11px] text-white/70">گفت‌وگویی که به قلب می‌رسد ♥</p>
         </div>
@@ -118,9 +129,13 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
 
   return shell(
     <form onSubmit={handleSubmit}>
-      <label className="mb-1 block text-sm text-gray-600">ایمیل</label>
+      <label htmlFor="login-email" className="mb-1 block text-sm text-gray-600">
+        ایمیل
+      </label>
       <input
         type="email"
+        id="login-email"
+        autoComplete="username"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
@@ -129,9 +144,13 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
         autoFocus
         required
       />
-      <label className="mb-1 block text-sm text-gray-600">رمز عبور</label>
+      <label htmlFor="login-password" className="mb-1 block text-sm text-gray-600">
+        رمز عبور
+      </label>
       <input
         type="password"
+        id="login-password"
+        autoComplete="current-password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         dir="ltr"

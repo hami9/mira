@@ -10,7 +10,8 @@ import {
   safeHttpUrl,
   formatProductPrice,
 } from '@mira/shared-types';
-import { apiClient, ConversationDto } from '../api';
+import { ConversationDto } from '../api';
+import { useApiClient } from '../api-context';
 import { ConversationMeta } from './ConversationMeta';
 import { CannedResponsesPicker } from './CannedResponsesPicker';
 import { InternalNotesPanel } from './InternalNotesPanel';
@@ -18,6 +19,10 @@ import { InternalNotesPanel } from './InternalNotesPanel';
 const SUGGESTION_TIMEOUT_MS = 20_000;
 
 interface ChatWindowProps {
+  siteName: string;
+  onBack: () => void;
+  showDetails: boolean;
+  onToggleDetails: () => void;
   conversation: ConversationDto;
   socket: Socket | null;
   onConversationUpdated: (conversation: ConversationDto) => void;
@@ -31,13 +36,23 @@ const SENDER_LABELS: Record<string, string> = {
 };
 
 export function ChatWindow({
+  siteName,
+  onBack,
+  showDetails,
+  onToggleDetails,
   conversation,
   socket,
   onConversationUpdated,
   onMessageSeen,
 }: ChatWindowProps) {
+  const apiClient = useApiClient();
   const [messages, setMessages] = useState<MessagePayload[]>([]);
   const [draft, setDraft] = useState('');
+  const [connected, setConnected] = useState(socket?.connected ?? false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
+  const [historyError, setHistoryError] = useState(false);
+  const pendingSend = useRef<{ content: string; id: string } | null>(null);
   const [isVisitorTyping, setIsVisitorTyping] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
   const [aiStage, setAiStage] = useState<AiStatusPayload['stage']>('idle');
@@ -48,9 +63,21 @@ export function ChatWindow({
   useEffect(() => {
     let cancelled = false;
     setMessages([]);
-    apiClient.getMessages(conversation.id).then((history) => {
-      if (!cancelled) setMessages(history);
-    });
+    setHistoryError(false);
+    apiClient
+      .getMessages(conversation.id)
+      .then((history) => {
+        if (!cancelled) {
+          const ids = new Set(history.map((message) => message.id));
+          setMessages((current) => [
+            ...history,
+            ...current.filter((message) => !ids.has(message.id)),
+          ]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryError(true);
+      });
     socket?.emit(SocketEvent.ConversationJoin, { conversationId: conversation.id });
     return () => {
       cancelled = true;
@@ -73,7 +100,10 @@ export function ChatWindow({
     }
     function onDisconnect(): void {
       setAiStage('idle');
+      setConnected(false);
     }
+    const onConnect = () => setConnected(true);
+    setConnected(socket.connected);
 
     function onMessage(message: MessagePayload): void {
       if (message.conversationId !== conversation.id) return;
@@ -83,8 +113,10 @@ export function ChatWindow({
       if (message.senderType !== MessageSenderType.VISITOR) setAiStage('idle');
       // این پنجره همین الان بازه؛ اگه پیام از طرف بازدیدکننده/ربات باشه بلافاصله به‌عنوان خوانده‌شده علامت بزن
       if (message.senderType !== MessageSenderType.AGENT) {
-        apiClient.markConversationRead(conversation.id).catch(() => {});
-        onMessageSeen(conversation.id);
+        apiClient
+          .markConversationRead(conversation.id)
+          .then(() => onMessageSeen(conversation.id))
+          .catch(() => {});
       }
     }
 
@@ -103,12 +135,14 @@ export function ChatWindow({
     socket.on(SocketEvent.MessageNew, onMessage);
     socket.on(SocketEvent.AiStatus, onAiStatus);
     socket.on('disconnect', onDisconnect);
+    socket.on('connect', onConnect);
     socket.on(SocketEvent.Typing, onTyping);
     socket.on(SocketEvent.AiReplySuggested, onAiSuggestion);
     return () => {
       clearTimeout(aiTimeout);
       socket.off(SocketEvent.AiStatus, onAiStatus);
       socket.off('disconnect', onDisconnect);
+      socket.off('connect', onConnect);
       socket.off(SocketEvent.MessageNew, onMessage);
       socket.off(SocketEvent.Typing, onTyping);
       socket.off(SocketEvent.AiReplySuggested, onAiSuggestion);
@@ -119,13 +153,29 @@ export function ChatWindow({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function handleSend(): void {
+  async function handleSend(): Promise<void> {
     const content = draft.trim();
-    if (!content || !socket) return;
+    if (!content || !socket?.connected || sending) return;
     // پیام خودمون رو اینجا رندر نمی‌کنیم؛ سرور همون پیام رو به اتاق مکالمه پخش می‌کنه
-    socket.emit(SocketEvent.MessageSend, { conversationId: conversation.id, content });
-    setDraft('');
-    socket.emit(SocketEvent.TypingStop, { conversationId: conversation.id });
+    if (pendingSend.current?.content !== content)
+      pendingSend.current = { content, id: crypto.randomUUID() };
+    setSending(true);
+    setSendError(false);
+    try {
+      const ack = await socket.timeout(12_000).emitWithAck(SocketEvent.MessageSend, {
+        conversationId: conversation.id,
+        content,
+        clientMessageId: pendingSend.current.id,
+      });
+      if (!ack?.id) throw new Error('ارسال ناموفق بود');
+      setDraft((current) => (current.trim() === content ? '' : current));
+      pendingSend.current = null;
+      socket.emit(SocketEvent.TypingStop, { conversationId: conversation.id });
+    } catch {
+      setSendError(true);
+    } finally {
+      setSending(false);
+    }
   }
 
   async function handleSuggestReply(): Promise<void> {
@@ -154,18 +204,60 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <section aria-label="پنجرهٔ گفتگو" className="flex min-w-0 flex-1 flex-col bg-white">
+      <header className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            onClick={onBack}
+            className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-500 lg:hidden"
+            aria-label="بازگشت به فهرست گفتگوها"
+          >
+            →
+          </button>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-xs font-bold text-primary-600">
+            {conversation.visitorId.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-bold text-gray-800">
+              بازدیدکننده #{conversation.visitorId.slice(0, 8)}
+            </h2>
+            <p className="mt-0.5 truncate text-[10px] text-gray-400">{siteName}</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            title={connected ? 'متصل' : 'در حال اتصال'}
+            className={`h-2 w-2 rounded-full ${connected ? 'bg-teal-500' : 'animate-pulse bg-amber-400'}`}
+          />
+          <button
+            onClick={onToggleDetails}
+            aria-expanded={showDetails}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+          >
+            اطلاعات و مسیر بازدید
+          </button>
+        </div>
+      </header>
       <ConversationMeta conversation={conversation} onUpdated={onConversationUpdated} />
-      <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <div
+        role="log"
+        aria-label="پیام‌های گفتگو"
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/70 p-4 md:p-6"
+      >
+        {historyError && (
+          <p role="alert" className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+            دریافت تاریخچه ناموفق بود؛ گفتگو را دوباره باز کنید.
+          </p>
+        )}
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`mb-2 max-w-[70%] animate-slide-up rounded-xl px-3 py-2 text-sm ${
+            className={`w-fit max-w-[90%] animate-slide-up rounded-2xl px-4 py-3 text-sm leading-7 sm:max-w-[80%] ${
               message.senderType === MessageSenderType.AGENT
                 ? 'mr-auto rounded-br-md bg-primary-600 text-white shadow-sm'
                 : message.senderType === MessageSenderType.BOT
                   ? 'ml-auto rounded-bl-md border border-teal-200 bg-teal-50 text-teal-900'
-                  : 'ml-auto rounded-bl-md bg-gray-200 text-gray-800'
+                  : 'ml-auto rounded-bl-md border border-gray-200/70 bg-white text-gray-800 shadow-sm'
             }`}
           >
             <div className="mb-1 text-[10px] opacity-70">
@@ -173,6 +265,15 @@ export function ChatWindow({
               {SENDER_LABELS[message.senderType]}
             </div>
             <div className="whitespace-pre-wrap break-words">{message.content}</div>
+            <time
+              dateTime={message.createdAt}
+              className="mt-1 block text-left text-[10px] leading-4 opacity-50"
+            >
+              {new Date(message.createdAt).toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </time>
             {message.senderType === MessageSenderType.BOT && message.aiMetadata && (
               <>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -251,30 +352,50 @@ export function ChatWindow({
         )}
       </div>
       <InternalNotesPanel conversationId={conversation.id} />
-      <div className="flex items-stretch border-t border-gray-200">
-        <CannedResponsesPicker onPick={(content) => setDraft(content)} />
-        <button
-          onClick={handleSuggestReply}
-          disabled={suggestingReply}
-          title="پیشنهاد پاسخ با هوش مصنوعی"
-          className="px-3 text-xs text-teal-600 hover:bg-teal-50 disabled:opacity-60"
-        >
-          {suggestingReply ? '...' : '✨ پیشنهاد پاسخ'}
-        </button>
-        <input
-          value={draft}
-          onChange={(e) => handleDraftChange(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="پاسخ خود را بنویسید..."
-          className="flex-1 bg-white p-3 text-sm outline-none"
-        />
-        <button
-          onClick={handleSend}
-          className="bg-primary-600 px-5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-        >
-          ارسال
-        </button>
+      <div className="border-t border-gray-100 bg-white p-3">
+        <div className="mb-2 flex items-center gap-2">
+          <CannedResponsesPicker onPick={(content) => setDraft(content)} />
+          <button
+            onClick={handleSuggestReply}
+            disabled={suggestingReply}
+            title="پیشنهاد پاسخ با هوش مصنوعی"
+            className="rounded-lg px-3 py-2 text-xs text-teal-600 hover:bg-teal-50 disabled:opacity-60"
+          >
+            {suggestingReply ? '...' : '✨ پیشنهاد پاسخ'}
+          </button>
+        </div>
+        <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2 focus-within:border-primary-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-50">
+          <textarea
+            value={draft}
+            onChange={(e) => handleDraftChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="پاسخ خود را بنویسید..."
+            aria-label="پاسخ به بازدیدکننده"
+            rows={2}
+            className="min-w-0 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm leading-6 outline-none"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!draft.trim() || !connected || sending}
+            className="btn-primary rounded-lg px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {sending ? 'در حال ارسال…' : 'ارسال'}
+          </button>
+        </div>
+        <div className="mt-2 text-[10px] text-gray-400">
+          Enter برای ارسال · Shift + Enter برای خط جدید
+        </div>
+        {sendError && (
+          <p role="alert" className="mt-2 text-xs text-red-600">
+            ارسال پیام ناموفق بود؛ متن حفظ شده است، دوباره ارسال کنید.
+          </p>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

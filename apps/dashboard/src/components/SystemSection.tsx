@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { SystemStatusDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 function memory(bytes: number | null | undefined): string {
   return bytes == null
@@ -9,6 +9,7 @@ function memory(bytes: number | null | undefined): string {
 }
 
 export function SystemSection() {
+  const apiClient = useApiClient();
   const [status, setStatus] = useState<SystemStatusDto | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,11 +26,14 @@ export function SystemSection() {
   }
   return (
     <section
-      className="mb-6 rounded-xl border border-gray-200 bg-white p-4"
+      className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 md:p-6"
       aria-label="منابع سیستم"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-gray-800">منابع و سلامت اجرا</h2>
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">منابع و سلامت اجرا</h2>
+          <p className="mt-1 text-xs text-gray-400">وضعیت سرویس‌های همین نصب، بدون پایش سنگین.</p>
+        </div>
         <button
           type="button"
           onClick={refresh}
@@ -43,6 +47,19 @@ export function SystemSection() {
         بررسی فقط با درخواست شما انجام می‌شود. مصرف CPU بر حسب یک هسته و از نمونه قبلی محاسبه
         می‌شود؛ مصرف سایر برنامه‌های سرور در این اعداد نیست.
       </p>
+      {status?.authorized && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="rounded-full bg-teal-50 px-3 py-1.5 text-teal-700">● API در دسترس</span>
+          <span
+            className={`rounded-full px-3 py-1.5 ${status.worker ? 'bg-teal-50 text-teal-700' : 'bg-amber-50 text-amber-700'}`}
+          >
+            {status.worker ? '● پردازشگر فعال' : 'گزارش پردازشگر در دسترس نیست'}
+          </span>
+          <span className="mr-auto text-gray-400">
+            آخرین بررسی: {new Date(status.checkedAt).toLocaleTimeString('fa-IR')}
+          </span>
+        </div>
+      )}
       {error && (
         <p role="alert" className="mt-2 text-xs text-red-600">
           {error}
@@ -50,8 +67,7 @@ export function SystemSection() {
       )}
       {status && !status.authorized && (
         <p className="mt-3 text-xs leading-6 text-gray-600">
-          نمایش منابع کل نصب فقط برای مدیر میزبان فعال می‌شود. شناسه این سایت را در تنظیم
-          SYSTEM_SITE_ID سرور قرار دهید و سرویس را راه‌اندازی مجدد کنید.
+          نمایش منابع کل نصب فقط برای مدیر میزبان فعال است.
         </p>
       )}
       {status?.authorized && (
@@ -77,7 +93,7 @@ export function SystemSection() {
                   : `${status.worker.cpuPercent.toLocaleString('fa-IR', { maximumFractionDigits: 1 })}٪`,
               ],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-gray-50 p-3">
+              <div key={label} className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
                 <dt className="text-xs text-gray-500">{label}</dt>
                 <dd className="mt-2 text-sm font-bold text-gray-800">{value}</dd>
               </div>

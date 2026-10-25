@@ -51,7 +51,7 @@ function injectStyles(): void {
     }
     .mira-panel {
       position: fixed; bottom: 92px; width: 390px; max-width: calc(100vw - 24px); height: 600px; max-height: calc(100dvh - 115px);
-      background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(15,40,90,.25);
+      background: #fff; border-radius: 26px; border: 1px solid rgba(255,255,255,.9); box-shadow: 0 22px 70px rgba(15,40,90,.18), 0 3px 12px rgba(15,40,90,.06);
       display: flex; flex-direction: column; overflow: hidden; z-index: 999999;
       font-family: Tahoma, Arial, sans-serif; direction: rtl;
       opacity: 0; visibility: hidden; transform: translateY(14px) scale(.98); pointer-events: none;
@@ -73,9 +73,9 @@ function injectStyles(): void {
       font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
       animation: mira-msg-in .25s ease-out both;
     }
-    .mira-msg-visitor { background: var(--mira-color, #2E6BE6); color: #fff; margin-inline-start: auto; border-bottom-left-radius: 4px; }
-    .mira-msg-agent { background: #e8ecf3; color: #111827; margin-inline-end: auto; border-bottom-right-radius: 4px; }
-    .mira-msg-bot { background: #EFFCF9; border: 1px solid #B2EAE0; color: #12504A; margin-inline-end: auto; border-bottom-right-radius: 4px; }
+    .mira-msg-visitor { background: var(--mira-color, #2E6BE6); color: #fff; margin-inline-start: auto; border-bottom-left-radius: 6px; box-shadow: 0 3px 8px rgba(46,107,230,.10); }
+    .mira-msg-agent { background: #fff; border: 1px solid #e5eaf1; color: #17243b; margin-inline-end: auto; border-bottom-right-radius: 6px; }
+    .mira-msg-bot { background: #f0fbf8; border: 1px solid #d5eee7; color: #164b45; margin-inline-end: auto; border-bottom-right-radius: 6px; animation: mira-answer-in .42s cubic-bezier(.2,.7,.2,1) both; }
     .mira-typing { font-size: 11px; color: #6b7280; padding: 0 12px 6px; min-height: 16px; display: flex; align-items: center; gap: 6px; }
     .mira-dots { display: inline-flex; gap: 3px; }
     .mira-dots i {
@@ -84,13 +84,14 @@ function injectStyles(): void {
     }
     .mira-dots i:nth-child(2) { animation-delay: .15s; }
     .mira-dots i:nth-child(3) { animation-delay: .3s; }
-    .mira-input-row { display: flex; border-top: 1px solid #e5e7eb; }
-    .mira-input { flex: 1; min-width: 0; resize: none; border: none; padding: 12px; font-size: 13px; outline: none; direction: rtl; font-family: inherit; color: #17243b; background: #fff; }
+    .mira-input-row { display: flex; align-items: flex-end; gap: 8px; margin: 0 12px; padding: 6px; border: 1px solid #e3e9f1; border-radius: 20px; background: #f8fafc; transition: border-color .2s, box-shadow .2s; }
+    .mira-input-row:focus-within { border-color: var(--mira-color, #2E6BE6); box-shadow: 0 0 0 3px rgba(46,107,230,.07); }
+    .mira-input { flex: 1; min-width: 0; resize: none; border: none; padding: 9px 7px; font-size: 13px; line-height: 1.8; outline: none; direction: rtl; font-family: inherit; color: #17243b; background: transparent; max-height: 100px; }
     .mira-send {
-      border: none; background: var(--mira-color, #2E6BE6); color: #fff; padding: 0 16px;
-      cursor: pointer; font-family: inherit; font-size: 13px; transition: filter .15s ease;
+      border: none; background: var(--mira-color, #2E6BE6); color: #fff; padding: 0; width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: 15px;
+      cursor: pointer; font-family: inherit; font-size: 13px; transition: filter .15s ease, transform .15s ease;
     }
-    .mira-send:hover { filter: brightness(1.1); }
+    .mira-send:hover { filter: brightness(1.1); transform: translateY(-1px); }
     .mira-error { color: #b91c1c; font-size: 11px; padding: 4px 12px; }
     .mira-csat { margin: 8px 0; padding: 12px; border-radius: 12px; background: #fff; border: 1px solid #e5e7eb; font-size: 12px; animation: mira-msg-in .25s ease-out both; }
     .mira-csat-stars { display: flex; gap: 6px; justify-content: center; margin: 8px 0; font-size: 24px; }
@@ -107,27 +108,37 @@ function injectStyles(): void {
     .mira-panel button { font-family: inherit; }
     .mira-panel button:focus-visible, .mira-panel a:focus-visible, .mira-input:focus-visible { outline: 2px solid #2e6be6; outline-offset: -2px; }
     .mira-panel button:disabled { opacity: .5; cursor: wait; }
-    .mira-header { padding: 20px 18px; }
+    .mira-header { padding: 22px 20px; min-height: 100px; }
+    .mira-header-logo { width: 44px; height: 44px; border-radius: 17px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+    .mira-header-logo img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
     .mira-header-title { font-size: 16px; }
     .mira-header-sub { display: inline-block; margin-top: 5px; }
-    .mira-header-close { margin-inline-start: auto; background: transparent; border: 0; color: white; cursor: pointer; font-size: 24px; }
-    .mira-messages { padding: 18px 14px; scroll-behavior: smooth; }
-    .mira-msg { max-width: 92%; padding: 12px; margin-bottom: 14px; }
+    .mira-header-close { margin-inline-start: auto; background: rgba(255,255,255,.12); border: 0; border-radius: 12px; width: 32px; height: 32px; color: white; cursor: pointer; font-size: 23px; line-height: 1; }
+    .mira-messages { padding: 22px 16px; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: #d7e0eb transparent; background: linear-gradient(180deg,#f8fafc,#f4f7fb); }
+    .mira-msg { width: fit-content; max-width: 88%; padding: 12px 14px; margin-bottom: 14px; border-radius: 20px; line-height: 1.9; }
+    .mira-msg-visitor { border-bottom-left-radius: 6px; }
+    .mira-msg-agent, .mira-msg-bot { border-bottom-right-radius: 6px; }
     .mira-msg-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; opacity: .75; margin-bottom: 5px; }
-    .mira-copy { background: none; color: inherit; border: none; cursor: pointer; font-size: 10px; }
+    .mira-copy { background: rgba(255,255,255,.65); color: inherit; border: none; border-radius: 7px; padding: 3px 6px; cursor: pointer; font-size: 10px; }
     .mira-welcome { text-align: center; padding: 26px 12px; color: #17243b; }
     .mira-welcome strong { display: block; font-size: 19px; margin-bottom: 12px; }
     .mira-welcome p { font-size: 13px; line-height: 1.9; color: #64748b; }
     .mira-quick { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 18px; }
     .mira-quick button { border: 1px solid #dbe4f0; border-radius: 16px; background: white; padding: 8px 11px; color: #2E6BE6; cursor: pointer; font-size: 11px; }
-    .mira-tools { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 10px; color: #64748b; background: #fff; }
-    .mira-human { border: 0; background: transparent; color: #2e6be6; cursor: pointer; font-size: 11px; }
-    .mira-ai-status { margin: 0 12px; border-radius: 10px; color: #126c62; background: #effcf9; font-size: 11px; line-height: 1.8; }
-    .mira-ai-status:not(:empty) { padding: 10px; margin-bottom: 8px; display: flex; gap: 10px; align-items: center; }
-    .mira-thinking { width: 18px; height: 18px; flex-shrink: 0; border: 2px solid #b2eae0; border-top-color: #17b8a6; border-radius: 50%; animation: mira-spin 1s linear infinite; }
+    .mira-tools { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px 12px; font-size: 10px; color: #94a3b8; background: #fff; }
+    .mira-human { border: 0; border-radius: 10px; padding: 5px 8px; background: #f1f5f9; color: #475569; cursor: pointer; font-size: 10px; }
+    .mira-ai-status { margin: 0 14px; border-radius: 16px; color: #126c62; background: #f0fbf8; font-size: 11px; line-height: 1.8; }
+    .mira-ai-status:not(:empty) { padding: 12px; margin-top: 10px; margin-bottom: 10px; display: flex; gap: 10px; align-items: center; animation: mira-msg-in .25s ease-out both; }
+    .mira-thinking { width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid #b2eae0; color: #149c8b; border-radius: 11px; font-size: 20px; animation: mira-spark 1.8s ease-in-out infinite; }
+    .mira-ai-status .mira-dots { margin-inline-start: auto; }
+    .mira-ai-status .mira-dots i { background: #4db8a7; }
+    @keyframes mira-spark { 0%,100% { transform: scale(.94) rotate(-8deg); opacity: .65; } 50% { transform: scale(1.05) rotate(8deg); opacity: 1; } }
+    @keyframes mira-answer-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
     @keyframes mira-spin { to { transform: rotate(360deg); } }
     .mira-products { display: grid; gap: 8px; margin-top: 12px; white-space: normal; }
-    .mira-product { display: grid; grid-template-columns: 52px 1fr; gap: 10px; background: white; border: 1px solid #dce7e8; padding: 10px; border-radius: 10px; color: #17243b; text-decoration: none; }
+    .mira-product { display: grid; grid-template-columns: 52px 1fr; gap: 10px; background: white; border: 1px solid #dce7e8; padding: 10px; border-radius: 16px; color: #17243b; text-decoration: none; animation: mira-msg-in .35s ease-out both; transition: border-color .2s, transform .2s; }
+    .mira-product:nth-child(2) { animation-delay: .06s; } .mira-product:nth-child(3) { animation-delay: .12s; }
+    .mira-product:hover { border-color: #8ad2c4; transform: translateY(-2px); }
     .mira-product img, .mira-product-icon { width: 52px; height: 60px; border-radius: 6px; object-fit: contain; background: #f1f5f9; }
     .mira-product-icon { display: grid; place-items: center; font-size: 24px; }
     .mira-product strong { font-size: 12px; display: block; }
@@ -145,9 +156,9 @@ function injectStyles(): void {
     @keyframes mira-msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     @keyframes mira-dot { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
     @media (prefers-reduced-motion: reduce) {
-      .mira-bubble, .mira-msg, .mira-csat { animation: none; }
+      .mira-bubble, .mira-msg, .mira-csat, .mira-product, .mira-ai-status:not(:empty), .mira-thinking { animation: none; }
       .mira-bubble::before { animation: none; }
-      .mira-panel, .mira-trigger, .mira-icon, .mira-bubble, .mira-csat-star { transition: none; }
+      .mira-panel, .mira-trigger, .mira-icon, .mira-bubble, .mira-csat-star, .mira-product, .mira-send, .mira-input-row { transition: none; }
       .mira-dots i { animation: none; }
     }
   `;
@@ -233,8 +244,8 @@ export class WidgetUi {
       <div class="mira-typing"></div>
       <div class="mira-error" role="alert"></div>
       <div class="mira-input-row">
-        <textarea class="mira-input" rows="2" maxlength="8000" aria-label="پیام شما" placeholder="پیام خود را بنویسید..."></textarea>
-        <button class="mira-send" disabled>ارسال</button>
+        <textarea class="mira-input" rows="1" maxlength="8000" aria-label="پیام شما" placeholder="پیامتان را بنویسید…"></textarea>
+        <button class="mira-send" aria-label="ارسال" title="ارسال پیام" disabled><svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21 3-7 18-4-7-7-4 18-7Zm0 0L10 14" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
       </div>
       <div class="mira-tools"><button class="mira-human">گفتگو با پشتیبان</button><span>با میرا، کنار شما</span></div>
     `;
@@ -274,6 +285,7 @@ export class WidgetUi {
         this.submit();
       } else this.handleTyping();
     });
+    this.inputEl.addEventListener('input', () => this.resizeInput());
 
     document.body.appendChild(this.bubble);
     document.body.appendChild(this.triggerEl);
@@ -320,6 +332,7 @@ export class WidgetUi {
     try {
       await this.callbacks.onSend(value);
       if (this.inputEl.value.trim() === value) this.inputEl.value = '';
+      this.resizeInput();
       this.callbacks.onTypingChange(false);
     } catch {
       this.showError('ارسال انجام نشد. پیام شما حفظ شده؛ دوباره ارسال کنید.');
@@ -333,6 +346,11 @@ export class WidgetUi {
     this.callbacks.onTypingChange(true);
     if (this.typingTimeout) clearTimeout(this.typingTimeout);
     this.typingTimeout = setTimeout(() => this.callbacks.onTypingChange(false), 2000);
+  }
+
+  private resizeInput(): void {
+    this.inputEl.style.height = 'auto';
+    this.inputEl.style.height = `${Math.min(100, this.inputEl.scrollHeight)}px`;
   }
 
   appendMessage(content: string, senderType: MessageSenderType, message?: MessagePayload): void {
@@ -506,9 +524,15 @@ export class WidgetUi {
     const el = this.panel.querySelector('.mira-ai-status')!;
     const spinner = document.createElement('span');
     spinner.className = 'mira-thinking';
+    spinner.textContent = '✦';
     spinner.setAttribute('aria-hidden', 'true');
     el.appendChild(spinner);
     el.appendChild(document.createTextNode(AI_STATUS_LABELS[payload.stage]));
+    const dots = document.createElement('span');
+    dots.className = 'mira-dots';
+    dots.setAttribute('aria-hidden', 'true');
+    dots.innerHTML = '<i></i><i></i><i></i>';
+    el.appendChild(dots);
     this.aiTimeout = setTimeout(() => this.clearAiStatus(), 60_000);
   }
 

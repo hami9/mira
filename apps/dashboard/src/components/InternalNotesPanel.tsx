@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { InternalNoteDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 interface InternalNotesPanelProps {
   conversationId: string;
@@ -8,6 +8,7 @@ interface InternalNotesPanelProps {
 
 // یادداشت داخلی فقط بین اپراتورهاست — بازدیدکننده هیچ‌وقت این‌ها را نمی‌بیند
 export function InternalNotesPanel({ conversationId }: InternalNotesPanelProps) {
+  const apiClient = useApiClient();
   const [notes, setNotes] = useState<InternalNoteDto[]>([]);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);

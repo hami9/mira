@@ -1,13 +1,23 @@
-import { Controller, Delete, Get, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { VisitorsDirectoryService } from './visitors-directory.service';
+import { ConversationsService } from '../conversations/conversations.service';
 
 // صفحات بازدیدکنندگان در داشبورد — پشت دسترسی «مشاهده بازدیدکنندگان» (ادمین همیشه دارد)
 @Controller('v1/visitors')
 export class VisitorsDirectoryController {
-  constructor(private readonly directoryService: VisitorsDirectoryService) {}
+  constructor(
+    private readonly directoryService: VisitorsDirectoryService,
+    private readonly conversationsService: ConversationsService,
+  ) {}
+
+  @Post(':id/conversation')
+  @RequirePermission('viewVisitors')
+  openConversation(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
+    return this.conversationsService.openForVisitor(agent.siteId, id, agent.sub);
+  }
 
   @Get('stats')
   @RequirePermission('viewVisitors')

@@ -257,50 +257,131 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     expect((await messages())[0].aiMetadata.products).toEqual([product]);
   });
 
-  it('retrieves only relevant ready knowledge from the current tenant', async () => {
-    const vector = (axis: number) =>
-      `[${Array.from({ length: 768 }, (_, i) => (i === axis ? 1 : 0)).join(',')}]`;
-    const otherSite = await createSite(db, 'Other knowledge', `kb-${crypto.randomUUID()}`);
-    sites.push(otherSite);
-    const chunkIds: string[] = [];
-    for (const [owner, title, axis, state] of [
-      [siteId, 'مرتبط', 0, 'ready'],
-      [siteId, 'نامرتبط', 1, 'ready'],
-      [otherSite, 'خصوصی سایت دیگر', 0, 'ready'],
-      [siteId, 'هنوز آماده نیست', 0, 'pending'],
-    ] as const) {
-      const doc = (
-        await db.query(
-          `INSERT INTO knowledge_base_documents ("siteId", title, content, status) VALUES ($1, $2, 'راهنمای ارسال', $3) RETURNING id`,
-          [owner, title, state],
-        )
-      ).rows[0].id;
-      chunkIds.push(
-        (
+  it.each([true, false])(
+    'retrieves enabled ready knowledge and counts its use with visible citations=%s',
+    async (showSources) => {
+      const vector = (axis: number) =>
+        `[${Array.from({ length: 768 }, (_, i) => (i === axis ? 1 : 0)).join(',')}]`;
+      const otherSite = await createSite(db, 'Other knowledge', `kb-${crypto.randomUUID()}`);
+      sites.push(otherSite);
+      const chunkIds: string[] = [];
+      for (const [owner, title, axis, state] of [
+        [siteId, 'مرتبط', 0, 'ready'],
+        [siteId, 'نامرتبط', 1, 'ready'],
+        [otherSite, 'خصوصی سایت دیگر', 0, 'ready'],
+        [siteId, 'هنوز آماده نیست', 0, 'pending'],
+        [siteId, 'غیرفعال', 0, 'ready'],
+      ] as const) {
+        const doc = (
           await db.query(
-            `INSERT INTO knowledge_base_chunks ("siteId", "documentId", content, embedding) VALUES ($1, $2, 'راهنمای ارسال', $3::vector) RETURNING id`,
-            [owner, doc, vector(axis)],
+            `INSERT INTO knowledge_base_documents ("siteId", title, content, status) VALUES ($1, $2, 'راهنمای ارسال', $3) RETURNING id`,
+            [owner, title, state],
           )
-        ).rows[0].id,
+        ).rows[0].id;
+        if (title === 'غیرفعال')
+          await db.query(
+            `UPDATE knowledge_base_documents SET enabled=false WHERE id=$1 AND "siteId"=$2`,
+            [doc, owner],
+          );
+        chunkIds.push(
+          (
+            await db.query(
+              `INSERT INTO knowledge_base_chunks ("siteId", "documentId", content, embedding) VALUES ($1, $2, 'راهنمای ارسال', $3::vector) RETURNING id`,
+              [owner, doc, vector(axis)],
+            )
+          ).rows[0].id,
+        );
+      }
+      embedding.mockResolvedValueOnce([JSON.parse(vector(0))]);
+      await db.query(`UPDATE sites SET "aiPolicy" = $2 WHERE id = $1`, [
+        siteId,
+        { ...DEFAULT_AI_POLICY, minSimilarity: 0.5, showSources },
+      ]);
+      model.mockResolvedValueOnce(
+        JSON.stringify({
+          confidence: 0.9,
+          answer: 'راهنمای ارسال را بررسی کردم.',
+          productIds: [],
+          sourceIds: [`kb:${chunkIds[0]}`],
+        }),
       );
-    }
-    embedding.mockResolvedValueOnce([JSON.parse(vector(0))]);
-    await db.query(`UPDATE sites SET "aiPolicy" = $2 WHERE id = $1`, [
+      await processBotReply(job());
+      const context = JSON.parse(model.mock.calls[0][0][1].content);
+      expect(context.sources.map((s: { title: string }) => s.title)).toEqual(['مرتبط']);
+      if (showSources)
+        expect((await messages())[0].aiMetadata.sources[0].id).toBe(`kb:${chunkIds[0]}`);
+      else expect((await messages())[0].aiMetadata.sources).toEqual([]);
+      await processBotReply(job());
+      const stats = await db.query(
+        `SELECT d."usageCount",d."lastUsedAt" FROM knowledge_base_documents d JOIN knowledge_base_chunks c ON c."documentId"=d.id AND c."siteId"=d."siteId" WHERE c.id=$1 AND d."siteId"=$2`,
+        [chunkIds[0], siteId],
+      );
+      expect(stats.rows[0].usageCount).toBe(1);
+      expect(stats.rows[0].lastUsedAt).not.toBeNull();
+    },
+  );
+
+  it('hands off instead of posting knowledge disabled during generation', async () => {
+    const vector = [1, ...Array(767).fill(0)];
+    const document = (
+      await db.query(
+        `INSERT INTO knowledge_base_documents ("siteId",title,content,status) VALUES ($1,'آزمون توقف منبع','ارسال دو روز کاری','ready') RETURNING id`,
+        [siteId],
+      )
+    ).rows[0].id;
+    const chunk = (
+      await db.query(
+        `INSERT INTO knowledge_base_chunks ("siteId","documentId",content,embedding) VALUES ($1,$2,'ارسال دو روز کاری',$3::vector) RETURNING id`,
+        [siteId, document, JSON.stringify(vector)],
+      )
+    ).rows[0].id;
+    await db.query(`UPDATE sites SET "aiPolicy"=$2 WHERE id=$1`, [
       siteId,
-      { ...DEFAULT_AI_POLICY, minSimilarity: 0.5 },
+      { ...DEFAULT_AI_POLICY },
     ]);
-    model.mockResolvedValueOnce(
-      JSON.stringify({
-        confidence: 0.9,
-        answer: 'راهنمای ارسال را بررسی کردم.',
+    embedding.mockResolvedValueOnce([vector]);
+    model.mockImplementationOnce(async () => {
+      await db.query(
+        `UPDATE knowledge_base_documents SET enabled=false WHERE id=$1 AND "siteId"=$2`,
+        [document, siteId],
+      );
+      return JSON.stringify({
+        confidence: 0.95,
+        answer: 'ارسال دو روز کاری',
         productIds: [],
-        sourceIds: [`kb:${chunkIds[0]}`],
-      }),
-    );
+        sourceIds: [`kb:${chunk}`],
+      });
+    });
     await processBotReply(job());
-    const context = JSON.parse(model.mock.calls[0][0][1].content);
-    expect(context.sources.map((s: { title: string }) => s.title)).toEqual(['مرتبط']);
-    expect((await messages())[0].aiMetadata.sources[0].id).toBe(`kb:${chunkIds[0]}`);
+    const rows = await messages();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].aiMetadata.handoff).toBe(true);
+    expect(rows[0].aiMetadata.sources).toEqual([]);
+    expect(
+      (
+        await db.query(
+          `SELECT "usageCount" FROM knowledge_base_documents WHERE id=$1 AND "siteId"=$2`,
+          [document, siteId],
+        )
+      ).rows[0].usageCount,
+    ).toBe(0);
+  });
+
+  it('disables configured topics and confidence thresholds only when the store switch is off', async () => {
+    await db.query(`UPDATE sites SET "aiPolicy"=$2 WHERE id=$1`, [
+      siteId,
+      {
+        ...DEFAULT_AI_POLICY,
+        useKnowledgeBase: false,
+        serverContext: 'ارسال سفارش دو روز زمان می‌برد.',
+        blockedTopics: ['ارسال'],
+        guardrailsEnabled: false,
+      },
+    ]);
+    model.mockResolvedValueOnce(JSON.stringify({ ...JSON.parse(reply()), confidence: 0.1 }));
+    await processBotReply(job());
+    expect(model).toHaveBeenCalledTimes(1);
+    expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
   });
 
   it('does not post after an agent takes ownership during generation', async () => {

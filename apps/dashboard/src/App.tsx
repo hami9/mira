@@ -1,376 +1,357 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Socket } from 'socket.io-client';
-import {
-  AgentRole,
-  hasPermission,
-  type AgentPermission,
-  type AgentPermissionMap,
-  type AgentProfileDto,
-} from '@mira/shared-types';
-import { apiClient, ConversationDto, ListConversationsParams } from './api';
-import { connectDashboardSocket } from './socket';
-import { decodeJwtPayload } from './jwt';
+import { ApiClient } from './api';
+import { ApiProvider } from './api-context';
+import { Dashboard } from './Dashboard';
 import { LoginPage } from './components/LoginPage';
-import { Sidebar, type SidebarNavKey } from './components/Sidebar';
-import { ConversationList } from './components/ConversationList';
-import { ChatWindow } from './components/ChatWindow';
-import { VisitorInfoPanel } from './components/VisitorInfoPanel';
-import { SettingsPage } from './components/SettingsPage';
-import { ReportsPage } from './components/ReportsPage';
-import { AgentsPage } from './components/AgentsPage';
-import { AgentProfilePage } from './components/AgentProfilePage';
-import { VisitorsOnlinePage } from './components/VisitorsOnlinePage';
-import { VisitorsAllPage } from './components/VisitorsAllPage';
-import { VisitorProfilePage } from './components/VisitorProfilePage';
-import {
-  ensureNotificationPermission,
-  playNotificationSound,
-  showBrowserNotification,
-} from './notifications';
+import { connectDashboardSocket, type ConversationUpdatedPayload } from './socket';
+import { playNotificationSound, showBrowserNotification } from './notifications';
 
-const REFRESH_INTERVAL_MS = 10 * 60 * 1000; // هر ۱۰ دقیقه access token کوتاه‌عمر رو تازه می‌کنیم
+interface StoreSession {
+  id: number;
+  siteId: string;
+  name: string;
+  client: ApiClient;
+  unread: number;
+  expired: boolean;
+}
 
-type DashboardView =
-  | 'inbox'
-  | 'settings'
-  | 'reports'
-  | 'agents'
-  | 'agent-profile'
-  | 'visitors-online'
-  | 'visitors-all'
-  | 'visitor-profile';
+// فروشگاه غیرفعال هم اتصال مستقل دارد؛ اطلاعاتش وارد صندوق فروشگاه فعال نمی‌شود.
+function BackgroundStore({
+  session,
+  onUnreadChange,
+  onMessage,
+}: {
+  session: StoreSession;
+  onUnreadChange: (siteId: string) => void;
+  onMessage: (siteId: string, payload: ConversationUpdatedPayload) => void;
+}) {
+  const { siteId, client } = session;
+  useEffect(() => {
+    const socket = connectDashboardSocket(() => client.getAccessToken(), {
+      onConversationUpdated: (payload) => {
+        onUnreadChange(siteId);
+        if (payload.lastMessage?.senderType === 'visitor') onMessage(siteId, payload);
+      },
+      onTyping: () => {},
+      onError: () => {},
+    });
+    socket.on('connect', () => onUnreadChange(siteId));
+    return () => {
+      socket.disconnect();
+    };
+  }, [siteId, client, onUnreadChange, onMessage]);
+  return null;
+}
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [myPermissions, setMyPermissions] = useState<AgentPermissionMap>({});
-  // پروفایل خودِ اپراتور برای بلوک پایین سایدبار (نام/نقش/آواتار)
-  const [myProfile, setMyProfile] = useState<AgentProfileDto | null>(null);
-  const [view, setView] = useState<DashboardView>('inbox');
-  // اپراتوری که پروفایلش باز است؛ null یعنی پروفایل خودِ کاربر وارد‌شده
-  const [viewedAgentId, setViewedAgentId] = useState<string | null>(null);
-  const [viewedVisitorId, setViewedVisitorId] = useState<string | null>(null);
-  // برای این‌که «بازگشت» از پروفایل بازدیدکننده به همان فهرستی برگردد که ازش آمده
-  const [visitorReturnView, setVisitorReturnView] = useState<DashboardView>('visitors-online');
-  const [conversations, setConversations] = useState<ConversationDto[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<ConversationDto | null>(null);
-  const [filters, setFilters] = useState<ListConversationsParams>({});
-  const socketRef = useRef<Socket | null>(null);
-  const selectedConversationIdRef = useRef<string | null>(null);
-  const filtersRef = useRef<ListConversationsParams>({});
+  const [sessions, setSessions] = useState<StoreSession[]>([]);
+  const [activeSiteId, setActiveSiteId] = useState<string | null>(null);
+  const [loginClient, setLoginClient] = useState<ApiClient | null>(() => new ApiClient());
+  const [notice, setNotice] = useState<{
+    siteId: string;
+    conversationId: string;
+    name: string;
+    content: string;
+  } | null>(null);
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const nextId = useRef(0);
+  const unreadRequests = useRef(
+    new Map<string, { version: number; timer?: ReturnType<typeof setTimeout> }>(),
+  );
+  const refreshing = useRef(new Set<ApiClient>());
 
-  useEffect(() => {
-    selectedConversationIdRef.current = selectedConversation?.id ?? null;
-  }, [selectedConversation]);
+  const refreshUnread = useCallback((siteId: string) => {
+    const previous = unreadRequests.current.get(siteId);
+    if (previous?.timer) clearTimeout(previous.timer);
+    const version = (previous?.version ?? 0) + 1;
+    const request = {
+      version,
+      timer: setTimeout(async () => {
+        const session = sessionsRef.current.find((s) => s.siteId === siteId && !s.expired);
+        if (!session) return;
+        try {
+          const { unreadCount } = await session.client.getUnreadCount();
+          if (unreadRequests.current.get(siteId)?.version !== version) return;
+          setSessions((current) =>
+            current.map((s) =>
+              s.siteId === siteId && s.client === session.client
+                ? { ...s, unread: unreadCount }
+                : s,
+            ),
+          );
+        } catch {
+          // خطای گذرای شبکه شمارندهٔ قبلی را پاک نمی‌کند.
+        }
+      }, 200),
+    };
+    unreadRequests.current.set(siteId, request);
+  }, []);
 
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
-
-  // مجموع نخوانده‌ها هم عنوان تب مرورگر را می‌سازد و هم badge سایدبار را
-  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-
-  useEffect(() => {
-    document.title =
-      totalUnread > 0 ? `(${totalUnread}) داشبورد اپراتور میرا` : 'داشبورد اپراتور میرا';
-  }, [totalUnread]);
-
-  const loadConversations = useCallback(async (currentFilters: ListConversationsParams) => {
-    try {
-      const list = await apiClient.listConversations(currentFilters);
-      setConversations(list);
-    } catch {
-      // اگه توکن منقضی شده باشه، تلاش برای refresh در تایمر پایین انجام می‌شه
-    }
+  const notifyMessage = useCallback((siteId: string, payload: ConversationUpdatedPayload) => {
+    const session = sessionsRef.current.find((s) => s.siteId === siteId);
+    if (!session || !payload.lastMessage) return;
+    setNotice({
+      siteId,
+      conversationId: payload.conversationId,
+      name: session.name,
+      content: payload.lastMessage.content,
+    });
+    playNotificationSound();
+    showBrowserNotification(`پیام جدید — ${session.name}`, payload.lastMessage.content);
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    // debounce تا با هر ضربه‌ی کیبورد در جست‌وجو، درخواست جدا به سرور نزنیم
-    const timeout = setTimeout(() => loadConversations(filters), 300);
-    return () => clearTimeout(timeout);
-  }, [isAuthenticated, filters, loadConversations]);
+    const requests = unreadRequests.current;
+    return () => {
+      for (const request of requests.values()) clearTimeout(request.timer);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const token = apiClient.getAccessToken();
-    if (!token) return;
-
-    const socket = connectDashboardSocket(token, {
-      onConversationUpdated: (payload) => {
-        loadConversations(filtersRef.current);
-        // اگه پیام تازه از بازدیدکننده است و اپراتور همین لحظه اون مکالمه رو باز نکرده، اعلان بده
-        if (payload.lastMessage?.senderType === 'visitor') {
-          if (selectedConversationIdRef.current !== payload.conversationId) {
-            playNotificationSound();
-            showBrowserNotification('پیام جدید میرا', payload.lastMessage.content);
-          }
-        }
-      },
-      onTyping: () => {},
-      onError: (message) => console.warn('[میرا]', message),
-    });
-    socketRef.current = socket;
-
-    const refreshTimer = setInterval(async () => {
-      await apiClient.refreshAccessToken();
-    }, REFRESH_INTERVAL_MS);
-
-    return () => {
-      socket.disconnect();
-      clearInterval(refreshTimer);
+    const refresh = async () => {
+      await Promise.all(
+        sessionsRef.current
+          .filter((s) => !s.expired)
+          .map(async (session) => {
+            if (refreshing.current.has(session.client)) return;
+            refreshing.current.add(session.client);
+            try {
+              await session.client.refreshAccessToken();
+              if (!session.client.getAccessToken()) {
+                setSessions((current) =>
+                  current.map((s) => (s.client === session.client ? { ...s, expired: true } : s)),
+                );
+              } else refreshUnread(session.siteId);
+            } catch {
+              // قطع اینترنت به معنی خروج از حساب نیست.
+            } finally {
+              refreshing.current.delete(session.client);
+            }
+          }),
+      );
     };
-    // filters عمداً در dependency نیست: نمی‌خوایم با هر تغییر فیلتر، سوکت قطع/وصل شه
-  }, [isAuthenticated]);
-
-  function handleLoggedIn(): void {
-    setIsAuthenticated(true);
-    ensureNotificationPermission();
-    const token = apiClient.getAccessToken();
-    const payload = token ? decodeJwtPayload<{ role: string }>(token) : null;
-    setIsAdmin(payload?.role === AgentRole.ADMIN);
-    // دسترسی‌ها در توکن نیستند (تا لغوشان فوری اثر کند)، پس از سرور می‌گیریم.
-    // این فقط برای نمایش/مخفی‌کردن منوهاست — تصمیم واقعی همیشه سمت سرور گرفته می‌شود.
-    apiClient
-      .getMyProfile()
-      .then((profile) => {
-        setMyPermissions(profile.permissions ?? {});
-        setMyProfile(profile);
-      })
-      .catch(() => setMyPermissions({}));
-  }
-
-  function handleLogout(): void {
-    // توکن‌ها فقط در حافظه‌اند؛ پاک‌کردنشان + ریست state کافی است
-    // (قطع سوکت و تایمر refresh خودکار با cleanup افکت isAuthenticated انجام می‌شود)
-    apiClient.clearTokens();
-    setIsAuthenticated(false);
-    setIsAdmin(false);
-    setMyPermissions({});
-    setMyProfile(null);
-    setView('inbox');
-    setViewedAgentId(null);
-    setViewedVisitorId(null);
-    setConversations([]);
-    setSelectedConversation(null);
-    setFilters({});
-  }
-
-  function can(permission: AgentPermission): boolean {
-    return hasPermission(isAdmin ? 'admin' : 'agent', myPermissions, permission);
-  }
-
-  function markConversationSeenLocally(conversationId: string): void {
-    setConversations((prev) =>
-      prev.map((c) => (c.id === conversationId ? { ...c, unreadCount: 0 } : c)),
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const timer = setInterval(
+      () => {
+        void refresh();
+      },
+      10 * 60 * 1000,
     );
-    setSelectedConversation((prev) =>
-      prev && prev.id === conversationId ? { ...prev, unreadCount: 0 } : prev,
-    );
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refreshUnread]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 12_000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  const active = sessions.find((s) => s.siteId === activeSiteId) ?? sessions[0];
+  const totalUnread = sessions.filter((s) => !s.expired).reduce((sum, s) => sum + s.unread, 0);
+  const updateStoreName = useCallback(
+    (siteId: string, name: string) =>
+      setSessions((current) =>
+        current.map((session) => (session.siteId === siteId ? { ...session, name } : session)),
+      ),
+    [],
+  );
+  const conversationOpened = useCallback(
+    (siteId: string, conversationId: string) =>
+      setNotice((current) =>
+        current?.siteId === siteId && current.conversationId === conversationId ? null : current,
+      ),
+    [],
+  );
+  useEffect(() => {
+    document.title = `${totalUnread ? `(${totalUnread}) ` : ''}${active?.name ?? 'ورود'} | میرا`;
+  }, [active?.name, totalUnread]);
+
+  async function finishLogin(client: ApiClient) {
+    const site = await client.getSiteSettings();
+    const previous = sessionsRef.current.find((s) => s.siteId === site.id);
+    if (previous && previous.client !== client) previous.client.clearTokens();
+    const session: StoreSession = {
+      id: ++nextId.current,
+      siteId: site.id,
+      name: site.name,
+      client,
+      unread: 0,
+      expired: false,
+    };
+    setSessions((current) => [...current.filter((s) => s.siteId !== site.id), session]);
+    setActiveSiteId(site.id);
+    setLoginClient(null);
+    setNotice(null);
+    refreshUnread(site.id);
   }
 
-  async function handleSelectConversation(conversation: ConversationDto): Promise<void> {
-    setSelectedConversation(conversation);
-    // بلافاصله در UI به‌عنوان خوانده‌شده نشون بده؛ سرور هم با ConversationJoin سوکت و این درخواست هماهنگ می‌شه
-    markConversationSeenLocally(conversation.id);
-    apiClient.markConversationRead(conversation.id).catch(() => {});
-    if (!conversation.assignedAgentId) {
-      try {
-        const updated = await apiClient.assignConversation(conversation.id);
-        setSelectedConversation((prev) =>
-          prev && prev.id === updated.id ? { ...updated, unreadCount: 0 } : prev,
-        );
-        setConversations((prev) =>
-          prev.map((c) => (c.id === updated.id ? { ...updated, unreadCount: 0 } : c)),
-        );
-      } catch {
-        // اختصاص خودکار مهم نیست که با شکست مواجه شه؛ اپراتور همچنان می‌تونه مکالمه رو ببینه
-      }
-    }
+  function logout(siteId?: string) {
+    const removed = sessionsRef.current.filter((s) => !siteId || s.siteId === siteId);
+    for (const session of removed) session.client.clearTokens();
+    const remaining = sessionsRef.current.filter((s) => !removed.includes(s));
+    setSessions(remaining);
+    setActiveSiteId(remaining[0]?.siteId ?? null);
+    setNotice(null);
+    if (!remaining.length) setLoginClient(new ApiClient());
   }
 
-  function handleConversationUpdated(updated: ConversationDto): void {
-    setSelectedConversation(updated);
-    setConversations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage onLoggedIn={handleLoggedIn} />;
-  }
-
-  // اگر view پروفایل بازدیدکننده بدون id باشد (حالت غیرمنتظره)، مثل قبل به صندوق ورودی برمی‌گردیم
-  const effectiveView: DashboardView =
-    view === 'visitor-profile' && !viewedVisitorId ? 'inbox' : view;
-
-  function activeSidebarItem(): SidebarNavKey | 'profile' | null {
-    switch (effectiveView) {
-      case 'inbox':
-      case 'settings':
-      case 'reports':
-      case 'agents':
-      case 'visitors-online':
-      case 'visitors-all':
-        return effectiveView;
-      case 'agent-profile':
-        // اگر از فهرست اپراتورها باز شده «اپراتورها» فعال بماند؛ وگرنه یعنی پروفایل خودم
-        return viewedAgentId ? 'agents' : 'profile';
-      case 'visitor-profile':
-        return visitorReturnView === 'visitors-all' ? 'visitors-all' : 'visitors-online';
-      default:
-        return null;
-    }
-  }
-
-  function handleSidebarNavigate(key: SidebarNavKey): void {
-    // پاک‌کردن idهای صفحات جزئیات تا حالت «بازگشت» آن‌ها با ناوبری مستقیم قاطی نشود
-    setViewedAgentId(null);
-    setViewedVisitorId(null);
-    setView(key);
-  }
-
-  function renderPage() {
-    if (effectiveView === 'settings') {
-      return (
-        <SettingsPage
-          isAdmin={isAdmin}
-          canManageSiteSettings={can('manageSiteSettings')}
-          canManageKnowledgeBase={can('manageKnowledgeBase')}
-          canManageAutomation={can('manageAutomation')}
-          canManageCannedResponses={can('manageCannedResponses')}
-          canManageWebhooks={can('manageWebhooks')}
+  if (loginClient) {
+    return (
+      <ApiProvider client={loginClient}>
+        <LoginPage
+          onLoggedIn={() => finishLogin(loginClient)}
+          onCancel={
+            sessions.length
+              ? () => {
+                  loginClient.clearTokens();
+                  setLoginClient(null);
+                }
+              : undefined
+          }
         />
-      );
-    }
-
-    if (effectiveView === 'reports') {
-      return <ReportsPage />;
-    }
-
-    if (effectiveView === 'agents') {
-      return (
-        <AgentsPage
-          onOpenProfile={(agentId) => {
-            setViewedAgentId(agentId);
-            setView('agent-profile');
-          }}
-        />
-      );
-    }
-
-    if (effectiveView === 'agent-profile') {
-      return (
-        <AgentProfilePage
-          agentId={viewedAgentId}
-          onClose={() => {
-            // اگر از فهرست اپراتورها آمده بودیم به همان‌جا برگردیم، وگرنه به صندوق ورودی
-            setView(viewedAgentId ? 'agents' : 'inbox');
-            setViewedAgentId(null);
-          }}
-        />
-      );
-    }
-
-    if (effectiveView === 'visitors-online') {
-      return (
-        <VisitorsOnlinePage
-          onOpenVisitor={(visitorId) => {
-            setViewedVisitorId(visitorId);
-            setVisitorReturnView('visitors-online');
-            setView('visitor-profile');
-          }}
-        />
-      );
-    }
-
-    if (effectiveView === 'visitors-all') {
-      return (
-        <VisitorsAllPage
-          onOpenVisitor={(visitorId) => {
-            setViewedVisitorId(visitorId);
-            setVisitorReturnView('visitors-all');
-            setView('visitor-profile');
-          }}
-        />
-      );
-    }
-
-    if (effectiveView === 'visitor-profile' && viewedVisitorId) {
-      return (
-        <VisitorProfilePage
-          visitorId={viewedVisitorId}
-          onClose={() => {
-            setView(visitorReturnView);
-            setViewedVisitorId(null);
-          }}
-        />
-      );
-    }
-
-    return null;
-  }
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar
-        activeItem={activeSidebarItem()}
-        unreadCount={totalUnread}
-        showVisitors={can('viewVisitors')}
-        showReports={can('viewReports')}
-        showAgents={isAdmin}
-        profileName={myProfile?.fullName ?? ''}
-        profileRole={myProfile?.role ?? 'agent'}
-        avatarUrl={myProfile?.avatarUrl ?? null}
-        onNavigate={handleSidebarNavigate}
-        onOpenMyProfile={() => {
-          setViewedAgentId(null);
-          setView('agent-profile');
-        }}
-        onLogout={handleLogout}
-      />
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {effectiveView === 'inbox' ? (
-          <div className="flex flex-1 overflow-hidden">
-            <ConversationList
-              conversations={conversations}
-              selectedId={selectedConversation?.id ?? null}
-              filters={filters}
-              onFiltersChange={setFilters}
-              onSelect={handleSelectConversation}
+        {sessions
+          .filter((s) => !s.expired)
+          .map((session) => (
+            <BackgroundStore
+              key={session.id}
+              session={session}
+              onUnreadChange={refreshUnread}
+              onMessage={notifyMessage}
             />
-            {selectedConversation ? (
-              <>
-                <ChatWindow
-                  conversation={selectedConversation}
-                  socket={socketRef.current}
-                  onConversationUpdated={handleConversationUpdated}
-                  onMessageSeen={markConversationSeenLocally}
-                />
-                <VisitorInfoPanel conversationId={selectedConversation.id} />
-              </>
-            ) : (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-400">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  className="h-12 w-12 text-gray-300"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8 10.5h8M8 14h4m-6.7 5.3L3 21l1.2-3.6A8.5 8.5 0 1 1 7.6 20l-2.3-.7Z"
-                  />
-                </svg>
-                یک مکالمه را برای مشاهده انتخاب کنید
-              </div>
-            )}
+          ))}
+      </ApiProvider>
+    );
+  }
+  if (!active) return null;
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-gray-50" dir="rtl">
+      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
+        <label htmlFor="store-switch" className="text-xs font-bold text-gray-600">
+          فروشگاه فعال
+        </label>
+        <select
+          id="store-switch"
+          value={active.siteId}
+          onChange={(event) => {
+            setActiveSiteId(event.target.value);
+            setNotice(null);
+            refreshUnread(event.target.value);
+          }}
+          className="input-base max-w-xs p-2 text-sm font-bold"
+        >
+          {sessions.map((session) => (
+            <option key={session.siteId} value={session.siteId}>
+              {session.name}
+              {session.expired ? ' — ورود مجدد' : ` — ${session.unread} خوانده‌نشده`}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setLoginClient(new ApiClient())}
+          className="btn-primary px-3 py-2 text-xs"
+        >
+          افزودن فروشگاه
+        </button>
+        <div aria-label="پیام‌های فروشگاه‌ها" className="flex flex-1 flex-wrap gap-2">
+          {sessions
+            .filter((s) => s.unread > 0 && !s.expired)
+            .map((session) => (
+              <button
+                key={session.siteId}
+                type="button"
+                onClick={() => {
+                  setActiveSiteId(session.siteId);
+                  setNotice(null);
+                  refreshUnread(session.siteId);
+                }}
+                className="rounded-full bg-accent-50 px-3 py-1 text-xs font-bold text-accent-700"
+              >
+                {session.name}: {session.unread}
+              </button>
+            ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="text-xs text-gray-500 hover:text-red-600"
+        >
+          خروج از همهٔ فروشگاه‌ها
+        </button>
+      </header>
+      {sessions
+        .filter((s) => s.siteId !== active.siteId && !s.expired)
+        .map((session) => (
+          <BackgroundStore
+            key={session.id}
+            session={session}
+            onUnreadChange={refreshUnread}
+            onMessage={notifyMessage}
+          />
+        ))}
+      <div className="min-h-0 flex-1">
+        {active.expired ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4">
+            <p>نشست {active.name} منقضی شده است؛ دوباره وارد شوید.</p>
+            <button
+              className="btn-primary px-4 py-2"
+              onClick={() => setLoginClient(new ApiClient())}
+            >
+              ورود مجدد به فروشگاه
+            </button>
+            <button className="text-sm text-gray-500" onClick={() => logout(active.siteId)}>
+              خروج از این فروشگاه
+            </button>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto">{renderPage()}</div>
+          <ApiProvider key={active.id} client={active.client}>
+            <Dashboard
+              onConversationOpened={conversationOpened}
+              onStoreNameChange={updateStoreName}
+              siteId={active.siteId}
+              siteName={active.name}
+              onLogout={() => logout(active.siteId)}
+              onUnreadChange={refreshUnread}
+              onMessage={notifyMessage}
+            />
+          </ApiProvider>
         )}
-      </main>
+      </div>
+      {notice && (
+        <div
+          role="status"
+          className="fixed bottom-5 left-5 z-50 w-80 rounded-xl border border-primary-100 bg-white p-4 shadow-xl"
+        >
+          <button
+            type="button"
+            aria-label="بستن اعلان"
+            className="float-left px-2 text-gray-400"
+            onClick={() => setNotice(null)}
+          >
+            ×
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSiteId(notice.siteId);
+              setNotice(null);
+              refreshUnread(notice.siteId);
+            }}
+            className="block w-full text-right"
+          >
+            <strong className="text-sm text-primary-700">پیام جدید — {notice.name}</strong>
+            <p className="mt-2 line-clamp-2 break-words text-sm text-gray-600">{notice.content}</p>
+            <span className="mt-2 block text-xs text-primary-600">رفتن به فروشگاه</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

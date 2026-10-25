@@ -1,6 +1,7 @@
 import { ConversationDto, ListConversationsParams } from '../api';
 
 interface ConversationListProps {
+  siteName: string;
   conversations: ConversationDto[];
   selectedId: string | null;
   filters: ListConversationsParams;
@@ -53,6 +54,7 @@ function ConversationRow({
 }
 
 export function ConversationList({
+  siteName,
   conversations,
   selectedId,
   filters,
@@ -65,16 +67,18 @@ export function ConversationList({
   const answered = conversations.filter((c) => c.unreadCount === 0).sort(byUrgencyThenOrder);
 
   return (
-    <div className="flex w-64 flex-col overflow-hidden border-l border-gray-200 bg-white">
-      <div className="border-b border-gray-200 p-3 text-sm font-bold text-gray-700">
+    <div className="flex w-full flex-col overflow-hidden border-l border-gray-200 bg-white sm:w-72">
+      <div className="border-b border-gray-100 px-4 py-4 text-base font-bold tracking-tight text-gray-800">
         مکالمات ({conversations.length})
+        <div className="mt-1 truncate text-xs font-normal text-primary-600">{siteName}</div>
       </div>
       <div className="space-y-2 border-b border-gray-200 p-2">
         <input
           value={filters.search ?? ''}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
           placeholder="جست‌وجوی نام، ایمیل یا دپارتمان..."
-          className="w-full rounded border border-gray-300 p-1.5 text-xs"
+          aria-label="جست‌وجوی گفتگوها"
+          className="input-base w-full rounded-lg bg-gray-50 p-2.5 text-xs"
         />
         <div className="flex gap-2">
           <select

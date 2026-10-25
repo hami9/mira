@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AvatarUpload } from './AvatarUpload';
 import {
   DEFAULT_AI_POLICY,
   type AiPolicy,
@@ -9,13 +10,14 @@ import {
 interface AiSettingsSectionProps {
   settings: SiteSettingsDto;
   onSave: (patch: UpdateSiteSettingsDto) => Promise<void>;
+  onAvatarChange?: (url: string) => void;
 }
 
 const TABS = ['هویت و گفتگو', 'منابع و محصولات', 'گاردریل‌ها', 'مدل و هزینه'] as const;
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100';
 
-export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) {
+export function AiSettingsSection({ settings, onSave, onAvatarChange }: AiSettingsSectionProps) {
   const [tab, setTab] = useState(0);
   const [draft, setDraft] = useState({
     name: settings.name,
@@ -159,17 +161,16 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
                       onChange={(e) => patch({ aiBotName: e.target.value })}
                     />
                   </Field>
-                  <Field label="تصویر دستیار (URL)">
-                    <input
-                      className={inputClass}
-                      dir="ltr"
-                      type="url"
-                      value={draft.aiBotAvatarUrl}
-                      maxLength={1024}
-                      onChange={(e) => patch({ aiBotAvatarUrl: e.target.value })}
-                    />
-                  </Field>
                 </div>
+                <AvatarUpload
+                  label="تصویر دستیار"
+                  target="assistant"
+                  value={draft.aiBotAvatarUrl}
+                  onChange={(url) => {
+                    patch({ aiBotAvatarUrl: url });
+                    onAvatarChange?.(url);
+                  }}
+                />
                 <Field
                   label="شخصیت و لحن پاسخ"
                   hint="دستورهای ایمنی و الزام استفاده از منابع، مستقل از این متن اعمال می‌شوند."
@@ -290,33 +291,53 @@ export function AiSettingsSection({ settings, onSave }: AiSettingsSectionProps) 
                     تضمین نمی‌کنند.
                   </p>
                 </div>
-                <Field
-                  label="موضوع‌های ممنوع"
-                  hint="هر عبارت در یک خط؛ تطبیق متنی باعث تحویل به پشتیبان می‌شود. حداکثر ۳۰ عبارت."
-                >
-                  <textarea
-                    className={inputClass}
-                    rows={4}
-                    value={blockedTopics}
-                    onChange={(e) => {
-                      setBlockedTopics(e.target.value);
-                      setNotice('');
-                    }}
-                    placeholder="مثلاً: اطلاعات حساب دیگران"
+                <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 text-sm font-medium">
+                  گاردریل‌های فروشگاه
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label="فعال‌بودن گاردریل‌ها"
+                    checked={policy.guardrailsEnabled !== false}
+                    onChange={(event) => set({ guardrailsEnabled: event.target.checked })}
+                    className="h-5 w-5 accent-primary-600"
                   />
-                </Field>
-                <Range
-                  label="حداقل ارتباط سند با پرسش"
-                  value={policy.minSimilarity}
-                  onChange={(v) => set({ minSimilarity: v })}
-                  hint="شباهت برداری اسناد؛ عدد بالاتر، منابع نامرتبط بیشتری را حذف می‌کند."
-                />
-                <Range
-                  label="حداقل اطمینان اعلام‌شده مدل"
-                  value={draft.aiConfidenceThreshold}
-                  onChange={(v) => patch({ aiConfidenceThreshold: v })}
-                  hint="پاسخ ضعیف یا بدون منبع به پشتیبان تحویل می‌شود. این عدد احتمال اندازه‌گیری‌شده نیست."
-                />
+                </label>
+                <p className="text-xs leading-6 text-slate-500">
+                  موضوعات ممنوع، حداقل ارتباط منابع و حداقل اطمینان مدل با این کلید کنترل می‌شوند.
+                  سقف طول ورودی همیشه برقرار است.
+                </p>
+                <fieldset
+                  disabled={policy.guardrailsEnabled === false}
+                  className="space-y-5 disabled:opacity-40"
+                >
+                  <Field
+                    label="موضوع‌های ممنوع"
+                    hint="هر عبارت در یک خط؛ تطبیق متنی باعث تحویل به پشتیبان می‌شود. حداکثر ۳۰ عبارت."
+                  >
+                    <textarea
+                      className={inputClass}
+                      rows={4}
+                      value={blockedTopics}
+                      onChange={(e) => {
+                        setBlockedTopics(e.target.value);
+                        setNotice('');
+                      }}
+                      placeholder="مثلاً: اطلاعات حساب دیگران"
+                    />
+                  </Field>
+                  <Range
+                    label="حداقل ارتباط سند با پرسش"
+                    value={policy.minSimilarity}
+                    onChange={(v) => set({ minSimilarity: v })}
+                    hint="شباهت برداری اسناد؛ عدد بالاتر، منابع نامرتبط بیشتری را حذف می‌کند."
+                  />
+                  <Range
+                    label="حداقل اطمینان اعلام‌شده مدل"
+                    value={draft.aiConfidenceThreshold}
+                    onChange={(v) => patch({ aiConfidenceThreshold: v })}
+                    hint="پاسخ ضعیف یا بدون منبع به پشتیبان تحویل می‌شود. این عدد احتمال اندازه‌گیری‌شده نیست."
+                  />
+                </fieldset>
                 <Field
                   label="حداکثر طول پیام ورودی AI (نویسه)"
                   hint="پیام طولانی‌تر برای پشتیبان باقی می‌ماند و به مدل ارسال نمی‌شود."

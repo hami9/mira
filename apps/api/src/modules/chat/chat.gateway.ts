@@ -131,6 +131,15 @@ export class ChatGateway
         visitorSiteId: visitorPayload.siteId,
       };
       Object.assign(client.data, data);
+      await client.join(`visitor:${visitorPayload.siteId}:${visitorPayload.sub}`);
+      const active = await this.conversationsService.findActiveForVisitor(
+        visitorPayload.sub,
+        visitorPayload.siteId,
+      );
+      if (active) {
+        await client.join(`conversation:${active.id}`);
+        client.emit(SocketEvent.ConversationStarted, { conversationId: active.id });
+      }
     } catch {
       this.rejectConnection(client, 'توکن نامعتبر یا منقضی شده است');
     }
@@ -208,7 +217,10 @@ export class ChatGateway
       createdAt: message.createdAt.toISOString(),
     };
 
-    this.server.to(`conversation:${conversation.id}`).emit(SocketEvent.MessageNew, payload);
+    this.server
+      .to(`conversation:${conversation.id}`)
+      .to(`visitor:${conversation.siteId}:${conversation.visitorId}`)
+      .emit(SocketEvent.MessageNew, payload);
 
     // وب‌هوک message.created (فاز ۶) — در صف، چون سرور گیرنده ممکنه کند یا از دسترس خارج باشه
     await this.webhookQueue.enqueueDispatch({
@@ -298,6 +310,18 @@ export class ChatGateway
         conversationId: event.conversationId,
       });
     }
+  }
+
+  @OnEvent('conversation.operator-started')
+  onOperatorStarted(event: { siteId: string; visitorId: string; conversationId: string }): void {
+    const room = `visitor:${event.siteId}:${event.visitorId}`;
+    this.server.in(room).socketsJoin(`conversation:${event.conversationId}`);
+    this.server
+      .to(room)
+      .emit(SocketEvent.ConversationStarted, { conversationId: event.conversationId });
+    this.server
+      .to(`site:${event.siteId}`)
+      .emit(SocketEvent.ConversationUpdated, { conversationId: event.conversationId });
   }
 
   private broadcastConversationStatus(

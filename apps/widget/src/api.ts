@@ -17,7 +17,7 @@ export class WidgetApi {
   async startConversation(visitorToken: string): Promise<StartConversationResponseDto> {
     return this.post<StartConversationResponseDto>(
       '/v1/widget/conversations',
-      undefined,
+      { pageUrl: window.location.href.slice(0, 1024), pageTitle: document.title.slice(0, 255) },
       visitorToken,
     );
   }

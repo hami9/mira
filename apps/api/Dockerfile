@@ -21,7 +21,7 @@ RUN npm run build -w apps/dashboard
 RUN mkdir -p apps/api/dashboard apps/api/public/widget-dist && \
     cp -r apps/dashboard/dist/. apps/api/dashboard/ && \
     cp apps/widget/dist/widget.js apps/api/public/widget-dist/widget.js
-RUN npm ci --omit=dev --omit=optional --workspace=@mira/api --workspace=@mira/shared-types --include-workspace-root=false --ignore-scripts --no-audit --no-fund
+RUN npm ci --omit=dev --include=optional --workspace=@mira/api --workspace=@mira/shared-types --include-workspace-root=false --ignore-scripts --no-audit --no-fund
 
 # مرحله runtime — همون ساختار /repo رو حفظ می‌کنیم تا symlink های workspace (node_modules/@kgchat/*) درست resolve بشن
 FROM node:22-alpine AS runtime

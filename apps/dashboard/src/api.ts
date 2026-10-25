@@ -12,6 +12,7 @@ import type {
   CustomerContextDto,
   KnowledgeDocumentDto,
   CreateKnowledgeDocumentDto,
+  UpdateKnowledgeDocumentDto,
   ReportsOverviewDto,
   AgentPerformanceDto,
   AutomationRuleDto,
@@ -36,6 +37,7 @@ import type {
   AiBillingDto,
   AiUsageReport,
   SystemStatusDto,
+  ConversationUnreadDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
@@ -60,7 +62,36 @@ export interface ListConversationsParams {
   search?: string;
 }
 
-class ApiClient {
+export class ApiClient {
+  async uploadAvatar(target: 'assistant' | 'me', image: Blob): Promise<{ url: string }> {
+    const body = new FormData();
+    body.append('image', image, 'avatar.png');
+    const response = await fetch(`${API_URL}/v1/avatars/${target}`, {
+      method: 'POST',
+      body,
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok) throw new Error('ذخیره تصویر انجام نشد');
+    return response.json() as Promise<{ url: string }>;
+  }
+  getKnowledgeDocument(id: string): Promise<KnowledgeDocumentDto> {
+    return this.authedGet<KnowledgeDocumentDto>(`/v1/knowledge-base/${id}`);
+  }
+  updateKnowledgeDocument(
+    id: string,
+    dto: UpdateKnowledgeDocumentDto,
+  ): Promise<KnowledgeDocumentDto> {
+    return this.authedPatch<KnowledgeDocumentDto>(`/v1/knowledge-base/${id}`, dto);
+  }
+  reindexKnowledgeDocument(id: string): Promise<KnowledgeDocumentDto> {
+    return this.authedPost<KnowledgeDocumentDto>(`/v1/knowledge-base/${id}/reindex`);
+  }
+  openVisitorConversation(visitorId: string): Promise<ConversationDto> {
+    return this.authedPost<ConversationDto>(`/v1/visitors/${visitorId}/conversation`);
+  }
+  getUnreadCount(): Promise<ConversationUnreadDto> {
+    return this.authedGet<ConversationUnreadDto>('/v1/conversations/unread');
+  }
   getSystemStatus(): Promise<SystemStatusDto> {
     return this.authedGet<SystemStatusDto>('/v1/system');
   }
@@ -102,17 +133,19 @@ class ApiClient {
 
   async refreshAccessToken(): Promise<void> {
     if (!this.refreshToken) return;
+    const refreshToken = this.refreshToken;
     const response = await fetch(`${API_URL}/v1/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: this.refreshToken }),
+      body: JSON.stringify({ refreshToken }),
     });
+    if (this.refreshToken !== refreshToken) return;
     if (!response.ok) {
-      this.clearTokens();
+      if (response.status === 401 || response.status === 403) this.clearTokens();
       return;
     }
     const data = (await response.json()) as RefreshResponseDto;
-    this.accessToken = data.accessToken;
+    if (this.refreshToken === refreshToken) this.accessToken = data.accessToken;
   }
 
   async listConversations(params: ListConversationsParams = {}): Promise<ConversationDto[]> {

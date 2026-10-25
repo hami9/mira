@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AgentPerformanceDto, ReportsOverviewDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -13,6 +13,7 @@ function defaultFrom(): string {
 }
 
 export function ReportsPage() {
+  const apiClient = useApiClient();
   const [from, setFrom] = useState(defaultFrom());
   const [to, setTo] = useState(isoDate(new Date()));
   const [overview, setOverview] = useState<ReportsOverviewDto | null>(null);

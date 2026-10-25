@@ -48,6 +48,9 @@ export class AiQueueService implements OnModuleDestroy {
 
   async enqueueEmbedDocument(data: AiEmbedDocumentJobData): Promise<void> {
     await this.embedDocumentQueue.add('embed', data, {
+      ...(data.revision === undefined
+        ? {}
+        : { jobId: `embed-${data.documentId}-${data.revision}` }),
       attempts: 2,
       removeOnComplete: true,
       removeOnFail: 50,

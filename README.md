@@ -47,6 +47,18 @@ and reply limits. Admins can also review visitor token usage, average usage, Ava
 actual charges and model cost estimates, with a link to the official payment page.
 See [AI assistant setup and boundaries](docs/ai-assistant.md).
 
+### Operator workspace
+
+Switch between independently signed-in stores and identify background messages by store name.
+Visitor cards and chat details show the current reported page and the conversation's entry
+page, with a shortcut to start or reopen a chat. Settings now has separate AI, knowledge,
+billing and system tabs. Import Markdown, manage source keywords and activation, and review
+document usage. Store-specific guardrails have an on/off switch; tenant and source validation
+remain enforced. See [the operator workspace guide](docs/operator-workspace.md).
+
+Upload assistant and operator images up to 10 MiB, adjust the circular crop and save a small
+avatar. The widget has a rounded composer and queue-driven AI animations with reduced-motion support.
+
 ## Features
 
 - **Realtime chat** — Socket.io, typing indicators, unread badges, idempotent message

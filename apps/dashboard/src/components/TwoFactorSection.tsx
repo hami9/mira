@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { TwoFactorSetupResponseDto } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 // این بخش برای همه‌ی اپراتورها (نه فقط ادمین) است — هر کسی 2FA حساب خودش را مدیریت می‌کند
 export function TwoFactorSection() {
+  const apiClient = useApiClient();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [setup, setSetup] = useState<TwoFactorSetupResponseDto | null>(null);
   const [code, setCode] = useState('');

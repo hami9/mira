@@ -5,6 +5,31 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.5.0] — 2026-10-25
+
+Operators can switch stores, follow visitor page context and start conversations directly.
+Knowledge and AI controls now have separate settings tabs and clearer processing states.
+
+### Added
+
+- Independent in-memory store sessions, a store selector, complete unread totals and store-named background notifications. Logout can remove one account or all accounts.
+- Current and conversation-entry pages in visitor cards and chat details, operator-started conversations, SPA page tracking and bounded visible-tab activity updates.
+- Markdown import by file picker or drag and drop, keyword editing, source activation, download, processing retry and per-document citation counts.
+- A store guardrail switch for blocked topics, retrieval similarity and confidence thresholds. Tenant isolation, safe sources, sensitive-output filtering and resource limits remain independent.
+- A compact chat layout with multiline replies, delivery acknowledgements, preserved text on send failure, timestamps and mobile visitor details.
+- A rounded widget with a compact composer, smooth answer entry and queue-driven AI status animations that respect reduced motion.
+- Assistant and operator image uploads with a 10 MiB limit, adjustable circular crop and small server-validated PNG avatars.
+
+### Fixed
+
+- Late views and requests retaining the previous store's client or conversation draft.
+- Stale embedding jobs replacing newer document revisions, and disabled knowledge contributing a late answer or duplicate usage count.
+- The existing source-type constraint rejecting Markdown, and provider compatibility when the SDK assumes base64 embedding responses.
+
+### Upgrade
+
+Three forward migrations add nullable conversation entry context, knowledge controls and bounded avatar storage. Existing messages, image URLs and source content are retained; historical entry pages and citation counts are not reconstructed. Refresh the dashboard and sign in to each store again. See [the workspace guide](docs/operator-workspace.md).
+
 ## [1.4.0] — 2026-10-24
 
 Mira now provides grounded AI support, usage and billing reports, and lighter installation options. All shipped self-hosted features remain free of Mira subscriptions and activation keys; hosting and AI provider charges are separate.

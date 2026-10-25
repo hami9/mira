@@ -27,10 +27,11 @@ export function blockedInput(value: string, policy: AiPolicy): boolean {
   const input = normalize(value);
   return (
     value.length > policy.maxInputChars ||
-    policy.blockedTopics.some((topic) => {
-      const term = normalize(topic.trim());
-      return term.length > 0 && input.includes(term);
-    })
+    (policy.guardrailsEnabled !== false &&
+      policy.blockedTopics.some((topic) => {
+        const term = normalize(topic.trim());
+        return term.length > 0 && input.includes(term);
+      }))
   );
 }
 

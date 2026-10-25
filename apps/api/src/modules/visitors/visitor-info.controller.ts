@@ -35,10 +35,19 @@ export class VisitorInfoController {
       conversation.visitorId,
       agent.siteId,
     );
-    const pageViews = await this.visitorsService.listRecentPageViews(visitor.id);
+    const pageViews = await this.visitorsService.listRecentPageViews(visitor.id, agent.siteId);
     const { browser, os, deviceType } = parseUserAgent(visitor.userAgent);
 
     return {
+      isOnline: Date.now() - visitor.lastSeenAt.getTime() < 5 * 60 * 1000,
+      currentPage: pageViews[0]
+        ? {
+            url: pageViews[0].url,
+            title: pageViews[0].title,
+            visitedAt: pageViews[0].visitedAt.toISOString(),
+          }
+        : null,
+      entryPage: conversation.entryPage ?? null,
       id: visitor.id,
       name: visitor.name,
       email: visitor.email,

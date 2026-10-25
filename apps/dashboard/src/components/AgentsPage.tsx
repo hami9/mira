@@ -9,7 +9,7 @@ import {
   type AgentPermission,
   type AgentPermissionMap,
 } from '@mira/shared-types';
-import { apiClient } from '../api';
+import { useApiClient } from '../api-context';
 
 interface AgentsPageProps {
   onOpenProfile: (agentId: string) => void;
@@ -23,6 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function AgentsPage({ onOpenProfile }: AgentsPageProps) {
+  const apiClient = useApiClient();
   const [agents, setAgents] = useState<AgentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

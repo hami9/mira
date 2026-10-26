@@ -86,6 +86,12 @@ export function Dashboard({
       try {
         const list = await apiClient.listConversations(currentFilters);
         setConversations(list);
+        setSelectedConversation((current) => {
+          const fresh = list.find((item) => item.id === current?.id);
+          return current && fresh && fresh.updatedAt >= current.updatedAt
+            ? { ...fresh, unreadCount: current.unreadCount }
+            : current;
+        });
       } catch {
         // تمدید نشست را پوستهٔ فروشگاه‌ها انجام می‌دهد.
       }
@@ -173,19 +179,6 @@ export function Dashboard({
       .markConversationRead(conversation.id)
       .then(() => onUnreadChange(siteId))
       .catch(() => {});
-    if (!conversation.assignedAgentId) {
-      try {
-        const updated = await apiClient.assignConversation(conversation.id);
-        setSelectedConversation((prev) =>
-          prev && prev.id === updated.id ? { ...updated, unreadCount: 0 } : prev,
-        );
-        setConversations((prev) =>
-          prev.map((c) => (c.id === updated.id ? { ...updated, unreadCount: 0 } : c)),
-        );
-      } catch {
-        // اختصاص خودکار مهم نیست که با شکست مواجه شه؛ اپراتور همچنان می‌تونه مکالمه رو ببینه
-      }
-    }
   }
 
   async function handleVisitorChat(visitorId: string): Promise<void> {
@@ -199,8 +192,12 @@ export function Dashboard({
   }
 
   function handleConversationUpdated(updated: ConversationDto): void {
-    setSelectedConversation(updated);
-    setConversations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    setSelectedConversation((current) =>
+      current?.id === updated.id ? { ...updated, unreadCount: current.unreadCount } : current,
+    );
+    setConversations((prev) =>
+      prev.map((c) => (c.id === updated.id ? { ...updated, unreadCount: c.unreadCount } : c)),
+    );
   }
 
   // اگر view پروفایل بازدیدکننده بدون id باشد (حالت غیرمنتظره)، مثل قبل به صندوق ورودی برمی‌گردیم

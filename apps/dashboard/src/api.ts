@@ -46,6 +46,7 @@ export interface ConversationDto {
   siteId: string;
   visitorId: string;
   assignedAgentId: string | null;
+  aiPaused: boolean;
   status: string;
   department: string | null;
   tags: string[];
@@ -163,6 +164,10 @@ export class ApiClient {
 
   async assignConversation(conversationId: string): Promise<ConversationDto> {
     return this.authedPost<ConversationDto>(`/v1/conversations/${conversationId}/assign`);
+  }
+
+  async resumeConversationAi(conversationId: string): Promise<ConversationDto> {
+    return this.authedPost<ConversationDto>(`/v1/conversations/${conversationId}/resume-ai`);
   }
 
   async resolveConversation(conversationId: string): Promise<ConversationDto> {

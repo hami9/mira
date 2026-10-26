@@ -197,6 +197,14 @@ export class ChatGateway
     }
 
     const senderType = isAgent ? MessageSenderType.AGENT : MessageSenderType.VISITOR;
+    // دیدن گفتگو کنترل را عوض نمی‌کند؛ ارسال پاسخ یعنی تحویل واقعی به پشتیبان.
+    if (isAgent && data.agentId) {
+      conversation = await this.conversationsService.assignAgent(
+        conversation.id,
+        conversation.siteId,
+        data.agentId,
+      );
+    }
     const senderId = (isAgent ? data.agentId : data.visitorId) ?? null;
 
     const message = await this.messagesService.create({
@@ -322,6 +330,15 @@ export class ChatGateway
     this.server
       .to(`site:${event.siteId}`)
       .emit(SocketEvent.ConversationUpdated, { conversationId: event.conversationId });
+  }
+
+  @OnEvent('conversation.control-updated')
+  handleConversationControl(event: {
+    conversationId: string;
+    siteId: string;
+    status: ConversationStatus;
+  }): void {
+    this.broadcastConversationStatus(event.conversationId, event.siteId, event.status);
   }
 
   private broadcastConversationStatus(

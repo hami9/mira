@@ -5,6 +5,15 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.5.1] — 2026-10-26
+
+Viewing a conversation no longer assigns it to an operator and silently stops AI replies.
+Chat controls show who is answering, with explicit human takeover and return to AI. Sending
+an operator reply takes ownership and pauses AI before publishing the message. Returning to
+AI requires an enabled assistant and the assigned operator or a fresh administrator role.
+Existing conversations and human handoffs are retained; no schema change is needed.
+Standalone greetings use the configured welcome message without a model call or human handoff.
+
 ## [1.5.0] — 2026-10-25
 
 Operators can switch stores, follow visitor page context and start conversations directly.

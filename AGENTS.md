@@ -336,6 +336,13 @@ code.** This is the most important section of this file.
     now explicitly ask for float embeddings, and the fixture supports both response formats.
     The queued Markdown E2E exercises the real SDK and stored vector dimensions.
 
+17. **Opening a conversation silently stopped AI.** The dashboard automatically assigned
+    every viewed chat, making the worker ineligible while the operator watched a test.
+    Viewing now only marks read. Explicit takeover and operator sends pause AI and assign
+    ownership; resume clears ownership only for the assigned operator or a fresh site admin.
+    Disabled assistants and resolved conversations cannot resume. Live browser coverage
+    watches a queued reply, sends a human reply, resumes and receives another bot answer.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have

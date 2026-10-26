@@ -23,6 +23,11 @@ function normalize(value: string): string {
     .replace(/\u200c/g, ' ');
 }
 
+export function isSimpleGreeting(value: string): boolean {
+  const compact = normalize(value).replace(/[\s\u200c،,.!؟?]+/g, '');
+  return /^(سلام(وقت(تان|تون)?بخیر)?|وقت(تان|تون)?بخیر|درود|hello|hi)$/.test(compact);
+}
+
 export function blockedInput(value: string, policy: AiPolicy): boolean {
   const input = normalize(value);
   return (

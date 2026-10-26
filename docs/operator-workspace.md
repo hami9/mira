@@ -54,6 +54,12 @@ generation prevents its old answer and hands the conversation to a human.
 
 ## AI and system controls
 
+Viewing a chat marks it read without taking it from AI. The chat control badge shows whether
+AI or a human is responsible. Use the explicit takeover button or send an operator reply to
+pause AI. Return to AI is available to the assigned operator or a site administrator when
+the assistant is enabled and the conversation is open. It does not replay old messages;
+the visitor can send the next question. Existing human-owned chats are not reset on upgrade.
+
 Settings has separate tabs for AI, knowledge, installation, operations, usage, system and
 account security. Tabs follow the current operator's permissions. Billing loads in its own
 tab; installation-wide resource checks run only on request and require the bound host admin.

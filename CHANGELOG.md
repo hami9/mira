@@ -5,6 +5,13 @@
 Format based on [Keep a Changelog](https://keepachangelog.com/), versioning follows
 [SemVer](https://semver.org/).
 
+## [1.5.2] — 2026-10-26
+
+AI source settings can approve up to ten published store phone numbers. Exact digit matches
+survive source and answer filtering while visitor questions/history, other phone numbers and
+credentials remain redacted. This fixes public contact questions being handed off to a human.
+Existing stores default to no approved numbers; no database migration is required.
+
 ## [1.5.1] — 2026-10-26
 
 Viewing a conversation no longer assigns it to an operator and silently stops AI replies.

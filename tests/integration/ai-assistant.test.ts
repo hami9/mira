@@ -86,6 +86,39 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
       events.mock.calls.filter((call) => call[1] === 'ai:status').map((call) => call[2].stage),
     ).toEqual(['retrieving', 'thinking', 'idle']);
   });
+  it('preserves approved public contact numbers in sources while redacting visitor history', async () => {
+    await db.query('UPDATE sites SET "aiPolicy"=$2 WHERE id=$1', [
+      siteId,
+      {
+        ...DEFAULT_AI_POLICY,
+        useKnowledgeBase: false,
+        publicPhoneNumbers: ['02111112222'],
+        serverContext: 'تلفن عمومی ۰۲۱-۱۱۱۱۲۲۲۲؛ شماره خصوصی 09121234567',
+      },
+    ]);
+    await db.query('UPDATE messages SET content=$3 WHERE id=$1 AND "siteId"=$2', [
+      visitorMessageId,
+      siteId,
+      'تلفن من 02111112222 است؛ شماره فروشگاه چیست؟',
+    ]);
+    model.mockImplementation(async (turns) => {
+      const context = JSON.parse(turns[1].content);
+      expect(context.sources[0].content).toContain('۰۲۱-۱۱۱۱۲۲۲۲');
+      expect(context.sources[0].content).not.toContain('09121234567');
+      expect(context.history[0].content).not.toContain('02111112222');
+      expect(context.question).not.toContain('02111112222');
+      return JSON.stringify({
+        confidence: 0.95,
+        answer: 'تلفن فروشگاه ۰۲۱-۱۱۱۱۲۲۲۲ است.',
+        productIds: [],
+        sourceIds: ['server:approved'],
+      });
+    });
+    await processBotReply(job());
+    expect(model).toHaveBeenCalledTimes(1);
+    expect((await messages())[0].content).toBe('تلفن فروشگاه ۰۲۱-۱۱۱۱۲۲۲۲ است.');
+    expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
+  });
   it('keeps two stores names and approved context separate', async () => {
     await db.query('UPDATE sites SET name = $2 WHERE id = $1', [siteId, 'فروشگاه آبی']);
     const other = await createSite(db, 'فروشگاه سبز', crypto.randomUUID());

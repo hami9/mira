@@ -260,6 +260,26 @@ export function AiSettingsSection({ settings, onSave, onAvatarChange }: AiSettin
                     placeholder="خدمات پشتیبانی ما…"
                   />
                 </Field>
+                <Field
+                  label="شماره‌های تماس عمومی فروشگاه"
+                  hint="فقط شماره‌های منتشرشدهٔ همین فروشگاه؛ هر شماره در یک خط، بدون فاصله یا خط تیره، حداکثر ۱۰ شماره. این شماره‌ها در منابع و پاسخ AI مجازند؛ شماره‌های داخل پیام مشتری همچنان حذف می‌شوند."
+                >
+                  <textarea
+                    className={inputClass}
+                    dir="ltr"
+                    rows={3}
+                    maxLength={170}
+                    value={(policy.publicPhoneNumbers ?? []).join('\n')}
+                    onChange={(e) => set({ publicPhoneNumbers: e.target.value.split('\n') })}
+                    onBlur={() =>
+                      set({
+                        publicPhoneNumbers: (policy.publicPhoneNumbers ?? [])
+                          .map((phone) => phone.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </Field>
                 <Field label="حداکثر کارت محصول در هر پاسخ">
                   <input
                     type="number"

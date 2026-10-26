@@ -28,6 +28,13 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 class AiPolicyDto implements AiPolicy {
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @Matches(/^\+?[0-9۰-۹٠-٩]{7,15}$/, { each: true })
+  publicPhoneNumbers?: string[];
+
+  @IsOptional()
   @IsBoolean()
   guardrailsEnabled?: boolean;
 

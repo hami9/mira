@@ -49,6 +49,9 @@ See [AI assistant setup and boundaries](docs/ai-assistant.md).
 
 ### Operator workspace
 
+AI sources settings can approve published store phone numbers without exempting visitor
+history or credentials from filtering. See the [assistant guide](docs/ai-assistant.md).
+
 Switch between independently signed-in stores and identify background messages by store name.
 Visitor cards and chat details show the current reported page and the conversation's entry
 page, with a shortcut to start or reopen a chat. Settings now has separate AI, knowledge,

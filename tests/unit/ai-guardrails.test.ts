@@ -123,6 +123,37 @@ describe('AI response boundary', () => {
     for (const secret of ['a@example.com', '989121234567', '۰۹۱۲۱۲۳۴۵۶۷', 'private', 'abc.def'])
       expect(result).not.toContain(secret);
   });
+  it('allows only explicitly approved store phones, without exempting history or credentials', () => {
+    const publicPhoneNumbers = ['02111112222', '09110002222'];
+    const content = 'تلفن ۰۲۱-۱۱۱۱۲۲۲۲؛ سفارش ٠٩١١٠٠٠٢٢٢٢؛ مشتری 09121234567';
+    const redacted = redactSensitive(content, publicPhoneNumbers);
+    expect(redacted).toContain('۰۲۱-۱۱۱۱۲۲۲۲');
+    expect(redacted).toContain('٠٩١١٠٠٠٢٢٢٢');
+    expect(redacted).not.toContain('09121234567');
+    expect(redactSensitive('تماس 09110002222')).not.toContain('09110002222');
+    const raw = JSON.stringify({ ...answer, answer: 'تلفن ۰۲۱-۱۱۱۱۲۲۲۲' });
+    expect(
+      parseGroundedAnswer(raw, products, sources, { ...DEFAULT_AI_POLICY, publicPhoneNumbers }),
+    ).not.toBeNull();
+    expect(parseGroundedAnswer(raw, products, sources, DEFAULT_AI_POLICY)).toBeNull();
+    expect(
+      parseGroundedAnswer(raw, products, sources, {
+        ...DEFAULT_AI_POLICY,
+        publicPhoneNumbers: ['02111111111'],
+      }),
+    ).toBeNull();
+    expect(
+      parseGroundedAnswer(
+        JSON.stringify({ ...answer, answer: 'تلفن 02111112222 password=private' }),
+        products,
+        sources,
+        { ...DEFAULT_AI_POLICY, publicPhoneNumbers },
+      ),
+    ).toBeNull();
+    expect(redactSensitive('شماره 6037991234567890', ['6037991234567890'])).not.toContain(
+      '6037991234567890',
+    );
+  });
 });
 
 describe('site data boundary', () => {

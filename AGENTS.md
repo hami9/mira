@@ -343,6 +343,12 @@ code.** This is the most important section of this file.
     Disabled assistants and resolved conversations cannot resume. Live browser coverage
     watches a queued reply, sends a human reply, resumes and receives another bot answer.
 
+18. **Public store phones were redacted as personal data.** Only administrator-approved
+    `aiPolicy.publicPhoneNumbers` survive source/output phone filtering. The list is tenant
+    scoped, limited to ten digit-only phone numbers, and defaults empty. Visitor questions
+    and history always use unconditional redaction; credential filtering remains independent.
+    Never infer an allowlist from arbitrary knowledge or visitor text.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have

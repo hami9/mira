@@ -5,10 +5,23 @@ export function plainText(value: string, limit = 8000): string {
   return sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} }).trim().slice(0, limit);
 }
 
-export function redactSensitive(value: string): string {
+function phoneDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[^0-9]/g, '');
+}
+
+// استثنا فقط برای شماره‌های عمومی ثبت‌شده توسط مدیر همین فروشگاه است؛ تاریخچه همیشه بدون استثنا پاک‌سازی می‌شود.
+export function redactSensitive(value: string, publicPhoneNumbers: readonly string[] = []): string {
+  const publicPhones = new Set(
+    publicPhoneNumbers.filter((phone) => /^\+?[0-9۰-۹٠-٩]{7,15}$/.test(phone)).map(phoneDigits),
+  );
   return value
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[ایمیل حذف شد]')
-    .replace(/(?:\+?\d[\d ()-]{8,}\d|[۰-۹]{10,})/g, '[شماره حذف شد]')
+    .replace(/\+?[0-9۰-۹٠-٩][0-9۰-۹٠-٩ ()-]{8,}[0-9۰-۹٠-٩]/g, (phone) =>
+      publicPhones.has(phoneDigits(phone)) ? phone : '[شماره حذف شد]',
+    )
     .replace(/\b(?:sk-|sk_)[a-zA-Z0-9_-]{12,}\b/g, '[کلید حذف شد]')
     .replace(/\b(?:Bearer\s+)[\w.=-]+/gi, '[توکن حذف شد]')
     .replace(/((?:password|api[_ -]?key|secret|token|رمز عبور)\s*[:=]\s*)\S+/gi, '$1[حذف شد]');
@@ -79,7 +92,7 @@ export function parseGroundedAnswer(
     const answer = plainText(parsed.answer);
     if (
       !answer ||
-      redactSensitive(answer) !== answer ||
+      redactSensitive(answer, policy.publicPhoneNumbers ?? []) !== answer ||
       blockedInput(answer, { ...policy, maxInputChars: 8000 })
     )
       return null;

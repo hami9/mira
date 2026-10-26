@@ -3,7 +3,7 @@
  * Plugin Name:       میرا
  * Plugin URI:        https://github.com/hami9/mira
  * Description:       اتصال ویجت لایو چت میرا (خودمیزبان) به وردپرس/ووکامرس — نمایش ویجت در فرانت‌اند و پنل مشتری ووکامرس کنار گفتگو.
- * Version:           1.5.1
+ * Version:           1.5.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            hami9
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MIRA_VERSION', '1.5.1' );
+define( 'MIRA_VERSION', '1.5.2' );
 define( 'MIRA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MIRA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

@@ -185,7 +185,10 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
           role: 'user',
           content: JSON.stringify({
             storeName: plainText(site.name).slice(0, 255),
-            sources: sources.map((s) => ({ ...s, content: redactSensitive(s.content) })),
+            sources: sources.map((s) => ({
+              ...s,
+              content: redactSensitive(s.content, policy.publicPhoneNumbers ?? []),
+            })),
             products: website.products,
             history,
             question,

@@ -91,6 +91,15 @@ test('imports Markdown, edits keywords, controls source activation and saves the
     });
     await tabs.getByRole('button', { name: 'هوش مصنوعی', exact: true }).click();
     const ai = page.getByRole('region', { name: 'مرکز هوش مصنوعی', exact: true });
+    await ai.getByRole('button', { name: 'منابع و محصولات', exact: true }).click();
+    const phones = ai.getByLabel('شماره‌های تماس عمومی فروشگاه', { exact: false });
+    await phones.fill('02111112222\n09110002222');
+    await ai.getByRole('button', { name: 'ذخیره تنظیمات AI', exact: true }).click();
+    await expect(ai.getByRole('status')).toContainText('ذخیره شد');
+    expect(
+      (await db.query('SELECT "aiPolicy" FROM sites WHERE id=$1', [siteId])).rows[0].aiPolicy
+        .publicPhoneNumbers,
+    ).toEqual(['02111112222', '09110002222']);
     await ai.getByRole('button', { name: 'گاردریل‌ها', exact: true }).click();
     const toggle = ai.getByRole('switch', { name: 'فعال‌بودن گاردریل‌ها', exact: true });
     await expect(toggle).toBeChecked();
@@ -104,6 +113,8 @@ test('imports Markdown, edits keywords, controls source activation and saves the
     ).toBe(false);
     await tabs.getByRole('button', { name: 'پایگاه دانش', exact: true }).click();
     await tabs.getByRole('button', { name: 'هوش مصنوعی', exact: true }).click();
+    await ai.getByRole('button', { name: 'منابع و محصولات', exact: true }).click();
+    await expect(phones).toHaveValue('02111112222\n09110002222');
     await ai.getByRole('button', { name: 'گاردریل‌ها', exact: true }).click();
     await expect(toggle).not.toBeChecked();
     await testInfo.attach('guardrails', {

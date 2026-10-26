@@ -73,6 +73,10 @@ payment opens the official AvalAI billing page; the user completes payment there
   links come from server data, never model-written HTML or URLs.
 - Forbidden topics use normalized substring matching, not a semantic moderation model.
   Common email, phone and credential patterns are redacted from conversation/context text.
+  Administrators can approve up to ten published store phone numbers in AI sources settings.
+  Only exact digit matches (including Persian/Arabic digits and display separators) survive
+  source/output filtering. Visitor history and questions still use unconditional redaction;
+  another store's allowlist never applies. Credentials remain filtered independently.
   These controls reduce risk; they do not detect every secret or guarantee factual answers.
   Model confidence is self-reported, not a calibrated probability. Retrieval similarity is
   an independent threshold for knowledge documents.

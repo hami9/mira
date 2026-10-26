@@ -57,6 +57,7 @@ export interface CreateKnowledgeDocumentDto {
 export type UpdateKnowledgeDocumentDto = Partial<CreateKnowledgeDocumentDto>;
 
 export interface AiPolicy {
+  publicPhoneNumbers?: string[];
   guardrailsEnabled?: boolean;
   useKnowledgeBase: boolean;
   useWebsite: boolean;
@@ -72,6 +73,7 @@ export interface AiPolicy {
 }
 
 export const DEFAULT_AI_POLICY: AiPolicy = {
+  publicPhoneNumbers: [],
   guardrailsEnabled: true,
   useKnowledgeBase: true,
   useWebsite: false,

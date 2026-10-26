@@ -119,4 +119,29 @@ describe.skipIf(!hasDatabase)('visitor activity and operator conversations', () 
     expect(await visitors.listRecentPageViews(visitor, other)).toEqual([]);
     await expect(directory.getProfile(other, visitor)).rejects.toThrow();
   });
+
+  it('persists explicit human takeover and resumes only an enabled tenant assistant', async () => {
+    const active = await conversations.createConversation(site, await createVisitor(db, site));
+    const taken = await conversations.assignAgent(active.id, site, agent);
+    expect(taken).toMatchObject({ assignedAgentId: agent, aiPaused: true, status: 'pending' });
+    await db.query('UPDATE sites SET "aiEnabled"=false WHERE id=$1', [site]);
+    await expect(conversations.resumeAi(active.id, site, agent)).rejects.toThrow('خاموش');
+    await db.query('UPDATE sites SET "aiEnabled"=true WHERE id=$1', [site]);
+    await expect(conversations.resumeAi(active.id, other, foreignAgent)).rejects.toThrow();
+    await expect(conversations.resumeAi(active.id, site, foreignAgent)).rejects.toThrow();
+    const colleague = (
+      await db.query(
+        `INSERT INTO agents ("siteId",email,"passwordHash","fullName") VALUES ($1,$2,'fixture','colleague') RETURNING id`,
+        [site, `${crypto.randomUUID()}@activity.test`],
+      )
+    ).rows[0].id;
+    await expect(conversations.resumeAi(active.id, site, colleague)).rejects.toThrow('دیگری');
+    const resumed = await conversations.resumeAi(active.id, site, agent);
+    expect(resumed).toMatchObject({ assignedAgentId: null, aiPaused: false, status: 'open' });
+    await db.query(`UPDATE conversations SET status='resolved' WHERE id=$1 AND "siteId"=$2`, [
+      active.id,
+      site,
+    ]);
+    await expect(conversations.resumeAi(active.id, site, agent)).rejects.toThrow('بسته');
+  });
 });

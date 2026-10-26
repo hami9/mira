@@ -31,7 +31,25 @@ test('opens a visitor conversation and keeps current and entry pages distinct on
     await page.goto(dashboardUrl);
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill(password);
+    const authentication = page.waitForResponse(
+      (r) => r.url().endsWith('/v1/auth/login') && r.request().method() === 'POST',
+    );
     await page.getByRole('button', { name: 'ورود به داشبورد', exact: true }).click();
+    const loginResponse = await authentication;
+    if (loginResponse.status() === 429) {
+      // اجرای سریع لینوکس می‌تواند سقف واقعی ورود را در چند سناریوی متوالی پر کند.
+      test.setTimeout(150_000);
+      const seconds = Math.min(
+        60,
+        Math.max(1, Number(loginResponse.headers()['retry-after']) || 60),
+      );
+      await page.waitForTimeout(seconds * 1000 + 250);
+      const retry = page.waitForResponse(
+        (r) => r.url().endsWith('/v1/auth/login') && r.request().method() === 'POST',
+      );
+      await page.getByRole('button', { name: 'ورود به داشبورد', exact: true }).click();
+      expect((await retry).status()).toBe(200);
+    } else expect(loginResponse.status()).toBe(200);
     await expect(page.locator('#store-switch')).toBeVisible();
     const entryUrl = `${apiUrl}/chat.html?key=${key}`;
     await visitor.goto(entryUrl);

@@ -22,6 +22,7 @@ import {
   plainText,
   redactSensitive,
   SAFETY_PROMPT,
+  isSimpleGreeting,
 } from '../ai/guardrails';
 import { getSiteContext, SiteContext } from '../ai/site-context';
 
@@ -32,6 +33,7 @@ interface SiteAiSettings {
   aiSystemPrompt: string | null;
   aiConfidenceThreshold: number;
   aiHandoffMessage: string | null;
+  aiGreetingMessage: string | null;
   aiTemperature: number;
   aiMaxTokens: number;
   aiMaxRepliesPerConversation: number;
@@ -57,7 +59,7 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
     locked = true;
     const site = (
       await client.query<SiteAiSettings>(
-        `SELECT name, "aiBotName", "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold", "aiHandoffMessage",
+        `SELECT name, "aiBotName", "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold", "aiHandoffMessage", "aiGreetingMessage",
         "aiTemperature", "aiMaxTokens", "aiMaxRepliesPerConversation", "aiPolicy",
         "aiReplyOnlyOutsideBusinessHours", "businessHours", "wordpressSiteUrl", "wordpressApiKey"
        FROM sites WHERE id = $1`,
@@ -88,6 +90,14 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
       Number(count.count) >= site.aiMaxRepliesPerConversation
     ) {
       await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
+      return;
+    }
+    if (isSimpleGreeting(visitor.content)) {
+      const greeting = plainText(
+        site.aiGreetingMessage ||
+          `سلام! من ${site.aiBotName}، دستیار ${site.name} هستم. چطور می‌توانم راهنمایی‌تان کنم؟`,
+      );
+      await postReply(client, data, greeting, { products: [], sources: [] });
       return;
     }
     await status(data, 'retrieving');

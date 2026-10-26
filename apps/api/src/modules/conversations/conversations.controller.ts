@@ -74,6 +74,11 @@ export class ConversationsController {
     return this.conversationsService.resolve(id, agent.siteId);
   }
 
+  @Post(':id/resume-ai')
+  resumeAi(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
+    return this.conversationsService.resumeAi(id, agent.siteId, agent.sub);
+  }
+
   @Post(':id/read')
   @HttpCode(204)
   markAsRead(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {

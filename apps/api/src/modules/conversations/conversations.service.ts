@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -254,12 +255,62 @@ export class ConversationsService {
     siteId: string,
     agentId: string,
   ): Promise<ConversationEntity> {
-    const conversation = await this.findByIdForSite(conversationId, siteId);
-    conversation.assignedAgentId = agentId;
-    if (conversation.status === ConversationStatus.OPEN) {
-      conversation.status = ConversationStatus.PENDING;
-    }
-    return this.conversationsRepository.save(conversation);
+    return this.changeAiControl(conversationId, siteId, agentId, false);
+  }
+
+  async resumeAi(
+    conversationId: string,
+    siteId: string,
+    agentId: string,
+  ): Promise<ConversationEntity> {
+    return this.changeAiControl(conversationId, siteId, agentId, true);
+  }
+
+  private async changeAiControl(
+    conversationId: string,
+    siteId: string,
+    agentId: string,
+    resume: boolean,
+  ): Promise<ConversationEntity> {
+    const updated = await this.conversationsRepository.manager.transaction(async (manager) => {
+      const repository = manager.getRepository(ConversationEntity);
+      const conversation = await repository.findOne({
+        where: { id: conversationId, siteId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!conversation) throw new NotFoundException('گفتگو پیدا نشد');
+      const [agent] = await manager.query('SELECT role FROM agents WHERE id=$1 AND "siteId"=$2', [
+        agentId,
+        siteId,
+      ]);
+      if (!agent) throw new ForbiddenException('دسترسی به این فروشگاه مجاز نیست');
+      if (resume && conversation.status === ConversationStatus.RESOLVED)
+        throw new BadRequestException('گفتگو بسته شده است');
+      if (resume) {
+        if (
+          conversation.assignedAgentId &&
+          conversation.assignedAgentId !== agentId &&
+          agent.role !== 'admin'
+        )
+          throw new ForbiddenException('این گفتگو به پشتیبان دیگری سپرده شده است');
+        const [site] = await manager.query('SELECT "aiEnabled" FROM sites WHERE id=$1', [siteId]);
+        if (!site?.aiEnabled) throw new BadRequestException('دستیار این فروشگاه خاموش است');
+      }
+      conversation.assignedAgentId = resume ? null : agentId;
+      conversation.aiPaused = !resume;
+      conversation.status = resume
+        ? ConversationStatus.OPEN
+        : conversation.status === ConversationStatus.OPEN
+          ? ConversationStatus.PENDING
+          : conversation.status;
+      return repository.save(conversation);
+    });
+    this.eventEmitter.emit('conversation.control-updated', {
+      conversationId,
+      siteId,
+      status: updated.status,
+    });
+    return updated;
   }
 
   async updateDetails(

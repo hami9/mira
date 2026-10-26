@@ -97,6 +97,81 @@ test.describe('AI assistant through the live queue', () => {
     await expect(page.locator('.mira-msg-bot')).toHaveCount(2);
   });
 
+  test('keeps AI active while an operator watches and supports explicit takeover and resume', async ({
+    page,
+    browser,
+    request,
+  }) => {
+    const visitor = await browser.newPage();
+    try {
+      await page.goto(process.env.E2E_DASHBOARD_URL || 'http://localhost:5173');
+      await page
+        .locator('input[type="email"]')
+        .fill(process.env.E2E_ADMIN_EMAIL || 'admin@kgkala.test');
+      await page
+        .locator('input[type="password"]')
+        .fill(process.env.E2E_ADMIN_PASSWORD || 'ChangeMe123!');
+      await page.getByRole('button', { name: 'ورود به داشبورد', exact: true }).click();
+      await expect(page.locator('#store-switch')).toBeVisible();
+      await visitor.goto(`${process.env.E2E_API_URL || 'http://localhost:3000'}/demo.html`);
+      await visitor.locator('.mira-bubble').click();
+      const started = visitor.waitForResponse(
+        (r) => r.url().endsWith('/v1/widget/conversations') && r.request().method() === 'POST',
+      );
+      await visitor.locator('.mira-input').fill('سلام وقت بخیر');
+      await visitor.locator('.mira-send').click();
+      const id = (await (await started).json()).conversationId;
+      await page.locator(`[data-conversation-id="${id}"]`).click();
+      const state = page.getByRole('status', { name: 'کنترل پاسخ‌گویی', exact: true });
+      await expect(state).toContainText('هوش مصنوعی فعال');
+      const headers = { Authorization: `Bearer ${token}` };
+      expect(
+        await (await request.get(`/v1/conversations/${id}`, { headers })).json(),
+      ).toMatchObject({ assignedAgentId: null, aiPaused: false, status: 'open' });
+      await expect(visitor.locator('.mira-msg-bot')).toHaveCount(1);
+      expect(
+        await (await request.get(`/v1/conversations/${id}`, { headers })).json(),
+      ).toMatchObject({ aiPaused: false });
+      const db = new Client({
+        connectionString: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+      });
+      await db.connect();
+      try {
+        expect(
+          Number(
+            (
+              await db.query(
+                'SELECT count(*) FROM ai_usage WHERE "conversationId"=$1 AND "siteId"=$2',
+                [id, original.id],
+              )
+            ).rows[0].count,
+          ),
+        ).toBe(0);
+      } finally {
+        await db.end();
+      }
+      await visitor.locator('.mira-input').fill('شرایط ارسال سفارش چیست؟');
+      await visitor.locator('.mira-send').click();
+      await expect(visitor.locator('.mira-msg-bot')).toHaveCount(2);
+      await page
+        .getByLabel('پاسخ به بازدیدکننده', { exact: true })
+        .fill('پاسخ پشتیبان برای تست تحویل گفتگو');
+      await page.getByRole('button', { name: 'ارسال', exact: true }).click();
+      await expect(visitor.locator('.mira-msg-agent')).toHaveCount(1);
+      await expect(state).toContainText('AI متوقف است');
+      const taken = await (await request.get(`/v1/conversations/${id}`, { headers })).json();
+      expect(taken.aiPaused).toBe(true);
+      expect(taken.assignedAgentId).toBeTruthy();
+      await page.getByRole('button', { name: 'بازگردانی به AI', exact: true }).click();
+      await expect(state).toContainText('هوش مصنوعی فعال');
+      await visitor.locator('.mira-input').fill('ارسال سفارش چند روز طول می‌کشد؟');
+      await visitor.locator('.mira-send').click();
+      await expect(visitor.locator('.mira-msg-bot')).toHaveCount(3);
+    } finally {
+      await visitor.close();
+    }
+  });
+
   test('validates policy and saves it from the admin panel', async ({ page, request }) => {
     for (const name of ['', '   ', null, 'x'.repeat(256)]) {
       const rejected = await request.patch('/v1/sites/me', {

@@ -141,6 +141,31 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     expect(await messages()).toHaveLength(1);
     expect(model).toHaveBeenCalledTimes(1);
   });
+  it('greets without sources, model calls or pausing the assistant', async () => {
+    await db.query(
+      `UPDATE sites SET "aiPolicy"=$2,"aiGreetingMessage"='سلام، به فروشگاه خوش آمدید.' WHERE id=$1`,
+      [siteId, { ...DEFAULT_AI_POLICY, useKnowledgeBase: false }],
+    );
+    await db.query(`UPDATE messages SET content='سلام وقت بخیر' WHERE id=$1 AND "siteId"=$2`, [
+      visitorMessageId,
+      siteId,
+    ]);
+    await processBotReply(job());
+    expect(model).not.toHaveBeenCalled();
+    expect(embedding).not.toHaveBeenCalled();
+    expect(siteContext).not.toHaveBeenCalled();
+    expect(await messages()).toHaveLength(1);
+    expect((await messages())[0].content).toBe('سلام، به فروشگاه خوش آمدید.');
+    expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
+    expect(
+      (
+        await db.query('SELECT "aiPaused" FROM conversations WHERE id=$1 AND "siteId"=$2', [
+          conversationId,
+          siteId,
+        ])
+      ).rows[0].aiPaused,
+    ).toBe(false);
+  });
   it('rejects a conversation or message from another tenant', async () => {
     const foreign = await createSite(db, 'Other', `other-${crypto.randomUUID()}`);
     sites.push(foreign);

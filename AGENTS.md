@@ -690,24 +690,26 @@ The widget build copies self-hosted Vazirmatn to `mira-font.woff2` and its SIL l
 `font-license.txt`, beside `widget.js`. Docker and the hosting archive retain all three files.
 Keep those assets together when staging the widget; no font CDN is used.
 
-Verification includes 128 passing unit tests, all workspace builds, ESLint, a compiled hosting
+Initial verification included 128 passing unit tests, all workspace builds, ESLint, a compiled hosting
 archive and 13 live Chromium scenarios against real PostgreSQL, Redis, API, worker and operator
 dashboard. New checks cover 375/768/1280 px layouts, focus and draft preservation, reconnect,
 persisted product sorting/stock filtering, unsafe links, long names and self-hosted font CORS.
-The widget is 31,537 bytes gzip; the separate variable font is 111,152 bytes. Formatting passes
+The current widget is 32,523 bytes gzip; the separate variable font is 111,152 bytes. Formatting passes
 for changed files and for a complete source snapshot normalized to LF. The Windows checkout's
 existing CRLF files otherwise fail the repository's LF formatting policy.
 
-The production Lite installation at `mira.hami9.ir` runs the tested widget and compiled CORS
-middleware from commit `f7b521f` in `mira-api:chat-f7b521f`, layered over its previous immutable
-API image. The worker and schema are unchanged. `/etc/mira/compose-files` includes
+The production Lite installation at `mira.hami9.ir` runs the tested widget, theme settings and
+public session colors from commit `2d6336c` in `mira-api:theme-2d6336c`, layered over the previous
+`mira-api:chat-f7b521f` image with its CORS fix. The worker and schema are unchanged. `/etc/mira/compose-files` includes
 `docker-compose.chat.yml`; account for this API image override during the next standard image
 upgrade. The source archive and deployment context are under `/opt/mira/releases/`. A database
-dump, prior compose selection and image identity are retained in `/var/backups/mira/chat-f7b521f`.
-To roll back, restore that backup's `compose-files` to `/etc/mira/compose-files` and recreate
-only the API with `docker compose -f docker-compose.lite.yml up -d --no-deps --pull never api`.
+dump, prior API override and image identity are retained in `/var/backups/mira/theme-2d6336c`.
+To roll back this theme update, restore that backup's `api-override.yml` to
+`/opt/mira/app/docker-compose.chat.yml` and recreate only the API with
+`docker compose -f docker-compose.lite.yml -f docker-compose.chat.yml up -d --no-deps --pull never api`.
 Production desktop/mobile rendering, font delivery and socket connection were verified without
-sending a chat message. GitHub CI (including integration/E2E), CodeQL and image publishing passed.
+sending a chat message. The initial widget release passed GitHub CI (including integration/E2E),
+CodeQL and image publishing.
 
 ### Theme controls
 

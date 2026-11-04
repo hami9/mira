@@ -2,6 +2,16 @@ import { useState } from 'react';
 import type { SiteSettingsDto, UpdateSiteSettingsDto } from '@mira/shared-types';
 import { API_URL } from '../config';
 
+const isHexColor = (value: string) => /^#[0-9a-f]{6}$/i.test(value);
+const colorText = (value: string) => {
+  const channels = [1, 3, 5].map((offset) => {
+    const channel = parseInt(value.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return 1.05 / (luminance + 0.05) >= 4.5 ? '#ffffff' : '#000000';
+};
+
 export function InstallSection({
   settings,
   onSave,
@@ -12,6 +22,11 @@ export function InstallSection({
   const [domains, setDomains] = useState(settings.allowedDomains.join('\n'));
   const [color, setColor] = useState(
     typeof settings.appearance.color === 'string' ? settings.appearance.color : '#2E6BE6',
+  );
+  const [accentColor, setAccentColor] = useState(
+    typeof settings.appearance.accentColor === 'string'
+      ? settings.appearance.accentColor
+      : '#168B6A',
   );
   const [position, setPosition] = useState(
     settings.appearance.position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
@@ -26,8 +41,14 @@ export function InstallSection({
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
-  const embed = `<script src="${escaped(origin)}/widget-dist/widget.js" data-widget-key="${escaped(settings.widgetKey)}" data-color="${escaped(color)}" data-position="${position}" defer></script>`;
+  const embed = `<script src="${escaped(origin)}/widget-dist/widget.js" data-widget-key="${escaped(settings.widgetKey)}" defer></script>`;
+  const previewColor = isHexColor(color) ? color : '#2E6BE6';
+  const previewAccent = isHexColor(accentColor) ? accentColor : '#168B6A';
   async function save() {
+    if (!isHexColor(color) || !isHexColor(accentColor)) {
+      setNotice('هر رنگ را با کد شش‌رقمی مانند #168B6A وارد کنید.');
+      return;
+    }
     setBusy(true);
     setNotice('');
     try {
@@ -55,7 +76,7 @@ export function InstallSection({
       if (!allowed.length || allowed.length > 30) throw new Error();
       await onSave({
         allowedDomains: allowed,
-        appearance: { ...settings.appearance, color, position },
+        appearance: { ...settings.appearance, color, accentColor, position },
       });
       setDomains(allowed.join('\n'));
       setNotice('تنظیمات نصب ذخیره شد.');
@@ -101,17 +122,136 @@ export function InstallSection({
       >
         افزودن دامنه میرا برای فعال‌کردن لینک گفتگو
       </button>
+      <div className="my-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <div className="flex flex-wrap gap-4 text-xs">
+            <div>
+              <label className="block text-gray-700" htmlFor="widget-primary-color">
+                رنگ ویجت
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="widget-primary-color"
+                  aria-label="رنگ ویجت"
+                  type="color"
+                  value={previewColor}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-11 w-11 cursor-pointer rounded border p-1"
+                />
+                <input
+                  aria-label="کد رنگ ویجت"
+                  dir="ltr"
+                  value={color}
+                  maxLength={7}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="w-24 rounded-lg border px-2 py-2 text-left font-mono"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-gray-700" htmlFor="widget-accent-color">
+                رنگ مکمل
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  id="widget-accent-color"
+                  aria-label="رنگ مکمل"
+                  type="color"
+                  value={previewAccent}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-11 w-11 cursor-pointer rounded border p-1"
+                />
+                <input
+                  aria-label="کد رنگ مکمل"
+                  dir="ltr"
+                  value={accentColor}
+                  maxLength={7}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="w-24 rounded-lg border px-2 py-2 text-left font-mono"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2" aria-label="ترکیب رنگ‌های پیشنهادی">
+            {[
+              ['آبی و سبز میرا', '#2E6BE6', '#168B6A'],
+              ['سبز جنگلی', '#145C47', '#56BDA0'],
+              ['آلو و نعنا', '#6A3761', '#299C83'],
+            ].map(([label, primary, accent]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => {
+                  setColor(primary);
+                  setAccentColor(accent);
+                }}
+                className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 px-2 text-xs text-gray-700 hover:bg-gray-50"
+              >
+                <span className="flex" aria-hidden="true">
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: primary }} />
+                  <span
+                    className="-mr-1 h-3 w-3 rounded-full ring-1 ring-white"
+                    style={{ backgroundColor: accent }}
+                  />
+                </span>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs leading-6 text-gray-500">
+            هر دو رنگ پس از ذخیره و بارگذاری دوباره چت اعمال می‌شوند.
+          </p>
+        </div>
+        <figure
+          className="m-0 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50"
+          aria-label="پیش‌نمایش رنگ‌های گفتگو"
+        >
+          <div className="flex items-center gap-2 border-b bg-white px-4 py-3">
+            <span
+              className="grid h-9 w-9 place-items-center rounded-xl font-bold"
+              style={{ backgroundColor: previewColor, color: colorText(previewColor) }}
+            >
+              م
+            </span>
+            <div>
+              <div className="text-xs font-bold text-gray-800">دستیار میرا</div>
+              <div className="text-[10px] text-gray-500">رنگ‌های گفتگوی شما</div>
+            </div>
+            <span
+              className="mr-auto h-2 w-2 rounded-full"
+              style={{ backgroundColor: previewAccent }}
+              aria-hidden="true"
+            />
+          </div>
+          <div className="space-y-3 p-4">
+            <div
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700"
+              style={{ borderInlineStart: `3px solid ${previewAccent}` }}
+            >
+              سلام، چطور می‌توانم کمکتان کنم؟
+            </div>
+            <div
+              className="mr-auto w-fit rounded-xl px-3 py-2 text-xs"
+              style={{ backgroundColor: previewColor, color: colorText(previewColor) }}
+            >
+              راهنمایی می‌خواهم
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500">
+              <span>پیام شما…</span>
+              <span
+                className="rounded-lg px-3 py-1"
+                style={{ backgroundColor: previewAccent, color: colorText(previewAccent) }}
+              >
+                ارسال
+              </span>
+            </div>
+          </div>
+          <figcaption className="px-4 pb-3 text-[10px] text-gray-500">
+            پیش‌نمایش ترکیب رنگ
+          </figcaption>
+        </figure>
+      </div>
       <div className="my-4 flex flex-wrap items-center gap-4 text-xs">
-        <label>
-          رنگ ویجت{' '}
-          <input
-            aria-label="رنگ ویجت"
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="mr-2 align-middle"
-          />
-        </label>
         <label>
           محل نمایش{' '}
           <select
@@ -157,6 +297,7 @@ export function InstallSection({
       <label className="mt-4 block text-xs text-gray-700">
         کد نصب سایت
         <textarea
+          aria-label="کد نصب سایت"
           readOnly
           dir="ltr"
           value={embed}

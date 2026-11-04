@@ -62,6 +62,10 @@ remain enforced. See [the operator workspace guide](docs/operator-workspace.md).
 Upload assistant and operator images up to 10 MiB, adjust the circular crop and save a small
 avatar. The widget has a rounded composer and queue-driven AI animations with reduced-motion support.
 
+The widget pairs your primary color with an independent emerald accent. Settings → Install
+offers both color pickers, HEX entry, paired presets and a live preview. Generated embeds follow
+saved appearance after reload; `data-color` and `data-accent-color` remain explicit overrides.
+
 The white RTL widget guides visitors with intent cards and configured quick replies. Its composer
 stays available while browsing product suggestions; sorting and the stock filter apply only to
 that reply's products. Expand the same conversation to fullscreen without losing drafts or

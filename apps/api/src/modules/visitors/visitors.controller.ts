@@ -92,6 +92,11 @@ export class VisitorsController {
             ? site.appearance.color
             : undefined,
         position: site.appearance.position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
+        accentColor:
+          typeof site.appearance.accentColor === 'string' &&
+          /^#[0-9a-f]{6}$/i.test(site.appearance.accentColor)
+            ? site.appearance.accentColor
+            : '#168B6A',
       },
       visitorRef: visitor.visitorRef,
       siteId: site.id,

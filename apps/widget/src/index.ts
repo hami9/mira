@@ -12,6 +12,7 @@ interface WidgetConfig {
   apiUrl: string;
   fontUrl: string;
   color?: string;
+  accentColor?: string;
   position?: 'bottom-right' | 'bottom-left';
   // این دو از افزونه‌ی وردپرس می‌آد: نام/ایمیل کاربر واردشده به وردپرس، برای پیش‌فرم خودکار (فاز ۳)
   visitorName?: string;
@@ -42,6 +43,7 @@ function readConfig(): WidgetConfig | null {
     apiUrl,
     fontUrl: new URL('mira-font.woff2', scriptEl!.src).href,
     color: scriptEl?.dataset.color || undefined,
+    accentColor: scriptEl?.dataset.accentColor || undefined,
     position,
     visitorName: scriptEl?.dataset.visitorName || undefined,
     visitorEmail: scriptEl?.dataset.visitorEmail || undefined,
@@ -98,6 +100,7 @@ async function main(): Promise<void> {
     },
     {
       color: config.color,
+      accentColor: config.accentColor,
       position: config.position,
       fullscreen: config.fullscreen,
       fontUrl: config.fontUrl,
@@ -125,6 +128,7 @@ async function main(): Promise<void> {
     visitorToken = session.visitorToken;
     ui.configureAppearance({
       color: config.color || session.appearance?.color,
+      accentColor: config.accentColor || session.appearance?.accentColor,
       position: config.position || session.appearance?.position,
     });
     ui.configureAssistant(session.assistant);

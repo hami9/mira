@@ -15,6 +15,7 @@ import { injectStyles } from './styles';
 
 export interface WidgetUiOptions {
   color?: string;
+  accentColor?: string;
   // موقعیت فیزیکی حباب مستقل از جهت متن سایت میزبان است.
   position?: 'bottom-right' | 'bottom-left';
   fullscreen?: boolean;
@@ -27,6 +28,58 @@ export interface WidgetUiCallbacks {
 }
 
 const HUMAN_PROMPT = 'می‌خواهم با اپراتور انسانی صحبت کنم';
+
+function hexColor(value?: string): string | undefined {
+  return value && /^#[\da-f]{6}$/i.test(value) ? value.toLowerCase() : undefined;
+}
+
+function blendColor(color: string, base: string, amount: number): string {
+  const channels = [1, 3, 5].map((offset) =>
+    Math.round(
+      parseInt(color.slice(offset, offset + 2), 16) * amount +
+        parseInt(base.slice(offset, offset + 2), 16) * (1 - amount),
+    )
+      .toString(16)
+      .padStart(2, '0'),
+  );
+  return `#${channels.join('')}`;
+}
+
+function luminance(color: string): number {
+  const channels = [1, 3, 5].map((offset) => {
+    const channel = parseInt(color.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+function contrast(first: string, second: string): number {
+  const values = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
+function colorTokens(color: string, prefix: string): Record<string, string> {
+  const soft = blendColor(color, '#ffffff', 0.07);
+  let ink = color;
+  // متن رنگی روی سفید و زمینه ملایم، حتی با رنگ سفارشی روشن، خوانا می‌ماند.
+  while (contrast(ink, '#ffffff') < 4.5 || contrast(ink, soft) < 4.5)
+    ink = blendColor(ink, '#000000', 0.9);
+  const foreground =
+    contrast(color, '#ffffff') >= 4.5
+      ? '#ffffff'
+      : contrast(color, '#14231e') >= 4.5
+        ? '#14231e'
+        : '#000000';
+  return {
+    [prefix]: color,
+    [`${prefix}-ink`]: ink,
+    [`${prefix}-soft`]: soft,
+    [`${prefix}-border`]: blendColor(color, '#ffffff', 0.25),
+    [`${prefix}-foreground`]: foreground,
+    [`${prefix}-ring`]: `${color}22`,
+    [`${prefix}-shadow`]: `${color}26`,
+  };
+}
 
 export class WidgetUi {
   readonly bubble: HTMLButtonElement;
@@ -48,6 +101,8 @@ export class WidgetUi {
   private bodyOverflow = '';
   private botName = 'دستیار میرا';
   private messageCount = 0;
+  private primaryColor = '#2e6be6';
+  private accentColor = '#168b6a';
 
   constructor(
     private readonly callbacks: WidgetUiCallbacks,
@@ -207,11 +262,16 @@ export class WidgetUi {
   }
 
   configureAppearance(options: WidgetUiOptions): void {
+    this.primaryColor = hexColor(options.color) ?? this.primaryColor;
+    this.accentColor = hexColor(options.accentColor) ?? this.accentColor;
+    const tokens = {
+      ...colorTokens(this.primaryColor, '--mira-color'),
+      ...colorTokens(this.accentColor, '--mira-accent'),
+      '--mira-gradient': this.primaryColor,
+      '--mira-teal': colorTokens(this.accentColor, '--mira-accent')['--mira-accent-ink'],
+    };
     for (const element of [this.bubble, this.triggerEl, this.panel]) {
-      if (options.color) {
-        element.style.setProperty('--mira-color', options.color);
-        element.style.setProperty('--mira-gradient', options.color);
-      }
+      for (const [name, value] of Object.entries(tokens)) element.style.setProperty(name, value);
       if (options.position) {
         element.classList.toggle('mira-pos-left', options.position === 'bottom-left');
         element.classList.toggle('mira-pos-right', options.position === 'bottom-right');
@@ -479,11 +539,10 @@ export class WidgetUi {
     this.messagesEl.querySelector('.mira-welcome')?.remove();
     const welcome = document.createElement('div');
     welcome.className = 'mira-welcome';
-    welcome.innerHTML = `<div class="mira-welcome-eyebrow">${icons.spark}<span>یک گفتگو، یک انتخاب بهتر</span></div><h1>سلام، خوش آمدید<br/><span>از کجا شروع کنیم؟</span></h1>`;
+    welcome.innerHTML = `<div class="mira-welcome-hero"><div class="mira-welcome-heading"><div class="mira-welcome-eyebrow">${icons.spark}<span>همراه انتخاب شما</span></div><h1>انتخاب خوب،<br/><span>از یک گفتگو شروع می‌شود.</span></h1></div><div class="mira-welcome-mark" aria-hidden="true">${icons.mark}<span>قدم‌به‌قدم</span></div></div>`;
     const text = document.createElement('p');
     text.textContent = assistant?.enabled
-      ? assistant.greeting ||
-        'از پیدا کردن محصول مناسب تا پاسخ به سوال‌ها؛ قدم‌به‌قدم کنارتان هستم.'
+      ? assistant.greeting || 'بگویید چه می‌خواهید؛ با توجه به نیاز و بودجه شما پیش می‌رویم.'
       : 'سوالتان را بنویسید تا همکاران ما راهنمایی‌تان کنند.';
     welcome.appendChild(text);
     const intents = document.createElement('div');
@@ -493,13 +552,13 @@ export class WidgetUi {
           [
             'box',
             'محصول مناسب من',
-            'با توجه به نیاز و بودجه شما',
+            'از نیاز شما تا گزینه مناسب، با هم پیش می‌رویم',
             'برای انتخاب محصول مناسب با نیاز و بودجه‌ام راهنمایی‌ام کن.',
           ],
           [
             'compare',
             'مقایسه محصولات',
-            'تفاوت‌ها را ببینید، راحت‌تر انتخاب کنید',
+            'تفاوت‌ها، روشن و کنار هم',
             'می‌خواهم چند محصول را مقایسه کنم. برای شروع راهنمایی‌ام کن.',
           ],
           ['truck', 'خرید و ارسال', 'پاسخ سوال‌های پیش از خرید', 'شرایط و زمان ارسال سفارش چیست؟'],

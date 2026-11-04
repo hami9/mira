@@ -708,3 +708,19 @@ To roll back, restore that backup's `compose-files` to `/etc/mira/compose-files`
 only the API with `docker compose -f docker-compose.lite.yml up -d --no-deps --pull never api`.
 Production desktop/mobile rendering, font delivery and socket connection were verified without
 sending a chat message. GitHub CI (including integration/E2E), CodeQL and image publishing passed.
+
+### Theme controls
+
+The welcome now has a Mira stamp, an editorial heading, one prominent intent and two secondary
+cards. Primary and accent colors are independent; the default accent is emerald `#168B6A`.
+`appearance.accentColor` uses the existing tenant-scoped JSON settings, with no migration. The
+public session returns only six-digit hex colors; invalid/missing accent falls back to emerald.
+The runtime derives readable ink, button text, soft surfaces and borders for both colors.
+Settings → Install exposes pickers, HEX fields, paired presets and a live preview. Generated
+embeds use saved appearance after reload. `data-color`, `data-accent-color` and `data-position`
+still override session settings when deliberately supplied by an embed.
+
+The theme update passed 128 unit tests, all workspace builds, ESLint, changed-file formatting
+and 14 live browser scenarios. The new case saves both colors in the dashboard, checks the
+tenant's stored appearance, reloads the existing embed and verifies invalid accent fallback.
+Contrast samples and layouts at 320/375/768/1280 px were also reviewed.

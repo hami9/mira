@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { Client } from 'pg';
 import { DEFAULT_AI_POLICY } from '@mira/shared-types';
+import { hash } from 'bcryptjs';
 
 const databaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
 const origin = new URL(process.env.E2E_API_URL || 'http://localhost:3000').origin;
@@ -25,7 +26,7 @@ test.describe('guided widget', () => {
           'فروشگاه تجربه میرا',
           widgetKey,
           [origin],
-          { color: '#177b70', position: 'bottom-left' },
+          { color: '#177b70', accentColor: '#a6513d', position: 'bottom-left' },
           'راهنمای خرید میرا',
           {
             ...DEFAULT_AI_POLICY,
@@ -73,6 +74,7 @@ test.describe('guided widget', () => {
       await expect(page.locator('.mira-intent')).toHaveCount(3);
       await expect(panel).toHaveClass(/mira-pos-left/);
       await expect(panel).toHaveCSS('--mira-color', '#177b70');
+      await expect(panel).toHaveCSS('--mira-accent', '#a6513d');
       await expect(page.locator('.mira-input')).toBeInViewport();
       const bounds = await panel.boundingBox();
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -121,6 +123,70 @@ test.describe('guided widget', () => {
       await expect(page.locator('.mira-input')).toHaveValue(draft);
     });
   }
+
+  test('saves both brand colors from settings and applies them to existing embeds', async ({
+    page,
+    browser,
+  }, info) => {
+    const email = `${crypto.randomUUID()}@theme.test`;
+    const password = 'Theme-fixture-only-123!';
+    await db.query(
+      `INSERT INTO agents ("siteId",email,"passwordHash","fullName",role) VALUES ($1,$2,$3,$4,'admin')`,
+      [siteId, email, await hash(password, 4), 'مدیر ظاهر'],
+    );
+    await page.goto(process.env.E2E_DASHBOARD_URL || 'http://localhost:5173');
+    await page.locator('input[type="email"]').fill(email);
+    await page.locator('input[type="password"]').fill(password);
+    await page.getByRole('button', { name: 'ورود به داشبورد', exact: true }).click();
+    await page.getByRole('button', { name: 'تنظیمات', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'بخش‌های تنظیمات', exact: true })
+      .getByRole('button', { name: 'نصب و اتصال', exact: true })
+      .click();
+    const settings = page.getByRole('region', { name: 'نصب و شخصی‌سازی', exact: true });
+    await settings.getByLabel('رنگ ویجت', { exact: true }).fill('#264e73');
+    await settings.getByLabel('رنگ مکمل', { exact: true }).fill('#168b6a');
+    const saved = page.waitForResponse(
+      (r) => r.url().endsWith('/v1/sites/me') && r.request().method() === 'PATCH',
+    );
+    await settings.getByRole('button', { name: 'ذخیره ظاهر و دامنه‌ها' }).click();
+    expect((await saved).ok()).toBe(true);
+    expect(
+      (await db.query('SELECT appearance FROM sites WHERE id=$1', [siteId])).rows[0].appearance,
+    ).toMatchObject({ color: '#264e73', accentColor: '#168b6a' });
+    const embed = await settings.getByLabel('کد نصب سایت', { exact: true }).inputValue();
+    expect(embed).not.toContain('data-color=');
+    expect(embed).not.toContain('data-accent-color=');
+    await info.attach('theme-settings', {
+      body: await settings.screenshot({
+        path: 'test-results/widget-theme-settings.png',
+        animations: 'disabled',
+      }),
+      contentType: 'image/png',
+    });
+    const visitor = await browser.newPage();
+    try {
+      await openEmbedded(visitor);
+      await expect(visitor.locator('.mira-panel')).toHaveCSS('--mira-color', '#264e73');
+      await expect(visitor.locator('.mira-panel')).toHaveCSS('--mira-accent', '#168b6a');
+      await db.query('UPDATE sites SET appearance=appearance || $2::jsonb WHERE id=$1', [
+        siteId,
+        JSON.stringify({ accentColor: '#9744a2' }),
+      ]);
+      await visitor.reload();
+      await visitor.locator('.mira-bubble').click();
+      await expect(visitor.locator('.mira-panel')).toHaveCSS('--mira-accent', '#9744a2');
+      await db.query('UPDATE sites SET appearance=appearance || $2::jsonb WHERE id=$1', [
+        siteId,
+        JSON.stringify({ accentColor: 'red; background:url(https://invalid.test)' }),
+      ]);
+      const fallback = visitor.waitForResponse((r) => r.url().endsWith('/v1/widget/sessions'));
+      await visitor.reload();
+      expect((await (await fallback).json()).appearance.accentColor).toBe('#168B6A');
+    } finally {
+      await visitor.close();
+    }
+  });
 
   test('persists a welcome intent through the live socket and recovers it', async ({ page }) => {
     await openEmbedded(page);

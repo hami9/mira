@@ -31,7 +31,7 @@ export interface WidgetSessionRequestDto {
 }
 
 export interface WidgetSessionResponseDto {
-  appearance?: { color?: string; position?: 'bottom-left' | 'bottom-right' };
+  appearance?: { color?: string; accentColor?: string; position?: 'bottom-left' | 'bottom-right' };
   assistant?: WidgetAssistant;
   visitorToken: string;
   visitorRef: string;

@@ -7,8 +7,10 @@ import { getStoredVisitorRef, newClientMessageId, storeVisitorRef } from './stor
 
 interface WidgetConfig {
   autoOpen: boolean;
+  fullscreen: boolean;
   widgetKey: string;
   apiUrl: string;
+  fontUrl: string;
   color?: string;
   position?: 'bottom-right' | 'bottom-left';
   // این دو از افزونه‌ی وردپرس می‌آد: نام/ایمیل کاربر واردشده به وردپرس، برای پیش‌فرم خودکار (فاز ۳)
@@ -35,8 +37,10 @@ function readConfig(): WidgetConfig | null {
     : undefined;
   return {
     autoOpen: scriptEl?.dataset.autoOpen === 'true',
+    fullscreen: scriptEl?.dataset.fullscreen === 'true',
     widgetKey,
     apiUrl,
+    fontUrl: new URL('mira-font.woff2', scriptEl!.src).href,
     color: scriptEl?.dataset.color || undefined,
     position,
     visitorName: scriptEl?.dataset.visitorName || undefined,
@@ -92,9 +96,15 @@ async function main(): Promise<void> {
         });
       },
     },
-    { color: config.color, position: config.position },
+    {
+      color: config.color,
+      position: config.position,
+      fullscreen: config.fullscreen,
+      fontUrl: config.fontUrl,
+    },
   );
-  if (config.autoOpen) ui.openPanel();
+  ui.setConnected(false);
+  if (config.autoOpen || config.fullscreen) ui.openPanel();
 
   function showCsatPromptFor(targetConversationId: string): void {
     ui.showCsatPrompt((score, comment) => {

@@ -30,10 +30,8 @@ for (const file of ['chat.html', 'chat.css', 'chat.js']) {
   await cp(join(root, 'apps/api/public', file), join(target, 'apps/api/public', file));
 }
 await mkdir(join(target, 'apps/api/public/widget-dist'), { recursive: true });
-await cp(
-  join(root, 'apps/widget/dist/widget.js'),
-  join(target, 'apps/api/public/widget-dist/widget.js'),
-);
+for (const file of ['widget.js', 'mira-font.woff2', 'font-license.txt'])
+  await cp(join(root, 'apps/widget/dist', file), join(target, 'apps/api/public/widget-dist', file));
 await cp(join(root, 'apps/dashboard/dist'), join(target, 'apps/api/dashboard'), {
   recursive: true,
 });

@@ -62,6 +62,11 @@ remain enforced. See [the operator workspace guide](docs/operator-workspace.md).
 Upload assistant and operator images up to 10 MiB, adjust the circular crop and save a small
 avatar. The widget has a rounded composer and queue-driven AI animations with reduced-motion support.
 
+The white RTL widget guides visitors with intent cards and configured quick replies. Its composer
+stays available while browsing product suggestions; sorting and the stock filter apply only to
+that reply's products. Expand the same conversation to fullscreen without losing drafts or
+history. Direct chat uses `data-fullscreen`; Vazirmatn and its license ship beside `widget.js`.
+
 Viewing a chat keeps AI running. Take over explicitly or send an operator reply; the chat badge
 also lets the responsible operator return an open conversation to the enabled assistant.
 

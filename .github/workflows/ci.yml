@@ -49,7 +49,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: widget-dist
-          path: apps/widget/dist/widget.js
+          path: |
+            apps/widget/dist/widget.js
+            apps/widget/dist/mira-font.woff2
+            apps/widget/dist/font-license.txt
 
   # تست‌های واحد همه‌جا اجرا می‌شوند؛ تست‌های یکپارچگی روی Postgres و Redis **واقعی**
   # (service container) اجرا می‌شوند، نه ماک — قاعده‌ی ۸ پروژه.
@@ -188,7 +191,7 @@ jobs:
       - name: Stage the built widget for the demo page
         run: |
           mkdir -p apps/api/public/widget-dist
-          cp apps/widget/dist/widget.js apps/api/public/widget-dist/widget.js
+          cp apps/widget/dist/widget.js apps/widget/dist/mira-font.woff2 apps/widget/dist/font-license.txt apps/api/public/widget-dist/
 
       - name: Enable pgvector extension
         run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector;'

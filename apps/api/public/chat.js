@@ -8,6 +8,7 @@ if (!chatKey || chatKey.length > 255) {
   chatScript.src = '/widget-dist/widget.js';
   chatScript.dataset.widgetKey = chatKey;
   chatScript.dataset.autoOpen = 'true';
+  chatScript.dataset.fullscreen = 'true';
   chatScript.onerror = () => {
     document.getElementById('chat-notice').textContent =
       'بارگذاری گفتگو ناموفق بود؛ دوباره تلاش کنید.';

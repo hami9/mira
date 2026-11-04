@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@mira/shared-types": "*",
-    "socket.io-client": "^4.8.0"
+    "socket.io-client": "^4.8.0",
+    "vazirmatn": "^33.0.3"
   },
   "devDependencies": {
     "esbuild": "^0.23.1"

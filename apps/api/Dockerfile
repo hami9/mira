@@ -20,7 +20,7 @@ RUN npm run build -w apps/api
 RUN npm run build -w apps/dashboard
 RUN mkdir -p apps/api/dashboard apps/api/public/widget-dist && \
     cp -r apps/dashboard/dist/. apps/api/dashboard/ && \
-    cp apps/widget/dist/widget.js apps/api/public/widget-dist/widget.js
+    cp apps/widget/dist/widget.js apps/widget/dist/mira-font.woff2 apps/widget/dist/font-license.txt apps/api/public/widget-dist/
 RUN npm ci --omit=dev --include=optional --workspace=@mira/api --workspace=@mira/shared-types --include-workspace-root=false --ignore-scripts --no-audit --no-fund
 
 # مرحله runtime — همون ساختار /repo رو حفظ می‌کنیم تا symlink های workspace (node_modules/@kgchat/*) درست resolve بشن

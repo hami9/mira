@@ -47,18 +47,6 @@ async function bootstrap(): Promise<void> {
     );
   }
 
-  // فایل‌های استاتیک: خروجی build ویجت (`/widget-dist/widget.js`) که در production هم لازم است
-  app.useStaticAssets(join(__dirname, '..', 'public'));
-
-  // حالت یک‌آدرسی برای نصب سبک و پنل‌های میزبانی؛ فایل تنظیم فقط آدرس عمومی دارد.
-  if (config.get<string>('SERVE_DASHBOARD') === 'true') {
-    app.use('/config.js', (_req: Request, res: Response) => {
-      res.setHeader('Cache-Control', 'no-store');
-      res.type('application/javascript').send('window.__MIRA_API_URL__ = window.location.origin;');
-    });
-    app.useStaticAssets(join(__dirname, '..', 'dashboard'));
-  }
-
   const dashboardOrigins = (config.get<string>('CORS_ALLOWED_ORIGINS') ?? '')
     .split(',')
     .map((origin) => origin.trim())
@@ -82,6 +70,18 @@ async function bootstrap(): Promise<void> {
     },
     credentials: false,
   });
+
+  // فونت ویجت هم به CORS دامنه‌های مجاز نیاز دارد؛ استاتیک باید بعد از آن ثبت شود.
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+
+  // حالت یک‌آدرسی برای نصب سبک و پنل‌های میزبانی؛ فایل تنظیم فقط آدرس عمومی دارد.
+  if (config.get<string>('SERVE_DASHBOARD') === 'true') {
+    app.use('/config.js', (_req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('application/javascript').send('window.__MIRA_API_URL__ = window.location.origin;');
+    });
+    app.useStaticAssets(join(__dirname, '..', 'dashboard'));
+  }
 
   app.useWebSocketAdapter(new RedisIoAdapter(app));
 

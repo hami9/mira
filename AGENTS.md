@@ -676,3 +676,23 @@ include site/owner/version; replacing an image replaces its bytes and rotates th
 Keep optional platform dependencies in the API production install: Sharp needs them.
 Image confirmation persists immediately, independently of the surrounding settings form.
 The widget animates queue states and completed answers, respecting reduced motion.
+
+## 15. Widget experience
+
+The widget uses a white RTL shell with guided intent prompts, configured quick replies and a
+persistent composer. Fullscreen expands the existing UI in place, retaining drafts, history and
+the live session. `data-fullscreen="true"` starts in fullscreen; the direct-chat page sets it.
+Product carousels use existing validated message metadata. Sorting and the availability filter
+apply only to products in that reply, not the store catalog. Intent cards submit ordinary
+messages through the existing socket path; this adds no cart, account or order integration.
+
+The widget build copies self-hosted Vazirmatn to `mira-font.woff2` and its SIL license to
+`font-license.txt`, beside `widget.js`. Docker and the hosting archive retain all three files.
+Keep those assets together when staging the widget; no font CDN is used.
+
+Verification includes 128 passing unit tests, all workspace builds, ESLint, a compiled hosting
+archive and 13 live Chromium scenarios against real PostgreSQL, Redis, API, worker and operator
+dashboard. New checks cover 375/768/1280 px layouts, focus and draft preservation, reconnect,
+persisted product sorting/stock filtering, unsafe links, long names and self-hosted font CORS.
+The widget is 31,537 bytes gzip; the separate variable font is 111,152 bytes. Formatting passes
+for changed files; the full local check flags existing CRLF checkouts against the LF policy.

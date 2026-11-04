@@ -1,4 +1,13 @@
 import * as esbuild from 'esbuild';
+import { copyFile, mkdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+
+const require = createRequire(import.meta.url);
+const fontRoot = dirname(require.resolve('vazirmatn/package.json'));
+await mkdir('dist', { recursive: true });
+await copyFile(join(fontRoot, 'fonts/webfonts/Vazirmatn[wght].woff2'), 'dist/mira-font.woff2');
+await copyFile(join(fontRoot, 'OFL.txt'), 'dist/font-license.txt');
 
 const watch = process.argv.includes('--watch');
 

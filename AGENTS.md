@@ -695,4 +695,16 @@ archive and 13 live Chromium scenarios against real PostgreSQL, Redis, API, work
 dashboard. New checks cover 375/768/1280 px layouts, focus and draft preservation, reconnect,
 persisted product sorting/stock filtering, unsafe links, long names and self-hosted font CORS.
 The widget is 31,537 bytes gzip; the separate variable font is 111,152 bytes. Formatting passes
-for changed files; the full local check flags existing CRLF checkouts against the LF policy.
+for changed files and for a complete source snapshot normalized to LF. The Windows checkout's
+existing CRLF files otherwise fail the repository's LF formatting policy.
+
+The production Lite installation at `mira.hami9.ir` runs the tested widget and compiled CORS
+middleware from commit `f7b521f` in `mira-api:chat-f7b521f`, layered over its previous immutable
+API image. The worker and schema are unchanged. `/etc/mira/compose-files` includes
+`docker-compose.chat.yml`; account for this API image override during the next standard image
+upgrade. The source archive and deployment context are under `/opt/mira/releases/`. A database
+dump, prior compose selection and image identity are retained in `/var/backups/mira/chat-f7b521f`.
+To roll back, restore that backup's `compose-files` to `/etc/mira/compose-files` and recreate
+only the API with `docker compose -f docker-compose.lite.yml up -d --no-deps --pull never api`.
+Production desktop/mobile rendering, font delivery and socket connection were verified without
+sending a chat message. GitHub CI (including integration/E2E), CodeQL and image publishing passed.

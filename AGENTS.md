@@ -349,6 +349,11 @@ code.** This is the most important section of this file.
     and history always use unconditional redaction; credential filtering remains independent.
     Never infer an allowlist from arbitrary knowledge or visitor text.
 
+19. **Custom surface colors could stall contrast adjustment.** Rounding near the target
+    color prevented the old loop from reaching 4.5:1 for mid-gray surfaces such as `#757575`.
+    Adjustment now has an iteration bound, detects stalled progress and falls back to the
+    contrasting endpoint. A live Studio test changes this surface before continuing edits.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have
@@ -726,3 +731,30 @@ The theme update passed 128 unit tests, all workspace builds, ESLint, changed-fi
 and 14 live browser scenarios. The new case saves both colors in the dashboard, checks the
 tenant's stored appearance, reloads the existing embed and verifies invalid accent fallback.
 Contrast samples and layouts at 320/375/768/1280 px were also reviewed.
+
+## 16. Widget Studio
+
+Settings → Widget Studio configures identity/avatar, colors/surface, size/radius/density,
+launcher, welcome text, six ordered welcome cards, eight footer actions and display controls.
+Actions are prompt/link/human only; they do not create new commerce backend capabilities.
+The version-1 shared schema validates HTTP(S) credential-free links, text/array/UTF-8 size
+limits, feature flags and motion enums. Existing appearance JSON is reused; no migration.
+Known partial updates merge with stored settings. Unchanged legacy fields at the root and
+inside supported groups survive storage, but public sessions and template exports contain
+only normalized public fields. Unknown new fields and invalid imports are rejected.
+
+The Studio preview instantiates the real WidgetUi in a controlled iframe with an injected
+Document, local message callbacks and no visitor session/socket. Font/avatar reads remain
+normal asset requests. destroy() clears owned timers/nodes; restart restores the welcome
+after sample replies. Per-site unsaved drafts survive app navigation in memory, not browser
+reload/close. Avatar confirmation persists immediately through the existing bounded uploader.
+
+Launcher choices are none/breathe/float/ripple; popup choices are none/rise/scale/reveal.
+Attention animations finish within 4.5 seconds and stop when opened; reduced-motion disables
+all animation, including the ripple pseudo-element. Replay preserves drafts and history.
+Templates use format mira-widget/version 1.0.0, contain appearance only and require explicit
+publish after import/presets/reset. They exclude credentials, IDs and avatar URLs.
+
+Local verification includes 142 unit tests and 17 real-service Chromium scenarios, including
+tenant/permission boundaries, invalid input, logo upload, draft restoration, ordered custom
+actions, safe import/export, preview isolation, motion choices and a mid-gray surface.

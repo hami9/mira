@@ -20,3 +20,4 @@ export * from './visitors-directory';
 export * from './business-time';
 export * from './billing';
 export * from './runtime';
+export * from './widget-appearance';

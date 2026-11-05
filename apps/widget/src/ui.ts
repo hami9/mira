@@ -3,12 +3,16 @@ import {
   AI_STATUS_LABELS,
   safeHttpUrl,
   formatProductPrice,
+  DEFAULT_WIDGET_APPEARANCE,
+  normalizeWidgetAppearance,
 } from '@mira/shared-types';
 import type {
   MessagePayload,
   AiStatusPayload,
   WidgetAssistant,
   AiProduct,
+  WidgetAppearance,
+  WidgetAction,
 } from '@mira/shared-types';
 import { icons } from './icons';
 import { injectStyles } from './styles';
@@ -20,6 +24,8 @@ export interface WidgetUiOptions {
   position?: 'bottom-right' | 'bottom-left';
   fullscreen?: boolean;
   fontUrl?: string;
+  appearance?: WidgetAppearance;
+  document?: Document;
 }
 
 export interface WidgetUiCallbacks {
@@ -58,12 +64,26 @@ function contrast(first: string, second: string): number {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 
-function colorTokens(color: string, prefix: string): Record<string, string> {
-  const soft = blendColor(color, '#ffffff', 0.07);
+function colorTokens(color: string, prefix: string, surface = '#ffffff'): Record<string, string> {
+  let soft = blendColor(color, surface, 0.07);
   let ink = color;
+  const target =
+    contrast('#ffffff', surface) > contrast('#000000', surface) ? '#ffffff' : '#000000';
+  if (contrast(target, soft) < 4.5) soft = surface;
   // متن رنگی روی سفید و زمینه ملایم، حتی با رنگ سفارشی روشن، خوانا می‌ماند.
-  while (contrast(ink, '#ffffff') < 4.5 || contrast(ink, soft) < 4.5)
-    ink = blendColor(ink, '#000000', 0.9);
+  for (
+    let attempt = 0;
+    attempt < 64 && (contrast(ink, surface) < 4.5 || contrast(ink, soft) < 4.5);
+    attempt++
+  ) {
+    const next = blendColor(ink, target, 0.85);
+    if (next === ink) {
+      ink = target;
+      break;
+    }
+    ink = next;
+  }
+  if (contrast(ink, surface) < 4.5 || contrast(ink, soft) < 4.5) ink = target;
   const foreground =
     contrast(color, '#ffffff') >= 4.5
       ? '#ffffff'
@@ -74,7 +94,7 @@ function colorTokens(color: string, prefix: string): Record<string, string> {
     [prefix]: color,
     [`${prefix}-ink`]: ink,
     [`${prefix}-soft`]: soft,
-    [`${prefix}-border`]: blendColor(color, '#ffffff', 0.25),
+    [`${prefix}-border`]: blendColor(color, surface, 0.25),
     [`${prefix}-foreground`]: foreground,
     [`${prefix}-ring`]: `${color}22`,
     [`${prefix}-shadow`]: `${color}26`,
@@ -84,6 +104,8 @@ function colorTokens(color: string, prefix: string): Record<string, string> {
 export class WidgetUi {
   readonly bubble: HTMLButtonElement;
   readonly panel: HTMLDivElement;
+  private readonly doc: Document;
+  private readonly view: Window;
   private readonly messagesEl: HTMLDivElement;
   private readonly typingEl: HTMLDivElement;
   private readonly inputEl: HTMLTextAreaElement;
@@ -91,9 +113,9 @@ export class WidgetUi {
   private readonly triggerEl: HTMLDivElement;
   private readonly backdrop: HTMLDivElement;
   private csatCardEl: HTMLDivElement | null = null;
-  private typingTimeout: ReturnType<typeof setTimeout> | null = null;
+  private typingTimeout: number | null = null;
   private readonly seenMessages = new Set<string>();
-  private aiTimeout: ReturnType<typeof setTimeout> | null = null;
+  private aiTimeout: number | null = null;
   private aiMessageId: string | null = null;
   private sending = false;
   private connected = false;
@@ -103,33 +125,40 @@ export class WidgetUi {
   private messageCount = 0;
   private primaryColor = '#2e6be6';
   private accentColor = '#168b6a';
+  private appearance = normalizeWidgetAppearance(DEFAULT_WIDGET_APPEARANCE);
+  private assistant?: WidgetAssistant;
+  private destroyed = false;
 
   constructor(
     private readonly callbacks: WidgetUiCallbacks,
     options: WidgetUiOptions = {},
   ) {
-    injectStyles();
+    this.doc = options.document ?? document;
+    const view = this.doc.defaultView;
+    if (!view) throw new Error('پنجره پیش‌نمایش آماده نیست');
+    this.view = view;
+    injectStyles(this.doc);
     const fontUrl = options.fontUrl && safeHttpUrl(options.fontUrl);
-    if (fontUrl && !document.getElementById('mira-widget-font')) {
-      const font = document.createElement('style');
+    if (fontUrl && !this.doc.getElementById('mira-widget-font')) {
+      const font = this.doc.createElement('style');
       font.id = 'mira-widget-font';
       font.textContent = `@font-face { font-family: MiraVazirmatn; src: url(${JSON.stringify(fontUrl)}) format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; } .mira-panel, .mira-bubble, .mira-trigger { font-family: MiraVazirmatn, Vazirmatn, Tahoma, Arial, sans-serif; }`;
-      document.head.appendChild(font);
+      this.doc.head.appendChild(font);
     }
     const positionClass = options.position === 'bottom-left' ? 'mira-pos-left' : 'mira-pos-right';
-    this.bubble = document.createElement('button');
+    this.bubble = this.doc.createElement('button');
     this.bubble.type = 'button';
     this.bubble.className = `mira-bubble ${positionClass}`;
     this.bubble.setAttribute('aria-label', 'باز کردن گفتگوی پشتیبانی');
     this.bubble.setAttribute('aria-expanded', 'false');
     this.bubble.setAttribute('aria-controls', 'mira-chat-panel');
     this.bubble.innerHTML = `<span class="mira-icon mira-icon-chat">${icons.mark}</span><span class="mira-launcher-label">دستیار خرید میرا</span><span class="mira-icon mira-icon-close">${icons.close}</span>`;
-    this.triggerEl = document.createElement('div');
+    this.triggerEl = this.doc.createElement('div');
     this.triggerEl.className = `mira-trigger ${positionClass}`;
-    this.backdrop = document.createElement('div');
+    this.backdrop = this.doc.createElement('div');
     this.backdrop.className = 'mira-backdrop';
     this.backdrop.setAttribute('aria-hidden', 'true');
-    this.panel = document.createElement('div');
+    this.panel = this.doc.createElement('div');
     this.panel.id = 'mira-chat-panel';
     this.panel.className = `mira-panel ${positionClass}`;
     this.panel.dir = 'rtl';
@@ -171,8 +200,11 @@ export class WidgetUi {
     this.typingEl = this.panel.querySelector('.mira-typing')!;
     this.errorEl = this.panel.querySelector('.mira-error')!;
     this.inputEl = this.panel.querySelector('.mira-input')!;
-    this.configureAppearance(options);
     this.bubble.addEventListener('click', () => this.togglePanel());
+    this.bubble.addEventListener('animationend', (event) => {
+      if (event.animationName.startsWith('mira-attention'))
+        this.bubble.classList.add('mira-attention-played');
+    });
     this.panel.querySelector('.mira-send')!.addEventListener('click', () => void this.submit());
     this.panel
       .querySelector('.mira-header-close')!
@@ -181,17 +213,6 @@ export class WidgetUi {
       .querySelector('.mira-expand')!
       .addEventListener('click', () => this.setFullscreen(!this.fullscreen));
     this.backdrop.addEventListener('click', () => this.setFullscreen(false));
-    this.panel
-      .querySelector('.mira-human')!
-      .addEventListener('click', () => this.sendPrompt(HUMAN_PROMPT));
-    this.panel
-      .querySelector('.mira-shopping')!
-      .addEventListener('click', () =>
-        this.sendPrompt('برای انتخاب محصول مناسب با نیاز و بودجه‌ام راهنمایی‌ام کن.'),
-      );
-    this.panel
-      .querySelector('.mira-shipping')!
-      .addEventListener('click', () => this.sendPrompt('شرایط و زمان ارسال سفارش چیست؟'));
     this.panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -211,12 +232,13 @@ export class WidgetUi {
       this.updateSendButton();
       this.handleTyping();
     });
-    document.body.append(this.backdrop, this.bubble, this.triggerEl, this.panel);
-    this.configureAssistant();
+    this.doc.body.append(this.backdrop, this.bubble, this.triggerEl, this.panel);
+    this.configureAppearance(options);
     if (options.fullscreen) this.setFullscreen(true);
   }
 
   openPanel(): void {
+    if (this.destroyed) return;
     this.panel.classList.add('mira-open');
     this.panel.inert = false;
     this.bubble.classList.add('mira-bubble-open');
@@ -224,13 +246,18 @@ export class WidgetUi {
     this.bubble.setAttribute('aria-label', 'بستن گفتگوی پشتیبانی');
     this.hideTriggerBubble();
     // در موبایل باز شدن چت نباید با نمایش صفحه‌کلید، مسیرهای شروع را بپوشاند.
-    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches)
+    if (this.view.matchMedia('(hover: hover) and (pointer: fine)').matches)
       this.inputEl.focus({ preventScroll: true });
+    else if (this.fullscreen)
+      this.panel
+        .querySelector<HTMLButtonElement>('.mira-header-close')
+        ?.focus({ preventScroll: true });
   }
 
   private closePanel(): void {
     if (this.fullscreen) this.setFullscreen(false);
     this.panel.classList.remove('mira-open');
+    this.panel.classList.remove('mira-replay');
     this.panel.inert = true;
     this.bubble.classList.remove('mira-bubble-open');
     this.bubble.setAttribute('aria-expanded', 'false');
@@ -252,31 +279,139 @@ export class WidgetUi {
     expand.setAttribute('aria-label', fullscreen ? 'کوچک کردن گفتگو' : 'تمام‌صفحه کردن گفتگو');
     expand.title = fullscreen ? 'کوچک کردن' : 'تمام‌صفحه';
     if (fullscreen) {
-      this.bodyOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+      this.bodyOverflow = this.doc.body.style.overflow;
+      this.doc.body.style.overflow = 'hidden';
       this.openPanel();
     } else {
-      document.body.style.overflow = this.bodyOverflow;
-      expand.focus({ preventScroll: true });
+      this.doc.body.style.overflow = this.bodyOverflow;
+      if (!expand.hidden) expand.focus({ preventScroll: true });
+      else
+        this.panel
+          .querySelector<HTMLButtonElement>('.mira-header-close')
+          ?.focus({ preventScroll: true });
     }
   }
 
   configureAppearance(options: WidgetUiOptions): void {
+    if (options.appearance) this.appearance = normalizeWidgetAppearance(options.appearance);
+    else if (!this.panel.dataset.appearance) this.appearance = normalizeWidgetAppearance(undefined);
     this.primaryColor = hexColor(options.color) ?? this.primaryColor;
     this.accentColor = hexColor(options.accentColor) ?? this.accentColor;
+    if (options.appearance) {
+      this.primaryColor = hexColor(options.color) ?? this.appearance.color;
+      this.accentColor = hexColor(options.accentColor) ?? this.appearance.accentColor;
+    }
+    const surface = this.appearance.surfaceColor;
+    const neutral = colorTokens('#64748b', '--mira-neutral', surface);
+    const primary = colorTokens(this.primaryColor, '--mira-color', surface);
+    const accent = colorTokens(this.accentColor, '--mira-accent', surface);
+    const ink = contrast('#ffffff', surface) > contrast('#000000', surface) ? '#f5f7fa' : '#1c2b49';
     const tokens = {
-      ...colorTokens(this.primaryColor, '--mira-color'),
-      ...colorTokens(this.accentColor, '--mira-accent'),
+      ...primary,
+      ...accent,
       '--mira-gradient': this.primaryColor,
-      '--mira-teal': colorTokens(this.accentColor, '--mira-accent')['--mira-accent-ink'],
+      '--mira-teal': accent['--mira-accent-ink'],
+      '--mira-surface': surface,
+      '--mira-ink': colorTokens(ink, '--ink', surface)['--ink-ink'],
+      '--mira-muted': neutral['--mira-neutral-ink'],
+      '--mira-line': blendColor(ink, surface, 0.16),
+      '--mira-soft': blendColor(ink, surface, 0.035),
+      '--mira-success': colorTokens('#137d71', '--success', surface)['--success-ink'],
+      '--mira-danger': colorTokens('#a33437', '--danger', surface)['--danger-ink'],
+      '--mira-panel-width': { compact: '390px', comfortable: '560px', wide: '680px' }[
+        this.appearance.panelWidth
+      ],
+      '--mira-panel-radius': { soft: '32px', rounded: '24px', square: '6px' }[
+        this.appearance.radius
+      ],
+      '--mira-card-radius': { soft: '22px', rounded: '16px', square: '5px' }[
+        this.appearance.radius
+      ],
     };
+    const position = options.position ?? this.appearance.position;
     for (const element of [this.bubble, this.triggerEl, this.panel]) {
       for (const [name, value] of Object.entries(tokens)) element.style.setProperty(name, value);
-      if (options.position) {
-        element.classList.toggle('mira-pos-left', options.position === 'bottom-left');
-        element.classList.toggle('mira-pos-right', options.position === 'bottom-right');
-      }
+      element.classList.toggle('mira-pos-left', position === 'bottom-left');
+      element.classList.toggle('mira-pos-right', position === 'bottom-right');
     }
+    this.panel.dataset.appearance = '1';
+    this.panel.dataset.density = this.appearance.density;
+    this.panel.dataset.panelMotion = this.appearance.motion.panel;
+    this.bubble.dataset.launcherMotion = this.appearance.motion.launcher;
+    this.bubble.classList.toggle('mira-launcher-icon', this.appearance.launcher.style === 'icon');
+    this.bubble.querySelector('.mira-launcher-label')!.textContent = this.appearance.launcher.label;
+    this.bubble.title = this.appearance.launcher.label;
+    for (const feature of ['products', 'sources', 'copy'] as const)
+      this.panel.classList.toggle(`mira-hide-${feature}`, !this.appearance.features[feature]);
+    (this.panel.querySelector('.mira-expand') as HTMLButtonElement).hidden =
+      !this.appearance.features.fullscreen;
+    this.renderActions();
+    this.renderWelcome();
+  }
+
+  private actionElement(action: WidgetAction, card: boolean): HTMLElement | null {
+    if (!action.enabled || (action.type === 'human' && !this.appearance.features.human))
+      return null;
+    const url = action.type === 'link' && action.value ? safeHttpUrl(action.value) : null;
+    if (action.type === 'link' && !url) return null;
+    const element = this.doc.createElement(action.type === 'link' ? 'a' : 'button');
+    element.className = card ? 'mira-intent' : 'mira-action';
+    if (!card && ['shopping', 'shipping', 'human'].includes(action.id))
+      element.classList.add(`mira-${action.id}`);
+    if (action.type === 'human') element.classList.add('mira-human');
+    element.dataset.actionId = action.id;
+    if (url) {
+      const link = element as HTMLAnchorElement;
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    } else {
+      (element as HTMLButtonElement).type = 'button';
+      element.addEventListener('click', () =>
+        this.sendPrompt(action.type === 'human' ? HUMAN_PROMPT : action.value || action.label),
+      );
+    }
+    if (card) {
+      element.innerHTML = `<span class="mira-intent-icon">${icons[action.icon]}</span><span class="mira-intent-copy"><strong></strong><small></small></span>${icons.arrow}`;
+      element.querySelector('strong')!.textContent = action.label;
+      element.querySelector('small')!.textContent = action.hint;
+    } else {
+      element.innerHTML = `${icons[action.icon]}<span></span>`;
+      element.querySelector('span')!.textContent = action.label;
+      if (action.hint) element.title = action.hint;
+    }
+    return element;
+  }
+
+  private renderActions(): void {
+    const actions = this.panel.querySelector('.mira-actions')!;
+    actions.replaceChildren();
+    for (const action of this.appearance.actions) {
+      const element = this.actionElement(action, false);
+      if (element) actions.appendChild(element);
+    }
+    (actions as HTMLElement).hidden = !actions.childElementCount;
+  }
+
+  replayAnimations(): void {
+    if (this.destroyed) return;
+    this.panel.classList.remove('mira-replay');
+    this.bubble.classList.remove('mira-replay');
+    this.bubble.classList.remove('mira-attention-played');
+    void this.panel.offsetWidth;
+    this.panel.classList.add('mira-replay');
+    this.bubble.classList.add('mira-replay');
+  }
+
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    if (this.typingTimeout) this.view.clearTimeout(this.typingTimeout);
+    if (this.aiTimeout) this.view.clearTimeout(this.aiTimeout);
+    if (this.fullscreen) this.doc.body.style.overflow = this.bodyOverflow;
+    this.callbacks.onTypingChange(false);
+    for (const element of [this.panel, this.bubble, this.triggerEl, this.backdrop])
+      element.remove();
   }
 
   private togglePanel(): void {
@@ -292,10 +427,10 @@ export class WidgetUi {
     ).filter((element) => element.getClientRects().length > 0);
     const first = items[0];
     const last = items[items.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (event.shiftKey && this.doc.activeElement === first) {
       event.preventDefault();
       last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
+    } else if (!event.shiftKey && this.doc.activeElement === last) {
       event.preventDefault();
       first?.focus();
     }
@@ -337,8 +472,8 @@ export class WidgetUi {
   private handleTyping(): void {
     if (!this.connected) return;
     this.callbacks.onTypingChange(Boolean(this.inputEl.value.trim()));
-    if (this.typingTimeout) clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => this.callbacks.onTypingChange(false), 2000);
+    if (this.typingTimeout) this.view.clearTimeout(this.typingTimeout);
+    this.typingTimeout = this.view.setTimeout(() => this.callbacks.onTypingChange(false), 2000);
   }
 
   private resizeInput(): void {
@@ -347,6 +482,7 @@ export class WidgetUi {
   }
 
   appendMessage(content: string, senderType: MessageSenderType, message?: MessagePayload): void {
+    if (this.destroyed) return;
     if (message && this.seenMessages.has(message.id)) return;
     if (message) this.seenMessages.add(message.id);
     this.messageCount++;
@@ -354,11 +490,11 @@ export class WidgetUi {
     if (senderType !== MessageSenderType.VISITOR) this.clearAiStatus();
     const nearBottom =
       this.messagesEl.scrollHeight - this.messagesEl.scrollTop - this.messagesEl.clientHeight < 100;
-    const el = document.createElement('div');
+    const el = this.doc.createElement('div');
     el.className = `mira-msg mira-msg-${senderType}`;
-    const meta = document.createElement('div');
+    const meta = this.doc.createElement('div');
     meta.className = 'mira-msg-meta';
-    const label = document.createElement('span');
+    const label = this.doc.createElement('span');
     label.textContent =
       senderType === MessageSenderType.BOT
         ? `✦ ${this.botName}`
@@ -369,15 +505,15 @@ export class WidgetUi {
       label.textContent += ` · ${new Date(message.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}`;
     meta.appendChild(label);
     if (senderType !== MessageSenderType.VISITOR) {
-      const copy = document.createElement('button');
+      const copy = this.doc.createElement('button');
       copy.type = 'button';
       copy.className = 'mira-copy';
       copy.innerHTML = `${icons.copy}<span>کپی پاسخ</span>`;
       copy.setAttribute('aria-label', 'کپی پاسخ');
       copy.onclick = async () => {
         try {
-          if (!navigator.clipboard) throw new Error('clipboard unavailable');
-          await navigator.clipboard.writeText(content);
+          if (!this.view.navigator.clipboard) throw new Error('clipboard unavailable');
+          await this.view.navigator.clipboard.writeText(content);
           copy.querySelector('span')!.textContent = 'کپی شد';
         } catch {
           this.showError('کپی متن در این مرورگر ممکن نیست');
@@ -386,7 +522,7 @@ export class WidgetUi {
       meta.appendChild(copy);
     }
     el.appendChild(meta);
-    const body = document.createElement('div');
+    const body = this.doc.createElement('div');
     body.className = 'mira-msg-body';
     body.textContent = content;
     el.appendChild(body);
@@ -394,13 +530,13 @@ export class WidgetUi {
       this.appendProducts(el, message.aiMetadata.products ?? []);
       for (const source of message.aiMetadata.sources ?? []) {
         const url = source.url && safeHttpUrl(source.url);
-        const chip = document.createElement(url ? 'a' : 'span');
+        const chip = this.doc.createElement(url ? 'a' : 'span');
         chip.className = 'mira-source';
         chip.textContent = `↗ ${source.title}`;
-        if (url && chip instanceof HTMLAnchorElement) {
-          chip.href = url;
-          chip.target = '_blank';
-          chip.rel = 'noopener noreferrer';
+        if (url && chip.tagName === 'A') {
+          (chip as HTMLAnchorElement).href = url;
+          (chip as HTMLAnchorElement).target = '_blank';
+          (chip as HTMLAnchorElement).rel = 'noopener noreferrer';
         }
         el.appendChild(chip);
       }
@@ -413,21 +549,21 @@ export class WidgetUi {
   private appendProducts(parent: HTMLElement, products: AiProduct[]): void {
     const safeProducts = products.filter((product) => safeHttpUrl(product.url));
     if (!safeProducts.length) return;
-    const result = document.createElement('section');
+    const result = this.doc.createElement('section');
     result.className = 'mira-product-result';
     result.setAttribute('aria-label', 'محصولات پیشنهادی این پاسخ');
-    const heading = document.createElement('div');
+    const heading = this.doc.createElement('div');
     heading.className = 'mira-product-heading';
     heading.innerHTML = `${icons.box}<span>پیشنهادهای این پاسخ</span><small>${safeProducts.length.toLocaleString('fa-IR')} محصول</small>`;
     result.appendChild(heading);
-    const cards = document.createElement('div');
+    const cards = this.doc.createElement('div');
     cards.className = 'mira-products';
     cards.setAttribute('aria-label', 'مرور محصولات پیشنهادی');
-    const controls = document.createElement('div');
+    const controls = this.doc.createElement('div');
     controls.className = 'mira-product-controls';
-    const sortLabel = document.createElement('label');
+    const sortLabel = this.doc.createElement('label');
     sortLabel.textContent = 'مرتب‌سازی';
-    const sort = document.createElement('select');
+    const sort = this.doc.createElement('select');
     sort.className = 'mira-product-sort';
     sort.setAttribute('aria-label', 'مرتب‌سازی پیشنهادهای این پاسخ');
     for (const [value, title] of [
@@ -435,17 +571,17 @@ export class WidgetUi {
       ['price-asc', 'قیمت کمتر'],
       ['price-desc', 'قیمت بیشتر'],
     ]) {
-      const option = document.createElement('option');
+      const option = this.doc.createElement('option');
       option.value = value;
       option.textContent = title;
       sort.appendChild(option);
     }
     sortLabel.appendChild(sort);
-    const stockLabel = document.createElement('label');
-    const stock = document.createElement('input');
+    const stockLabel = this.doc.createElement('label');
+    const stock = this.doc.createElement('input');
     stock.type = 'checkbox';
     stock.className = 'mira-stock-filter';
-    stockLabel.append(stock, document.createTextNode('فقط موجودها'));
+    stockLabel.append(stock, this.doc.createTextNode('فقط موجودها'));
     controls.append(sortLabel, stockLabel);
     if (safeProducts.length > 1) result.appendChild(controls);
     const render = () => {
@@ -460,7 +596,7 @@ export class WidgetUi {
       }
       cards.replaceChildren(...visible.map((product) => this.productCard(product)));
       if (!visible.length) {
-        const empty = document.createElement('div');
+        const empty = this.doc.createElement('div');
         empty.className = 'mira-product-empty';
         empty.textContent = 'در این پیشنهادها محصول موجودی نیست. فیلتر را بردارید.';
         cards.appendChild(empty);
@@ -476,18 +612,18 @@ export class WidgetUi {
   }
 
   private productCard(product: AiProduct): HTMLAnchorElement {
-    const card = document.createElement('a');
+    const card = this.doc.createElement('a');
     card.className = 'mira-product';
     card.href = safeHttpUrl(product.url)!;
     card.target = '_blank';
     card.rel = 'noopener noreferrer';
-    const media = document.createElement('span');
+    const media = this.doc.createElement('span');
     media.className = 'mira-product-icon';
     media.innerHTML = icons.box;
     media.setAttribute('aria-hidden', 'true');
     const imageUrl = product.imageUrl && safeHttpUrl(product.imageUrl);
     if (imageUrl) {
-      const image = document.createElement('img');
+      const image = this.doc.createElement('img');
       image.src = imageUrl;
       image.alt = product.name;
       image.width = 220;
@@ -497,14 +633,14 @@ export class WidgetUi {
       image.addEventListener('error', () => image.replaceWith(media), { once: true });
       card.appendChild(image);
     } else card.appendChild(media);
-    const name = document.createElement('strong');
+    const name = this.doc.createElement('strong');
     name.textContent = product.name;
-    const stock = document.createElement('small');
+    const stock = this.doc.createElement('small');
     stock.textContent = product.inStock ? 'موجود در فروشگاه' : 'در حال حاضر ناموجود';
     if (!product.inStock) stock.className = 'mira-out-of-stock';
-    const price = document.createElement('b');
+    const price = this.doc.createElement('b');
     price.textContent = formatProductPrice(product);
-    const view = document.createElement('span');
+    const view = this.doc.createElement('span');
     view.className = 'mira-product-link';
     view.innerHTML = `مشاهده در فروشگاه ${icons.external}`;
     card.append(name, stock, price, view);
@@ -512,80 +648,70 @@ export class WidgetUi {
   }
 
   configureAssistant(assistant?: WidgetAssistant): void {
+    this.assistant = assistant;
     const store = assistant?.siteName?.trim() || 'فروشگاه';
     if (assistant?.enabled) this.botName = assistant.name;
-    const logo = this.panel.querySelector('.mira-header-logo')!;
-    logo.innerHTML = icons.mark;
-    if (assistant?.enabled && assistant.avatarUrl && safeHttpUrl(assistant.avatarUrl)) {
-      const avatar = document.createElement('img');
-      avatar.src = safeHttpUrl(assistant.avatarUrl)!;
-      avatar.alt = '';
-      avatar.width = 46;
-      avatar.height = 46;
-      avatar.referrerPolicy = 'no-referrer';
-      logo.replaceChildren(avatar);
-    }
     this.panel.querySelector('.mira-header-title')!.textContent = assistant?.enabled
       ? this.botName
       : `پشتیبانی ${store}`;
     this.panel.querySelector('.mira-header-sub')!.textContent = assistant?.enabled
       ? `دستیار ${store} · همراه با پشتیبان انسانی`
       : `${store} · پاسخ‌گوی شما`;
-    this.bubble.querySelector('.mira-launcher-label')!.textContent = assistant?.enabled
-      ? 'دستیار خرید'
-      : 'گفتگو با پشتیبانی';
-    (this.panel.querySelector('.mira-shopping') as HTMLButtonElement).hidden = !assistant?.enabled;
+    this.renderMark(this.panel.querySelector('.mira-header-logo')!);
+    this.renderMark(this.bubble.querySelector('.mira-icon-chat')!);
+    this.renderWelcome();
+  }
+
+  private renderMark(target: Element): void {
+    target.innerHTML = icons.mark;
+    const url = this.assistant?.avatarUrl && safeHttpUrl(this.assistant.avatarUrl);
+    if (!url) return;
+    const avatar = this.doc.createElement('img');
+    avatar.src = url;
+    avatar.alt = '';
+    avatar.width = 46;
+    avatar.height = 46;
+    avatar.referrerPolicy = 'no-referrer';
+    target.replaceChildren(avatar);
+  }
+
+  private renderWelcome(): void {
     if (this.messageCount) return;
-    this.messagesEl.querySelector('.mira-welcome')?.remove();
-    const welcome = document.createElement('div');
+    const assistant = this.assistant;
+    const existing = this.messagesEl.querySelector('.mira-welcome');
+    const welcome = this.doc.createElement('div');
     welcome.className = 'mira-welcome';
-    welcome.innerHTML = `<div class="mira-welcome-hero"><div class="mira-welcome-heading"><div class="mira-welcome-eyebrow">${icons.spark}<span>همراه انتخاب شما</span></div><h1>انتخاب خوب،<br/><span>از یک گفتگو شروع می‌شود.</span></h1></div><div class="mira-welcome-mark" aria-hidden="true">${icons.mark}<span>قدم‌به‌قدم</span></div></div>`;
-    const text = document.createElement('p');
-    text.textContent = assistant?.enabled
-      ? assistant.greeting || 'بگویید چه می‌خواهید؛ با توجه به نیاز و بودجه شما پیش می‌رویم.'
-      : 'سوالتان را بنویسید تا همکاران ما راهنمایی‌تان کنند.';
+    welcome.innerHTML = `<div class="mira-welcome-hero"><div class="mira-welcome-heading"><div class="mira-welcome-eyebrow">${icons.spark}<span></span></div><h1></h1></div><div class="mira-welcome-mark" aria-hidden="true"><span class="mira-welcome-avatar"></span><span>قدم‌به‌قدم</span></div></div>`;
+    welcome.querySelector('.mira-welcome-eyebrow span')!.textContent =
+      this.appearance.welcome.eyebrow;
+    welcome.querySelector('h1')!.textContent = this.appearance.welcome.title;
+    this.renderMark(welcome.querySelector('.mira-welcome-avatar')!);
+    const text = this.doc.createElement('p');
+    text.textContent =
+      this.appearance.welcome.description ||
+      (assistant?.enabled
+        ? assistant.greeting || 'بگویید چه می‌خواهید؛ با توجه به نیاز و بودجه شما پیش می‌رویم.'
+        : 'سوالتان را بنویسید تا همکاران ما راهنمایی‌تان کنند.');
     welcome.appendChild(text);
-    const intents = document.createElement('div');
+    const intents = this.doc.createElement('div');
     intents.className = 'mira-intents';
-    const choices = assistant?.enabled
-      ? [
-          [
-            'box',
-            'محصول مناسب من',
-            'از نیاز شما تا گزینه مناسب، با هم پیش می‌رویم',
-            'برای انتخاب محصول مناسب با نیاز و بودجه‌ام راهنمایی‌ام کن.',
-          ],
-          [
-            'compare',
-            'مقایسه محصولات',
-            'تفاوت‌ها، روشن و کنار هم',
-            'می‌خواهم چند محصول را مقایسه کنم. برای شروع راهنمایی‌ام کن.',
-          ],
-          ['truck', 'خرید و ارسال', 'پاسخ سوال‌های پیش از خرید', 'شرایط و زمان ارسال سفارش چیست؟'],
-        ]
-      : [
-          ['headset', 'گفتگو با پشتیبان', 'سوالتان را با همکاران ما مطرح کنید', HUMAN_PROMPT],
-          ['truck', 'شرایط ارسال', 'راهنمای خرید و دریافت سفارش', 'شرایط و زمان ارسال سفارش چیست؟'],
-        ];
-    for (const [icon, title, hint, prompt] of choices) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'mira-intent';
-      button.innerHTML = `<span class="mira-intent-icon">${icons[icon as keyof typeof icons]}</span><span class="mira-intent-copy"><strong></strong><small></small></span>${icons.arrow}`;
-      button.querySelector('strong')!.textContent = title;
-      button.querySelector('small')!.textContent = hint;
-      button.onclick = () => this.sendPrompt(prompt);
-      intents.appendChild(button);
+    for (const action of this.appearance.welcome.cards) {
+      const element = this.actionElement(action, true);
+      if (element) intents.appendChild(element);
     }
     welcome.appendChild(intents);
-    if (assistant?.enabled && assistant.quickReplies.length) {
-      const quickTitle = document.createElement('div');
+    if (
+      assistant?.enabled &&
+      assistant.quickReplies.length &&
+      this.appearance.features.quickReplies
+    ) {
+      const quickTitle = this.doc.createElement('div');
       quickTitle.className = 'mira-quick-title';
       quickTitle.textContent = 'یا با یک سوال شروع کنید';
-      const quick = document.createElement('div');
+      const quick = this.doc.createElement('div');
       quick.className = 'mira-quick';
       for (const prompt of assistant.quickReplies) {
-        const button = document.createElement('button');
+        const button = this.doc.createElement('button');
         button.type = 'button';
         button.textContent = prompt;
         button.onclick = () => this.sendPrompt(prompt);
@@ -593,7 +719,8 @@ export class WidgetUi {
       }
       welcome.append(quickTitle, quick);
     }
-    this.messagesEl.appendChild(welcome);
+    if (existing) existing.replaceWith(welcome);
+    else this.messagesEl.appendChild(welcome);
   }
 
   setConnected(connected: boolean): void {
@@ -623,21 +750,21 @@ export class WidgetUi {
     this.clearAiStatus();
     this.aiMessageId = payload.messageId;
     const el = this.panel.querySelector('.mira-ai-status')!;
-    const spinner = document.createElement('span');
+    const spinner = this.doc.createElement('span');
     spinner.className = 'mira-thinking';
     spinner.textContent = '✦';
     spinner.setAttribute('aria-hidden', 'true');
-    el.append(spinner, document.createTextNode(AI_STATUS_LABELS[payload.stage]));
-    const dots = document.createElement('span');
+    el.append(spinner, this.doc.createTextNode(AI_STATUS_LABELS[payload.stage]));
+    const dots = this.doc.createElement('span');
     dots.className = 'mira-dots';
     dots.setAttribute('aria-hidden', 'true');
     dots.innerHTML = '<i></i><i></i><i></i>';
     el.appendChild(dots);
-    this.aiTimeout = setTimeout(() => this.clearAiStatus(), 60_000);
+    this.aiTimeout = this.view.setTimeout(() => this.clearAiStatus(), 60_000);
   }
 
   clearAiStatus(): void {
-    if (this.aiTimeout) clearTimeout(this.aiTimeout);
+    if (this.aiTimeout) this.view.clearTimeout(this.aiTimeout);
     this.aiTimeout = null;
     this.aiMessageId = null;
     this.panel.querySelector('.mira-ai-status')!.textContent = '';
@@ -654,7 +781,7 @@ export class WidgetUi {
   }
 
   showTriggerBubble(text: string, onOpen: () => void): void {
-    const open = document.createElement('button');
+    const open = this.doc.createElement('button');
     open.type = 'button';
     open.className = 'mira-trigger-open';
     open.textContent = text;
@@ -662,7 +789,7 @@ export class WidgetUi {
       this.openPanel();
       onOpen();
     };
-    const close = document.createElement('button');
+    const close = this.doc.createElement('button');
     close.type = 'button';
     close.className = 'mira-trigger-close';
     close.textContent = '×';
@@ -678,7 +805,7 @@ export class WidgetUi {
 
   showCsatPrompt(onSubmit: (score: number, comment: string) => void): void {
     this.hideCsatPrompt();
-    const card = document.createElement('div');
+    const card = this.doc.createElement('div');
     card.className = 'mira-csat';
     card.innerHTML =
       '<div>این گفتگو به پایان رسید. از پاسخ‌گویی چقدر راضی بودید؟</div><div class="mira-csat-stars" role="group" aria-label="امتیاز گفتگو"></div><button type="button" class="mira-csat-submit" disabled>ارسال امتیاز</button>';
@@ -686,7 +813,7 @@ export class WidgetUi {
     const submitButton = card.querySelector('.mira-csat-submit') as HTMLButtonElement;
     let selectedScore = 0;
     for (let i = 1; i <= 5; i++) {
-      const star = document.createElement('button');
+      const star = this.doc.createElement('button');
       star.type = 'button';
       star.className = 'mira-csat-star';
       star.textContent = '★';

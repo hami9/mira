@@ -1,5 +1,6 @@
 import type { BusinessHours, TriggerMessageConfig } from './business-hours';
 import type { AiPolicy, WidgetAssistant } from './ai';
+import type { WidgetAppearance } from './widget-appearance';
 
 export interface LoginRequestDto {
   email: string;
@@ -31,7 +32,7 @@ export interface WidgetSessionRequestDto {
 }
 
 export interface WidgetSessionResponseDto {
-  appearance?: { color?: string; accentColor?: string; position?: 'bottom-left' | 'bottom-right' };
+  appearance?: WidgetAppearance;
   assistant?: WidgetAssistant;
   visitorToken: string;
   visitorRef: string;

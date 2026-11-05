@@ -17,6 +17,7 @@ import { AiBillingSection } from './AiBillingSection';
 import { SystemSection } from './SystemSection';
 import { InstallSection } from './InstallSection';
 import { KnowledgeSection } from './KnowledgeSection';
+import { WidgetStudio } from './WidgetStudio';
 
 interface SettingsPageProps {
   onSiteNameChange?: (name: string) => void;
@@ -60,9 +61,15 @@ export function SettingsPage({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [studioDirty, setStudioDirty] = useState(false);
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  useEffect(() => {
+    if (!studioDirty) setPendingTab(null);
+  }, [studioDirty]);
   const tabs = [
     { key: 'ai', label: 'هوش مصنوعی', allowed: canManageSiteSettings },
     { key: 'knowledge', label: 'پایگاه دانش', allowed: canManageKnowledgeBase },
+    { key: 'studio', label: 'استودیو ویجت', allowed: canManageSiteSettings },
     { key: 'install', label: 'نصب و اتصال', allowed: canManageSiteSettings },
     {
       key: 'operations',
@@ -221,7 +228,11 @@ export function SettingsPage({
           <button
             type="button"
             key={item.key}
-            onClick={() => setTab(item.key)}
+            onClick={() => {
+              if (activeTab === 'studio' && studioDirty && item.key !== 'studio')
+                setPendingTab(item.key);
+              else setTab(item.key);
+            }}
             aria-pressed={activeTab === item.key}
             className={`shrink-0 rounded-lg px-4 py-2.5 text-xs transition-colors ${activeTab === item.key ? 'bg-primary-50 font-bold text-primary-700' : 'text-gray-500 hover:bg-gray-50'}`}
           >
@@ -229,6 +240,35 @@ export function SettingsPage({
           </button>
         ))}
       </nav>
+      {pendingTab && (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-900"
+        >
+          تغییرات استودیو هنوز منتشر نشده‌اند. برای نگه‌داشتن آن‌ها به ویرایش برگردید یا بدون ذخیره
+          ادامه دهید.
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPendingTab(null)}
+              className="min-h-11 rounded-lg bg-white px-3"
+            >
+              ادامه ویرایش
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab(pendingTab);
+                setPendingTab(null);
+                setStudioDirty(false);
+              }}
+              className="min-h-11 rounded-lg border border-amber-300 px-3"
+            >
+              ادامه بدون ذخیره
+            </button>
+          </div>
+        </div>
+      )}
       {saveError && (
         <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-xs text-red-600">
           {saveError}
@@ -236,6 +276,16 @@ export function SettingsPage({
       )}
 
       {activeTab === 'account' && <TwoFactorSection />}
+      {activeTab === 'studio' && canManageSiteSettings && (
+        <WidgetStudio
+          settings={settings}
+          onSave={handleSaveAiSettings}
+          onDirtyChange={setStudioDirty}
+          onAvatarChange={(url) =>
+            setSettings((previous) => (previous ? { ...previous, aiBotAvatarUrl: url } : previous))
+          }
+        />
+      )}
 
       {activeTab === 'install' && canManageSiteSettings && (
         <InstallSection settings={settings} onSave={handleSaveAiSettings} />

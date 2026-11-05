@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes, createHash } from 'node:crypto';
@@ -6,6 +6,9 @@ import {
   GeneratedApiKeyDto,
   PublicApiKeyStatusDto,
   UpdateSiteSettingsDto,
+  DEFAULT_WIDGET_APPEARANCE,
+  normalizeWidgetAppearance,
+  parseWidgetAppearance,
 } from '@mira/shared-types';
 import { SiteEntity } from '../../database/entities';
 
@@ -51,6 +54,56 @@ export class SitesService {
 
   async updateSettings(siteId: string, dto: UpdateSiteSettingsDto): Promise<SiteEntity> {
     const site = await this.findById(siteId);
+    if (dto.appearance !== undefined) {
+      const stored = site.appearance ?? {};
+      const keys = Object.keys(DEFAULT_WIDGET_APPEARANCE);
+      const patch = dto.appearance;
+      try {
+        const groups = ['launcher', 'welcome', 'features', 'motion'] as const;
+        const clean: Record<string, unknown> = {};
+        for (const key of Object.keys(patch)) {
+          if (!keys.includes(key) && JSON.stringify(patch[key]) !== JSON.stringify(stored[key]))
+            throw new Error('این گزینه ظاهر پشتیبانی نمی‌شود.');
+          if (keys.includes(key)) clean[key] = patch[key];
+        }
+        for (const key of groups) {
+          const part = clean[key];
+          if (!part || typeof part !== 'object' || Array.isArray(part)) continue;
+          const known = Object.keys(DEFAULT_WIDGET_APPEARANCE[key]);
+          const old =
+            stored[key] && typeof stored[key] === 'object' && !Array.isArray(stored[key])
+              ? (stored[key] as Record<string, unknown>)
+              : {};
+          for (const [name, value] of Object.entries(part)) {
+            if (!known.includes(name) && JSON.stringify(value) !== JSON.stringify(old[name]))
+              throw new Error('این گزینه ظاهر پشتیبانی نمی‌شود.');
+          }
+          clean[key] = Object.fromEntries(
+            Object.entries(part).filter(([name]) => known.includes(name)),
+          );
+        }
+        parseWidgetAppearance(clean);
+        const current = normalizeWidgetAppearance(stored);
+        const merged = { ...current, ...clean };
+        for (const key of groups) {
+          const part = clean[key];
+          if (part && typeof part === 'object' && !Array.isArray(part))
+            Object.assign(merged, { [key]: { ...current[key], ...part } });
+        }
+        const validated = parseWidgetAppearance(merged);
+        const saved: Record<string, unknown> = { ...stored, ...validated };
+        for (const key of groups) {
+          const old = stored[key];
+          if (old && typeof old === 'object' && !Array.isArray(old))
+            saved[key] = { ...old, ...validated[key] };
+        }
+        dto.appearance = saved;
+      } catch (error) {
+        throw new BadRequestException(
+          error instanceof Error ? error.message : 'تنظیمات ظاهر معتبر نیست.',
+        );
+      }
+    }
     // فیلد اختیاری DTO ممکن است در زمان اجرا undefined باشد؛ مقدار ذخیره‌شده نباید با آن پاک شود.
     Object.assign(
       site,

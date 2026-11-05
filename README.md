@@ -71,6 +71,10 @@ stays available while browsing product suggestions; sorting and the stock filter
 that reply's products. Expand the same conversation to fullscreen without losing drafts or
 history. Direct chat uses `data-fullscreen`; Vazirmatn and its license ship beside `widget.js`.
 
+Widget Studio provides per-store branding, layout, ordered actions, feature toggles and bounded
+animation choices with a real-widget preview. Edit drafts, import or export appearance templates,
+then save and publish; see [the Widget Studio guide](docs/widget-studio.md).
+
 Viewing a chat keeps AI running. Take over explicitly or send an operator reply; the chat badge
 also lets the responsible operator return an open conversation to the enabled assistant.
 

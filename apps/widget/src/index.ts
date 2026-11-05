@@ -127,6 +127,7 @@ async function main(): Promise<void> {
     });
     visitorToken = session.visitorToken;
     ui.configureAppearance({
+      appearance: session.appearance,
       color: config.color || session.appearance?.color,
       accentColor: config.accentColor || session.appearance?.accentColor,
       position: config.position || session.appearance?.position,

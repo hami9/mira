@@ -26,6 +26,9 @@ The remaining sections retain the original implementation plan as a record of sc
 
 ## Goal
 
+The reviewed implementation is deployed at mira.hami9.ir. A disposable store verified the
+production Studio, iframe security policy, publish and public widget without a live chat message.
+
 Give each store a no-code Widget Studio in Settings. A store can shape its own chat identity,
 welcome flow and layout while keeping the existing live-chat, AI and tenant boundaries.
 Reuse the current widget instead of building a second renderer that can drift from production.

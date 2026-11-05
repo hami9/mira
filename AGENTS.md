@@ -703,13 +703,13 @@ The current widget is 32,523 bytes gzip; the separate variable font is 111,152 b
 for changed files and for a complete source snapshot normalized to LF. The Windows checkout's
 existing CRLF files otherwise fail the repository's LF formatting policy.
 
-The production Lite installation at `mira.hami9.ir` runs the tested widget, theme settings and
-public session colors from commit `2d6336c` in `mira-api:theme-2d6336c`, layered over the previous
-`mira-api:chat-f7b521f` image with its CORS fix. The worker and schema are unchanged. `/etc/mira/compose-files` includes
+The production Lite installation at `mira.hami9.ir` runs Widget Studio and the tested widget
+from commit `554701f` in `mira-api:studio-554701f`, layered over the previous theme image.
+The worker and schema are unchanged. `/etc/mira/compose-files` includes
 `docker-compose.chat.yml`; account for this API image override during the next standard image
 upgrade. The source archive and deployment context are under `/opt/mira/releases/`. A database
-dump, prior API override and image identity are retained in `/var/backups/mira/theme-2d6336c`.
-To roll back this theme update, restore that backup's `api-override.yml` to
+dump, prior API override and image identity are retained in `/var/backups/mira/studio-554701f`.
+To roll back this Studio update, restore that backup's `api-override.yml` to
 `/opt/mira/app/docker-compose.chat.yml` and recreate only the API with
 `docker compose -f docker-compose.lite.yml -f docker-compose.chat.yml up -d --no-deps --pull never api`.
 Production desktop/mobile rendering, font delivery and socket connection were verified without
@@ -758,3 +758,7 @@ publish after import/presets/reset. They exclude credentials, IDs and avatar URL
 Local verification includes 142 unit tests and 17 real-service Chromium scenarios, including
 tenant/permission boundaries, invalid input, logo upload, draft restoration, ordered custom
 actions, safe import/export, preview isolation, motion choices and a mid-gray surface.
+The widget is 36,518 bytes gzip. Production verification used a disposable tenant to check
+the authenticated Studio, real iframe/CSP behavior, local-only preview, publish and public
+widget configuration without sending a live chat message. That tenant was removed afterward.
+CI (including integration/E2E), CodeQL and image publishing passed for commit `554701f`.

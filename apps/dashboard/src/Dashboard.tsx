@@ -6,6 +6,7 @@ import {
   type AgentPermission,
   type AgentPermissionMap,
   type AgentProfileDto,
+  type VisitorUpdatedPayload,
 } from '@mira/shared-types';
 import { ConversationDto, ListConversationsParams } from './api';
 import { connectDashboardSocket, type ConversationUpdatedPayload } from './socket';
@@ -65,6 +66,12 @@ export function Dashboard({
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDto | null>(null);
   const [filters, setFilters] = useState<ListConversationsParams>({});
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState('');
+  const [lastTrashed, setLastTrashed] = useState<ConversationDto | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [totalUnread, setTotalUnread] = useState(0);
+  const listRequest = useRef(0);
   const [showDetails, setShowDetails] = useState(() => window.innerWidth >= 1280);
   const socketRef = useRef<Socket | null>(null);
   const selectedConversationIdRef = useRef<string | null>(null);
@@ -78,22 +85,31 @@ export function Dashboard({
     filtersRef.current = filters;
   }, [filters]);
 
-  // شمارندهٔ فهرست جاری؛ مجموع تمام فروشگاه‌ها جداگانه در پوسته محاسبه می‌شود.
-  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
-
   const loadConversations = useCallback(
     async (currentFilters: ListConversationsParams) => {
+      const request = ++listRequest.current;
+      setListLoading(true);
       try {
-        const list = await apiClient.listConversations(currentFilters);
+        const [list, unread] = await Promise.all([
+          apiClient.listConversations(currentFilters),
+          apiClient.getUnreadCount(),
+        ]);
+        if (request !== listRequest.current) return;
         setConversations(list);
+        setTotalUnread(unread.unreadCount);
+        setListError('');
         setSelectedConversation((current) => {
           const fresh = list.find((item) => item.id === current?.id);
+          if (currentFilters.deleted === 'only' || (current && !fresh)) return null;
           return current && fresh && fresh.updatedAt >= current.updatedAt
             ? { ...fresh, unreadCount: current.unreadCount }
             : current;
         });
       } catch {
-        // تمدید نشست را پوستهٔ فروشگاه‌ها انجام می‌دهد.
+        if (request === listRequest.current)
+          setListError('دریافت گفتگوها انجام نشد؛ دوباره تلاش کنید.');
+      } finally {
+        if (request === listRequest.current) setListLoading(false);
       }
     },
     [apiClient],
@@ -111,6 +127,11 @@ export function Dashboard({
 
     const socket = connectDashboardSocket(() => apiClient.getAccessToken(), {
       onConversationUpdated: (payload) => {
+        if (payload.deleted || payload.deletedAt) {
+          setSelectedConversation((current) =>
+            current?.id === payload.conversationId ? null : current,
+          );
+        }
         loadConversations(filtersRef.current);
         onUnreadChange(siteId);
         // اگه پیام تازه از بازدیدکننده است و اپراتور همین لحظه اون مکالمه رو باز نکرده، اعلان بده
@@ -122,6 +143,7 @@ export function Dashboard({
       },
       onTyping: () => {},
       onError: (message) => console.warn('[میرا]', message),
+      onVisitorUpdated: (visitor) => apiClient.notifyVisitorUpdated(visitor),
     });
     socketRef.current = socket;
     socket.on('connect', () => {
@@ -134,6 +156,24 @@ export function Dashboard({
     };
     // filters عمداً در dependency نیست: نمی‌خوایم با هر تغییر فیلتر، سوکت قطع/وصل شه
   }, [apiClient, siteId, onUnreadChange, onMessage, loadConversations]);
+
+  useEffect(
+    () =>
+      apiClient.onVisitorUpdated((visitor: VisitorUpdatedPayload) => {
+        const apply = (item: ConversationDto): ConversationDto =>
+          item.visitorId === visitor.visitorId
+            ? {
+                ...item,
+                visitorDisplayName: visitor.displayName,
+                visitorFlags: visitor.flags,
+                visitorModeration: visitor.moderation,
+              }
+            : item;
+        setConversations((current) => current.map(apply));
+        setSelectedConversation((current) => (current ? apply(current) : current));
+      }),
+    [apiClient],
+  );
 
   useEffect(() => {
     ensureNotificationPermission();
@@ -167,9 +207,14 @@ export function Dashboard({
     setSelectedConversation((prev) =>
       prev && prev.id === conversationId ? { ...prev, unreadCount: 0 } : prev,
     );
+    void apiClient
+      .getUnreadCount()
+      .then(({ unreadCount }) => setTotalUnread(unreadCount))
+      .catch(() => {});
   }
 
   async function handleSelectConversation(conversation: ConversationDto): Promise<void> {
+    if (conversation.deletedAt || filters.deleted === 'only') return;
     selectedConversationIdRef.current = conversation.id;
     onConversationOpened(siteId, conversation.id);
     setSelectedConversation(conversation);
@@ -177,7 +222,11 @@ export function Dashboard({
     markConversationSeenLocally(conversation.id);
     apiClient
       .markConversationRead(conversation.id)
-      .then(() => onUnreadChange(siteId))
+      .then(() => {
+        onUnreadChange(siteId);
+        return apiClient.getUnreadCount();
+      })
+      .then(({ unreadCount }) => setTotalUnread(unreadCount))
       .catch(() => {});
   }
 
@@ -193,11 +242,34 @@ export function Dashboard({
 
   function handleConversationUpdated(updated: ConversationDto): void {
     setSelectedConversation((current) =>
-      current?.id === updated.id ? { ...updated, unreadCount: current.unreadCount } : current,
+      current?.id === updated.id
+        ? { ...current, ...updated, unreadCount: current.unreadCount }
+        : current,
     );
     setConversations((prev) =>
-      prev.map((c) => (c.id === updated.id ? { ...updated, unreadCount: c.unreadCount } : c)),
+      prev.map((c) => (c.id === updated.id ? { ...c, ...updated, unreadCount: c.unreadCount } : c)),
     );
+  }
+
+  function handleTrashed(conversation: ConversationDto) {
+    setLastTrashed(conversation);
+    setSelectedConversation(null);
+    void loadConversations(filtersRef.current);
+    onUnreadChange(siteId);
+  }
+  async function restoreConversation(conversation: ConversationDto) {
+    setRestoring(true);
+    setListError('');
+    try {
+      await apiClient.restoreConversation(conversation.id);
+      setLastTrashed(null);
+      await loadConversations(filtersRef.current);
+      onUnreadChange(siteId);
+    } catch {
+      setListError('بازگردانی گفتگو انجام نشد؛ دسترسی و اتصال را بررسی کنید.');
+    } finally {
+      setRestoring(false);
+    }
   }
 
   // اگر view پروفایل بازدیدکننده بدون id باشد (حالت غیرمنتظره)، مثل قبل به صندوق ورودی برمی‌گردیم
@@ -281,6 +353,7 @@ export function Dashboard({
     if (effectiveView === 'visitors-online') {
       return (
         <VisitorsOnlinePage
+          canModerate={can('moderateVisitors')}
           onChat={handleVisitorChat}
           onOpenVisitor={(visitorId) => {
             setViewedVisitorId(visitorId);
@@ -294,6 +367,7 @@ export function Dashboard({
     if (effectiveView === 'visitors-all') {
       return (
         <VisitorsAllPage
+          canModerate={can('moderateVisitors')}
           onChat={handleVisitorChat}
           onOpenVisitor={(visitorId) => {
             setViewedVisitorId(visitorId);
@@ -307,6 +381,7 @@ export function Dashboard({
     if (effectiveView === 'visitor-profile' && viewedVisitorId) {
       return (
         <VisitorProfilePage
+          canModerate={can('moderateVisitors')}
           onChat={() => handleVisitorChat(viewedVisitorId)}
           visitorId={viewedVisitorId}
           onClose={() => {
@@ -339,6 +414,32 @@ export function Dashboard({
         onLogout={handleLogout}
       />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {lastTrashed && (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"
+          >
+            گفتگو به زباله‌دان منتقل شد؛ سابقه حفظ شده است.
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={restoring}
+                onClick={() => void restoreConversation(lastTrashed)}
+                className="min-h-11 rounded-lg border border-amber-300 px-3"
+              >
+                بازگردانی گفتگو
+              </button>
+              <button
+                type="button"
+                onClick={() => setLastTrashed(null)}
+                className="min-h-11 px-2"
+                aria-label="بستن اعلان زباله‌دان"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
         {effectiveView === 'inbox' ? (
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <div
@@ -354,6 +455,12 @@ export function Dashboard({
                 selectedId={selectedConversation?.id ?? null}
                 filters={filters}
                 onFiltersChange={setFilters}
+                loading={listLoading}
+                error={listError}
+                onRetry={() => void loadConversations(filters)}
+                canDelete={can('deleteConversations')}
+                restoring={restoring}
+                onRestore={(conversation) => void restoreConversation(conversation)}
                 onSelect={handleSelectConversation}
               />
             </div>
@@ -368,12 +475,17 @@ export function Dashboard({
                   conversation={selectedConversation}
                   socket={socketRef.current}
                   onConversationUpdated={handleConversationUpdated}
+                  canModerate={can('moderateVisitors')}
+                  canDelete={can('deleteConversations')}
+                  canResolve={can('resolveConversations')}
+                  onTrashed={handleTrashed}
                   onMessageSeen={markConversationSeenLocally}
                 />
                 {showDetails && (
                   <div className="absolute inset-y-0 left-0 z-20 shadow-xl xl:static xl:shadow-none">
                     <VisitorInfoPanel
                       conversationId={selectedConversation.id}
+                      canModerate={can('moderateVisitors')}
                       onClose={() => setShowDetails(false)}
                     />
                   </div>

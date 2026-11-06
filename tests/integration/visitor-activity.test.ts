@@ -3,6 +3,8 @@ import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import Redis from 'ioredis';
+import { ModerationService } from '../../apps/api/src/modules/moderation/moderation.service';
 import * as entities from '../../apps/api/src/database/entities';
 import { ConversationsService } from '../../apps/api/src/modules/conversations/conversations.service';
 import { VisitorsService } from '../../apps/api/src/modules/visitors/visitors.service';
@@ -27,6 +29,7 @@ describe.skipIf(!hasDatabase)('visitor activity and operator conversations', () 
   let conversations: ConversationsService;
   let visitors: VisitorsService;
   let directory: VisitorsDirectoryService;
+  let redis: Redis;
   const entry = { url: 'https://store.test/product/one', title: 'محصول اول' };
   beforeAll(async () => {
     db = await connect();
@@ -50,11 +53,16 @@ describe.skipIf(!hasDatabase)('visitor activity and operator conversations', () 
       extra: { max: 5 },
     });
     await source.initialize();
+    const events = new EventEmitter2();
+    redis = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: Number(process.env.REDIS_PORT || 6379),
+    });
     conversations = new ConversationsService(
       source.getRepository(entities.ConversationEntity),
-      source.getRepository(entities.CsatRatingEntity),
       source.getRepository(entities.ConversationReadEntity),
-      new EventEmitter2(),
+      events,
+      new ModerationService(source, events, redis),
     );
     visitors = new VisitorsService(
       source.getRepository(entities.VisitorEntity),
@@ -63,6 +71,7 @@ describe.skipIf(!hasDatabase)('visitor activity and operator conversations', () 
     directory = new VisitorsDirectoryService(source);
   });
   afterAll(async () => {
+    await redis?.quit();
     if (source?.isInitialized) await source.destroy();
     if (db) {
       await cleanup(db, [site, other].filter(Boolean));
@@ -143,5 +152,20 @@ describe.skipIf(!hasDatabase)('visitor activity and operator conversations', () 
       site,
     ]);
     await expect(conversations.resumeAi(active.id, site, agent)).rejects.toThrow('بسته');
+  });
+
+  it('restores a trashed conversation as history when a newer active chat exists', async () => {
+    const visitorId = await createVisitor(db, site);
+    const original = await conversations.createConversation(site, visitorId);
+    await conversations.setTrashed(original.id, site, agent, true);
+    await expect(
+      conversations.ensureVisitorOwnsConversation(original.id, visitorId, site),
+    ).rejects.toMatchObject({ status: 404 });
+    const next = await conversations.createConversation(site, visitorId);
+    expect(next.id).not.toBe(original.id);
+    const restored = await conversations.setTrashed(original.id, site, agent, false);
+    expect(restored).toMatchObject({ status: 'resolved', aiPaused: true, lifecycleVersion: 2 });
+    const active = await conversations.findActiveForVisitor(visitorId, site);
+    expect(active?.id).toBe(next.id);
   });
 });

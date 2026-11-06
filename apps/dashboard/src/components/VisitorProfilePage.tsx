@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import type { VisitorProfileDto } from '@mira/shared-types';
+import { visitorDisplayName, type VisitorProfileDto } from '@mira/shared-types';
 import { useApiClient } from '../api-context';
 import { PageLocation } from './PageLocation';
+import { VisitorDetailsEditor, VisitorModerationControl } from './VisitorControls';
+import { VisitorFlags } from './VisitorLabels';
 
 interface VisitorProfilePageProps {
   visitorId: string;
   onClose: () => void;
   onChat: () => Promise<void>;
+  canModerate?: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -15,11 +18,32 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: 'حل‌شده',
 };
 
-export function VisitorProfilePage({ visitorId, onClose, onChat }: VisitorProfilePageProps) {
+export function VisitorProfilePage({
+  visitorId,
+  onClose,
+  onChat,
+  canModerate = false,
+}: VisitorProfilePageProps) {
   const apiClient = useApiClient();
   const [profile, setProfile] = useState<VisitorProfileDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  useEffect(
+    () =>
+      apiClient.onVisitorUpdated((visitor) =>
+        setProfile((current) =>
+          current?.id === visitor.visitorId
+            ? {
+                ...current,
+                displayName: visitor.displayName,
+                flags: visitor.flags,
+                moderation: visitor.moderation,
+              }
+            : current,
+        ),
+      ),
+    [apiClient],
+  );
   async function openChat() {
     setOpening(true);
     try {
@@ -32,12 +56,29 @@ export function VisitorProfilePage({ visitorId, onClose, onChat }: VisitorProfil
   }
 
   useEffect(() => {
+    let cancelled = false;
     setProfile(null);
-    apiClient
-      .getVisitorProfile(visitorId)
-      .then(setProfile)
-      .catch(() => setError('دریافت پروفایل بازدیدکننده با خطا مواجه شد'));
-  }, [visitorId]);
+    const load = () => {
+      if (document.visibilityState !== 'visible') return;
+      apiClient
+        .getVisitorProfile(visitorId)
+        .then((data) => {
+          if (!cancelled) {
+            setProfile(data);
+            setError(null);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setError('دریافت پروفایل بازدیدکننده با خطا مواجه شد');
+        });
+    };
+    load();
+    const timer = setInterval(load, 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [visitorId, apiClient]);
 
   if (!profile) {
     return (
@@ -50,7 +91,7 @@ export function VisitorProfilePage({ visitorId, onClose, onChat }: VisitorProfil
     );
   }
 
-  const displayName = profile.name || profile.email || `مهمان ${profile.visitorRef.slice(0, 8)}`;
+  const displayName = visitorDisplayName(profile);
 
   return (
     <div className="mx-auto max-w-3xl overflow-y-auto p-6">
@@ -91,11 +132,14 @@ export function VisitorProfilePage({ visitorId, onClose, onChat }: VisitorProfil
               </span>
             </div>
             {profile.email && <div className="text-xs text-gray-500">{profile.email}</div>}
+            <VisitorFlags flags={profile.flags} />
             <div className="font-mono text-[10px] text-gray-400">{profile.visitorRef}</div>
           </div>
         </div>
 
         <div className="mt-4 grid gap-2 text-xs text-gray-700 sm:grid-cols-2">
+          <div>نام دریافتی سایت: {profile.name ?? '—'}</div>
+          <div>شناسه کاربر سایت: {profile.externalId ?? '—'}</div>
           <div>مرورگر: {profile.browser ?? 'نامشخص'}</div>
           <div>سیستم‌عامل: {profile.os ?? 'نامشخص'}</div>
           <div>دستگاه: {profile.deviceType ?? 'desktop'}</div>
@@ -103,6 +147,15 @@ export function VisitorProfilePage({ visitorId, onClose, onChat }: VisitorProfil
           <div>آخرین فعالیت: {new Date(profile.lastSeenAt).toLocaleString('fa-IR')}</div>
         </div>
       </section>
+      <div className="mb-4 space-y-3">
+        {canModerate && <VisitorDetailsEditor visitor={profile} allowed />}
+        <VisitorModerationControl
+          visitorId={profile.id}
+          name={displayName}
+          moderation={profile.moderation}
+          allowed={canModerate}
+        />
+      </div>
 
       <section className="mb-4 rounded border border-gray-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-bold text-gray-700">

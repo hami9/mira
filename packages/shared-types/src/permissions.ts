@@ -14,6 +14,8 @@ export const AGENT_PERMISSIONS = [
   'viewVisitors',
   'deleteVisitorData',
   'resolveConversations',
+  'moderateVisitors',
+  'deleteConversations',
 ] as const;
 
 export type AgentPermission = (typeof AGENT_PERMISSIONS)[number];
@@ -31,6 +33,8 @@ export const PERMISSION_LABELS: Record<AgentPermission, string> = {
   viewVisitors: 'مشاهده بازدیدکنندگان',
   deleteVisitorData: 'حذف داده‌ی بازدیدکننده (حریم خصوصی)',
   resolveConversations: 'بستن (حل) مکالمه',
+  moderateVisitors: 'مدیریت بازدیدکننده و محدودیت‌ها',
+  deleteConversations: 'زباله‌دان گفتگوها',
 };
 
 // توضیح کوتاه هر دسترسی برای این‌که ادمین بداند دقیقاً چه چیزی را باز می‌کند
@@ -45,13 +49,21 @@ export const PERMISSION_DESCRIPTIONS: Record<AgentPermission, string> = {
   viewVisitors: 'صفحات بازدیدکنندگان آنلاین، فهرست کامل و پروفایل تک‌بازدیدکننده',
   deleteVisitorData: 'حذف کامل و برگشت‌ناپذیر داده‌های یک بازدیدکننده',
   resolveConversations: 'علامت‌زدن مکالمه به‌عنوان حل‌شده',
+  moderateVisitors: 'نام نمایشی، نشان‌ها، مسدود و بی‌صدا کردن بازدیدکنندگان',
+  deleteConversations: 'انتقال گفتگو به زباله‌دان و بازیابی آن',
 };
 
 // گروه‌بندی فقط برای نمایش مرتب‌تر در UI است و روی منطق دسترسی اثری ندارد
 export const PERMISSION_GROUPS: { title: string; permissions: AgentPermission[] }[] = [
   {
     title: 'گفتگو و بازدیدکنندگان',
-    permissions: ['resolveConversations', 'viewVisitors', 'deleteVisitorData'],
+    permissions: [
+      'resolveConversations',
+      'viewVisitors',
+      'moderateVisitors',
+      'deleteConversations',
+      'deleteVisitorData',
+    ],
   },
   { title: 'گزارش‌ها', permissions: ['viewReports', 'exportData'] },
   {

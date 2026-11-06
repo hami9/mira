@@ -3,10 +3,10 @@ import type { Client } from 'pg';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Repository } from 'typeorm';
 import { ConversationsService } from '../../apps/api/src/modules/conversations/conversations.service';
+import type { ModerationService } from '../../apps/api/src/modules/moderation/moderation.service';
 import type {
   ConversationEntity,
   ConversationReadEntity,
-  CsatRatingEntity,
 } from '../../apps/api/src/database/entities';
 import {
   cleanup,
@@ -47,9 +47,9 @@ describe.skipIf(!hasDatabase)('store unread totals', () => {
           query: (sql: string, params: unknown[]) => db.query(sql, params).then((r) => r.rows),
         },
       } as unknown as Repository<ConversationEntity>,
-      {} as Repository<CsatRatingEntity>,
       {} as Repository<ConversationReadEntity>,
       new EventEmitter2(),
+      {} as ModerationService,
     );
     const visitor = await createVisitor(db, site);
     conversation = await createConversation(db, site, visitor);

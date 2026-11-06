@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ModerationModule } from './modules/moderation/moderation.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -39,6 +40,7 @@ import { AvatarsModule } from './modules/avatars/avatars.module';
     AiQueueModule,
     WebhookQueueModule,
     DatabaseModule,
+    ModerationModule,
     // بعد از DatabaseModule چون به AgentEntity نیاز دارد
     PermissionsModule,
     HealthModule,

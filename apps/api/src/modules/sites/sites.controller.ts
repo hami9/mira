@@ -51,6 +51,7 @@ export class SitesController {
 
   private toSettingsDto(site: SiteEntity): SiteSettingsDto {
     return {
+      moderationPolicy: site.moderationPolicy,
       id: site.id,
       name: site.name,
       widgetKey: site.widgetKey,

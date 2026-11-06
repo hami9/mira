@@ -38,10 +38,21 @@ import type {
   AiUsageReport,
   SystemStatusDto,
   ConversationUnreadDto,
+  VisitorFlag,
+  VisitorModeration,
+  VisitorUpdatedPayload,
+  UpdateVisitorDetailsDto,
+  ModerateVisitorDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
 export interface ConversationDto {
+  visitorName?: string | null;
+  visitorExternalId?: string | null;
+  visitorDisplayName?: string | null;
+  visitorFlags?: VisitorFlag[];
+  visitorModeration?: VisitorModeration;
+  deletedAt?: string | null;
   id: string;
   siteId: string;
   visitorId: string;
@@ -58,12 +69,50 @@ export interface ConversationDto {
 }
 
 export interface ListConversationsParams {
+  deleted?: 'only';
   status?: string;
   department?: string;
   search?: string;
 }
 
 export class ApiClient {
+  private readonly visitorListeners = new Set<(visitor: VisitorUpdatedPayload) => void>();
+  onVisitorUpdated(listener: (visitor: VisitorUpdatedPayload) => void): () => void {
+    this.visitorListeners.add(listener);
+    return () => {
+      this.visitorListeners.delete(listener);
+    };
+  }
+  notifyVisitorUpdated(visitor: VisitorUpdatedPayload): void {
+    for (const listener of this.visitorListeners) listener(visitor);
+  }
+  async updateVisitorDetails(
+    id: string,
+    dto: UpdateVisitorDetailsDto,
+  ): Promise<VisitorUpdatedPayload> {
+    const visitor = await this.authedPatch<VisitorUpdatedPayload>(
+      `/v1/visitors/${id}/details`,
+      dto,
+    );
+    const updated = { ...visitor, visitorId: id };
+    this.notifyVisitorUpdated(updated);
+    return updated;
+  }
+  async moderateVisitor(id: string, dto: ModerateVisitorDto): Promise<VisitorUpdatedPayload> {
+    const visitor = await this.authedPost<VisitorUpdatedPayload>(
+      `/v1/visitors/${id}/moderation`,
+      dto,
+    );
+    const updated = { ...visitor, visitorId: id };
+    this.notifyVisitorUpdated(updated);
+    return updated;
+  }
+  trashConversation(id: string): Promise<ConversationDto> {
+    return this.authedPost<ConversationDto>(`/v1/conversations/${id}/trash`);
+  }
+  restoreConversation(id: string): Promise<ConversationDto> {
+    return this.authedPost<ConversationDto>(`/v1/conversations/${id}/restore`);
+  }
   async uploadAvatar(target: 'assistant' | 'me', image: Blob): Promise<{ url: string }> {
     const body = new FormData();
     body.append('image', image, 'avatar.png');
@@ -154,6 +203,7 @@ export class ApiClient {
     if (params.status) query.set('status', params.status);
     if (params.department) query.set('department', params.department);
     if (params.search) query.set('search', params.search);
+    if (params.deleted) query.set('deleted', params.deleted);
     const suffix = query.toString() ? `?${query.toString()}` : '';
     return this.authedGet<ConversationDto[]>(`/v1/conversations${suffix}`);
   }
@@ -180,7 +230,7 @@ export class ApiClient {
 
   async updateConversation(
     conversationId: string,
-    dto: { department?: string | null; tags?: string[] },
+    dto: { department?: string | null; tags?: string[]; priority?: 'normal' | 'high' },
   ): Promise<ConversationDto> {
     return this.authedPatch<ConversationDto>(`/v1/conversations/${conversationId}`, dto);
   }

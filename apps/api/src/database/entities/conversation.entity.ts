@@ -10,6 +10,12 @@ import { ConversationStatus } from '@mira/shared-types';
 
 @Entity('conversations')
 export class ConversationEntity {
+  @Column({ type: 'timestamptz', nullable: true })
+  deletedAt!: Date | null;
+  @Column({ type: 'uuid', nullable: true })
+  deletedById!: string | null;
+  @Column({ type: 'int', default: 0 })
+  lifecycleVersion!: number;
   @Column({ type: 'jsonb', nullable: true })
   entryPage!: { url: string; title: string | null } | null;
 

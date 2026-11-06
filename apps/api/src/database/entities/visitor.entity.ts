@@ -6,10 +6,27 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { VisitorFlag } from '@mira/shared-types';
 
 // بازدیدکننده ناشناس/شناسایی‌شده روی ویجت — همیشه وابسته به یک site_id مشخص
 @Entity('visitors')
 export class VisitorEntity {
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  displayName!: string | null;
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  flags!: VisitorFlag[];
+  @Column({ type: 'timestamptz', nullable: true })
+  blockedAt!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true })
+  blockedUntil!: Date | null;
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  blockReason!: string | null;
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  blockSource!: 'manual' | 'spam' | null;
+  @Column({ type: 'timestamptz', nullable: true })
+  mutedUntil!: Date | null;
+  @Column({ type: 'int', default: 0 })
+  moderationVersion!: number;
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

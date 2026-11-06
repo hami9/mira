@@ -2,6 +2,7 @@ import { AiSummarizeConversationJobData } from '@mira/shared-types';
 import { pool } from '../db';
 import { chatCompletion } from '../ai/chat';
 import { plainText } from '../ai/guardrails';
+import { captureLifecycle, lockLifecycle } from './lifecycle';
 
 const SENDER_LABELS: Record<string, string> = { visitor: 'مشتری', agent: 'اپراتور', bot: 'ربات' };
 
@@ -14,12 +15,20 @@ const SYSTEM_PROMPT =
 export async function processSummarizeConversation(
   data: AiSummarizeConversationJobData,
 ): Promise<void> {
+  const lifecycle = await captureLifecycle(data);
+  if (!lifecycle) return;
+  const expected = {
+    ...data,
+    conversationVersion: lifecycle.conversationVersion,
+    visitorVersion: lifecycle.visitorVersion,
+  };
   const transcript = await getTranscript(data.conversationId, data.siteId);
   if (!transcript) return;
   const site = (
     await pool.query<{ name: string }>('SELECT name FROM sites WHERE id = $1', [data.siteId])
   ).rows[0];
   if (!site) return;
+  if (!(await captureLifecycle(expected))) return;
 
   // تاریخچه به‌عنوان متن داخل یک user turn تنها فرستاده می‌شه (نه چند نوبت متناوب) چون آخرین
   // پیام گفتگوی resolve‌شده معمولاً از طرف اپراتور/رباته و بعضی providerها (Gemini) درخواستی
@@ -39,11 +48,24 @@ export async function processSummarizeConversation(
   );
   if (!summary) return;
 
-  await pool.query(`UPDATE conversations SET summary = $1 WHERE id = $2 AND "siteId" = $3`, [
-    summary,
-    data.conversationId,
-    data.siteId,
-  ]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    if (!(await lockLifecycle(client, expected, lifecycle))) {
+      await client.query('ROLLBACK');
+      return;
+    }
+    await client.query(
+      `UPDATE conversations SET summary=$1 WHERE id=$2 AND "siteId"=$3 AND "deletedAt" IS NULL`,
+      [summary, data.conversationId, data.siteId],
+    );
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function getTranscript(conversationId: string, siteId: string): Promise<string> {

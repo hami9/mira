@@ -34,6 +34,7 @@ export class ConversationsController {
     @Query('search') search?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('deleted') deleted?: string,
   ) {
     return this.conversationsService.listForSite(agent.siteId, agent.sub, {
       status,
@@ -41,6 +42,7 @@ export class ConversationsController {
       search,
       cursor,
       limit: limit ? Number(limit) : undefined,
+      deleted: deleted === 'only' ? 'only' : undefined,
     });
   }
 
@@ -85,15 +87,28 @@ export class ConversationsController {
     return this.conversationsService.markAsRead(id, agent.siteId, agent.sub);
   }
 
+  @Post(':id/trash')
+  @RequirePermission('deleteConversations')
+  trash(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
+    return this.conversationsService.setTrashed(id, agent.siteId, agent.sub, true);
+  }
+
+  @Post(':id/restore')
+  @RequirePermission('deleteConversations')
+  restore(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
+    return this.conversationsService.setTrashed(id, agent.siteId, agent.sub, false);
+  }
+
   // Copilot: پیشنهاد پاسخ — نتیجه سنکرون برنمی‌گرده، از طریق Socket.io (ai:reply-suggested) می‌رسه
   @Post(':id/suggest-reply')
   @HttpCode(202)
   async suggestReply(@CurrentAgent() agent: AgentAccessTokenPayload, @Param('id') id: string) {
-    await this.conversationsService.findByIdForSite(id, agent.siteId);
+    const versions = await this.conversationsService.jobVersions(id, agent.siteId);
     await this.aiQueue.enqueueSuggestReply({
       siteId: agent.siteId,
       conversationId: id,
       agentId: agent.sub,
+      ...versions,
     });
   }
 }

@@ -762,3 +762,26 @@ The widget is 36,518 bytes gzip. Production verification used a disposable tenan
 the authenticated Studio, real iframe/CSP behavior, local-only preview, publish and public
 widget configuration without sending a live chat message. That tenant was removed afterward.
 CI (including integration/E2E), CodeQL and image publishing passed for commit `554701f`.
+
+## 17. Visitor moderation
+
+See [the moderation guide](docs/visitor-moderation.md). Migration `1737301300000` adds
+operator aliases, colored visitor flags, durable restrictions, recoverable conversation
+trash, store spam policy and lifecycle versions. Deploy API and worker together.
+`moderateVisitors` controls aliases/flags/block/mute; `deleteConversations` controls
+trash/restore. Existing agents receive no automatic grants. All lookups include siteId.
+
+Message acceptance locks visitor then conversation, checks existing clientMessageId before
+rate/spam accounting, and uses atomic Redis windows (6 repeated/15s or 15 messages/10s).
+Default spam block is ten minutes; no IP ban or content classifier. Browser identity changes
+can evade visitor-based limits. Manual restrictions preserve operator intent.
+
+Every moderation change and trash/restore increments its version. AI jobs capture both
+versions, check before generation and recheck under short locks before saving. Missing
+legacy versions mean zero. No row locks surround model requests. Trash is hidden from
+normal reads/reports/unread; restoration leaves AI paused and resolves historical chats
+if a newer active chat exists. Widget deletion recovery preserves its current draft.
+
+Review regressions: merge mutation responses into existing dashboard rows to retain visitor
+metadata; return 404 for an owned deleted history so reconnect can reset the widget; never
+restore a second active conversation. Verification results are recorded in the guide.

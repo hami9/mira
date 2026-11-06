@@ -15,6 +15,8 @@ import { useApiClient } from '../api-context';
 import { ConversationMeta } from './ConversationMeta';
 import { CannedResponsesPicker } from './CannedResponsesPicker';
 import { InternalNotesPanel } from './InternalNotesPanel';
+import { VisitorModerationControl } from './VisitorControls';
+import { conversationName, VisitorFlags } from './VisitorLabels';
 
 const SUGGESTION_TIMEOUT_MS = 20_000;
 
@@ -27,6 +29,10 @@ interface ChatWindowProps {
   socket: Socket | null;
   onConversationUpdated: (conversation: ConversationDto) => void;
   onMessageSeen: (conversationId: string) => void;
+  canModerate?: boolean;
+  canDelete?: boolean;
+  canResolve?: boolean;
+  onTrashed?: (conversation: ConversationDto) => void;
 }
 
 const SENDER_LABELS: Record<string, string> = {
@@ -44,6 +50,10 @@ export function ChatWindow({
   socket,
   onConversationUpdated,
   onMessageSeen,
+  canModerate = false,
+  canDelete = false,
+  canResolve = false,
+  onTrashed,
 }: ChatWindowProps) {
   const apiClient = useApiClient();
   const [messages, setMessages] = useState<MessagePayload[]>([]);
@@ -56,9 +66,31 @@ export function ChatWindow({
   const [isVisitorTyping, setIsVisitorTyping] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
   const [aiStage, setAiStage] = useState<AiStatusPayload['stage']>('idle');
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashBusy, setTrashBusy] = useState(false);
+  const [trashError, setTrashError] = useState('');
+  const trashDialog = useRef<HTMLDialogElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (trashOpen && trashDialog.current && !trashDialog.current.open)
+      trashDialog.current.showModal();
+    else if (!trashOpen) trashDialog.current?.close();
+  }, [trashOpen]);
+  async function trash() {
+    setTrashBusy(true);
+    setTrashError('');
+    try {
+      const updated = await apiClient.trashConversation(conversation.id);
+      setTrashOpen(false);
+      onTrashed?.(updated);
+    } catch {
+      setTrashError('انتقال به زباله‌دان انجام نشد؛ دسترسی و اتصال را بررسی کنید.');
+    } finally {
+      setTrashBusy(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -215,13 +247,14 @@ export function ChatWindow({
             →
           </button>
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-xs font-bold text-primary-600">
-            {conversation.visitorId.slice(0, 2).toUpperCase()}
+            {conversationName(conversation).slice(0, 2)}
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-bold text-gray-800">
-              بازدیدکننده #{conversation.visitorId.slice(0, 8)}
+              {conversationName(conversation)}
             </h2>
             <p className="mt-0.5 truncate text-[10px] text-gray-400">{siteName}</p>
+            <VisitorFlags flags={conversation.visitorFlags} />
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -238,7 +271,77 @@ export function ChatWindow({
           </button>
         </div>
       </header>
-      <ConversationMeta conversation={conversation} onUpdated={onConversationUpdated} />
+      {(canModerate ||
+        canDelete ||
+        conversation.visitorModeration?.blocked ||
+        conversation.visitorModeration?.mutedUntil) && (
+        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2">
+          <VisitorModerationControl
+            visitorId={conversation.visitorId}
+            name={conversationName(conversation)}
+            moderation={conversation.visitorModeration}
+            allowed={canModerate}
+          />
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                setTrashError('');
+                setTrashOpen(true);
+              }}
+              className="min-h-11 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs text-red-700"
+            >
+              انتقال به زباله‌دان
+            </button>
+          )}
+        </div>
+      )}
+      <dialog
+        ref={trashDialog}
+        onCancel={(event) => {
+          if (trashBusy) event.preventDefault();
+          else setTrashOpen(false);
+        }}
+        aria-labelledby={`trash-${conversation.id}`}
+        className="w-[min(440px,calc(100vw-32px))] rounded-2xl border border-slate-200 bg-white p-5 text-right text-slate-800 shadow-xl backdrop:bg-slate-900/40"
+      >
+        <h3 id={`trash-${conversation.id}`} className="font-bold">
+          انتقال گفتگو به زباله‌دان
+        </h3>
+        <p className="mt-3 text-sm font-bold">{conversationName(conversation)}</p>
+        <p className="mt-2 text-xs leading-6 text-slate-500">
+          این گفتگو از صندوق فعال کنار می‌رود و ارسال پیام در آن متوقف می‌شود. پیام‌ها حذف دائمی
+          نمی‌شوند و از زباله‌دان قابل بازگردانی است.
+        </p>
+        {trashError && (
+          <p role="alert" className="mt-3 text-xs text-red-700">
+            {trashError}
+          </p>
+        )}
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={trashBusy}
+            onClick={() => setTrashOpen(false)}
+            className="min-h-11 rounded-xl border px-3 text-xs"
+          >
+            انصراف
+          </button>
+          <button
+            type="button"
+            disabled={trashBusy}
+            onClick={() => void trash()}
+            className="min-h-11 rounded-xl bg-red-700 px-3 text-xs text-white disabled:opacity-50"
+          >
+            {trashBusy ? 'در حال انتقال…' : 'تأیید انتقال به زباله‌دان'}
+          </button>
+        </div>
+      </dialog>
+      <ConversationMeta
+        conversation={conversation}
+        onUpdated={onConversationUpdated}
+        canResolve={canResolve}
+      />
       <div
         role="log"
         aria-label="پیام‌های گفتگو"

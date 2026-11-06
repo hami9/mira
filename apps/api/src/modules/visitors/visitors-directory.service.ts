@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { VisitorListItemDto, VisitorProfileDto, VisitorStatsDto } from '@mira/shared-types';
+import {
+  VisitorListItemDto,
+  VisitorProfileDto,
+  VisitorStatsDto,
+  visitorModerationState,
+  type VisitorFlag,
+} from '@mira/shared-types';
 import { parseUserAgent } from '../../common/user-agent/parse-user-agent.util';
 
 // «آنلاین» یعنی در این بازه فعالیتی داشته — ویجت با هر page-view و هر پیام lastSeenAt را تازه می‌کند
@@ -43,7 +49,7 @@ export class VisitorsDirectoryService {
     if (options.search) {
       params.push(`%${options.search}%`);
       filters.push(
-        `(v.name ILIKE $${params.length} OR v.email ILIKE $${params.length} OR v."visitorRef" ILIKE $${params.length})`,
+        `(v.name ILIKE $${params.length} OR v."displayName" ILIKE $${params.length} OR v.id::text ILIKE $${params.length} OR v.email ILIKE $${params.length} OR v."visitorRef" ILIKE $${params.length})`,
       );
     }
     params.push(limit);
@@ -52,9 +58,9 @@ export class VisitorsDirectoryService {
     // برگردد (نه fan-out روی همه‌ی page-viewها که تعداد را خراب می‌کرد)
     const rows = await this.dataSource.query(
       `SELECT
-         v.id, v."visitorRef", v.name, v.email, v."firstSeenAt", v."lastSeenAt",
+         v.id, v."visitorRef", v.name, v.email, v."firstSeenAt", v."lastSeenAt", v."externalId", v."displayName", v.flags, v."blockedAt", v."blockedUntil", v."mutedUntil",
          (v."lastSeenAt" > now() - ($2 || ' minutes')::interval) AS "isOnline",
-         (SELECT COUNT(*) FROM conversations c WHERE c."visitorId" = v.id AND c."siteId"=$1)::int AS "conversationCount",
+         (SELECT COUNT(*) FROM conversations c WHERE c."visitorId" = v.id AND c."siteId"=$1 AND c."deletedAt" IS NULL)::int AS "conversationCount",
          lastc.id AS "latestConversationId", lastc."entryPage",
          lastpv."visitedAt" AS "currentPageVisitedAt",
          lastpv.url AS "currentPageUrl",
@@ -65,7 +71,7 @@ export class VisitorsDirectoryService {
          WHERE pv."visitorId" = v.id AND pv."siteId"=$1 ORDER BY pv."visitedAt" DESC LIMIT 1
        ) lastpv ON true
        LEFT JOIN LATERAL (
-         SELECT c.id,c."entryPage" FROM conversations c WHERE c."visitorId"=v.id AND c."siteId"=$1 ORDER BY c."createdAt" DESC LIMIT 1
+         SELECT c.id,c."entryPage" FROM conversations c WHERE c."visitorId"=v.id AND c."siteId"=$1 AND c."deletedAt" IS NULL ORDER BY c."createdAt" DESC LIMIT 1
        ) lastc ON true
        WHERE v."siteId" = $1 ${filters.length ? 'AND ' + filters.join(' AND ') : ''}
        ORDER BY v."lastSeenAt" DESC
@@ -75,6 +81,12 @@ export class VisitorsDirectoryService {
 
     return rows.map((row: Record<string, unknown>) => ({
       id: row.id as string,
+      externalId: row.externalId as string | null,
+      displayName: row.displayName as string | null,
+      flags: (row.flags ?? []) as VisitorFlag[],
+      moderation: visitorModerationState(
+        row as { blockedAt?: Date; blockedUntil?: Date; mutedUntil?: Date },
+      ),
       visitorRef: row.visitorRef as string,
       name: row.name as string | null,
       email: row.email as string | null,
@@ -107,7 +119,7 @@ export class VisitorsDirectoryService {
 
   async getProfile(siteId: string, visitorId: string): Promise<VisitorProfileDto> {
     const [visitor] = await this.dataSource.query(
-      `SELECT id, "visitorRef", name, email, "userAgent", "firstSeenAt", "lastSeenAt",
+      `SELECT id, "visitorRef", name, email, "userAgent", "firstSeenAt", "lastSeenAt", "externalId", "displayName", flags, "blockedAt", "blockedUntil", "mutedUntil",
               ("lastSeenAt" > now() - ($3 || ' minutes')::interval) AS "isOnline"
        FROM visitors WHERE id = $1 AND "siteId" = $2`,
       [visitorId, siteId, String(ONLINE_WINDOW_MINUTES)],
@@ -122,7 +134,7 @@ export class VisitorsDirectoryService {
               cs.score AS "csatScore"
        FROM conversations c
        LEFT JOIN csat_ratings cs ON cs."conversationId" = c.id AND cs."siteId"=$2
-       WHERE c."visitorId" = $1 AND c."siteId"=$2
+       WHERE c."visitorId" = $1 AND c."siteId"=$2 AND c."deletedAt" IS NULL
        ORDER BY c."createdAt" DESC`,
       [visitorId, siteId],
     );
@@ -137,6 +149,10 @@ export class VisitorsDirectoryService {
 
     return {
       id: visitor.id,
+      externalId: visitor.externalId,
+      displayName: visitor.displayName,
+      flags: visitor.flags ?? [],
+      moderation: visitorModerationState(visitor),
       visitorRef: visitor.visitorRef,
       name: visitor.name,
       email: visitor.email,

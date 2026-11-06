@@ -1,6 +1,11 @@
 // صفحات بازدیدکنندگان در داشبورد (آنلاین / همه / پروفایل)
+import type { VisitorFlag, VisitorModeration } from './moderation';
 
 export interface VisitorListItemDto {
+  externalId?: string | null;
+  displayName: string | null;
+  flags: VisitorFlag[];
+  moderation: VisitorModeration;
   id: string;
   visitorRef: string;
   name: string | null;
@@ -36,6 +41,10 @@ export interface VisitorPageViewDto {
 }
 
 export interface VisitorProfileDto {
+  externalId?: string | null;
+  displayName: string | null;
+  flags: VisitorFlag[];
+  moderation: VisitorModeration;
   id: string;
   visitorRef: string;
   name: string | null;

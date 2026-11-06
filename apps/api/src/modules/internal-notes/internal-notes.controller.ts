@@ -21,7 +21,7 @@ export class InternalNotesController {
     @Param('conversationId') conversationId: string,
   ) {
     await this.conversationsService.findByIdForSite(conversationId, agent.siteId);
-    return this.notesService.listForConversation(conversationId);
+    return this.notesService.listForConversation(agent.siteId, conversationId);
   }
 
   @Post()

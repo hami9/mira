@@ -1,26 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InternalNoteDto } from '@mira/shared-types';
 import { InternalNoteEntity } from '../../database/entities';
+import { ModerationService } from '../moderation/moderation.service';
+import { sanitizeMessageContent } from '../../common/sanitize/sanitize-message.util';
 
 @Injectable()
 export class InternalNotesService {
   constructor(
     @InjectRepository(InternalNoteEntity)
     private readonly notesRepository: Repository<InternalNoteEntity>,
+    private readonly moderation: ModerationService,
   ) {}
 
-  async listForConversation(conversationId: string): Promise<InternalNoteDto[]> {
-    const rows = await this.notesRepository
-      .createQueryBuilder('note')
-      .leftJoin('agents', 'agent', 'agent.id = note."agentId"')
-      .addSelect('agent."fullName"', 'agentFullName')
-      .where('note."conversationId" = :conversationId', { conversationId })
-      .orderBy('note."createdAt"', 'ASC')
-      .getRawAndEntities();
-
-    return rows.entities.map((note, index) => toDto(note, rows.raw[index]?.agentFullName));
+  async listForConversation(siteId: string, conversationId: string): Promise<InternalNoteDto[]> {
+    return this.notesRepository.manager.transaction(async (manager) => {
+      await this.moderation.lockConversation(manager, siteId, conversationId);
+      const rows = await manager
+        .getRepository(InternalNoteEntity)
+        .createQueryBuilder('note')
+        .leftJoin('agents', 'agent', 'agent.id = note."agentId" AND agent."siteId" = note."siteId"')
+        .addSelect('agent."fullName"', 'agentFullName')
+        .where('note."conversationId" = :conversationId AND note."siteId" = :siteId', {
+          conversationId,
+          siteId,
+        })
+        .orderBy('note."createdAt"', 'ASC')
+        .getRawAndEntities();
+      return rows.entities.map((note, index) => toDto(note, rows.raw[index]?.agentFullName));
+    });
   }
 
   async create(
@@ -29,12 +38,19 @@ export class InternalNotesService {
     agentId: string,
     content: string,
   ): Promise<InternalNoteDto> {
-    const note = this.notesRepository.create({ siteId, conversationId, agentId, content });
-    const saved = await this.notesRepository.save(note);
-    const agentRow: { fullName: string } | undefined = await this.notesRepository.manager
-      .query(`SELECT "fullName" FROM agents WHERE id = $1`, [agentId])
-      .then((rows) => rows[0]);
-    return toDto(saved, agentRow?.fullName);
+    return this.notesRepository.manager.transaction(async (manager) => {
+      await this.moderation.lockConversation(manager, siteId, conversationId);
+      const [agentRow]: { fullName: string }[] = await manager.query(
+        `SELECT "fullName" FROM agents WHERE id=$1 AND "siteId"=$2`,
+        [agentId, siteId],
+      );
+      if (!agentRow) throw new NotFoundException('اپراتور پیدا نشد');
+      const notes = manager.getRepository(InternalNoteEntity);
+      const saved = await notes.save(
+        notes.create({ siteId, conversationId, agentId, content: sanitizeMessageContent(content) }),
+      );
+      return toDto(saved, agentRow.fullName);
+    });
   }
 }
 

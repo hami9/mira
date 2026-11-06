@@ -1,5 +1,5 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { CustomerContextDto, VisitorInfoDto } from '@mira/shared-types';
+import { CustomerContextDto, VisitorInfoDto, visitorModerationState } from '@mira/shared-types';
 import { AgentJwtGuard } from '../../common/guards/agent-jwt.guard';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
@@ -39,6 +39,10 @@ export class VisitorInfoController {
     const { browser, os, deviceType } = parseUserAgent(visitor.userAgent);
 
     return {
+      externalId: visitor.externalId,
+      displayName: visitor.displayName,
+      flags: visitor.flags ?? [],
+      moderation: visitorModerationState(visitor),
       isOnline: Date.now() - visitor.lastSeenAt.getTime() < 5 * 60 * 1000,
       currentPage: pageViews[0]
         ? {

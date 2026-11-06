@@ -1,8 +1,8 @@
-import { ConversationStatus, SocketEvent } from '@mira/shared-types';
+import { ConversationStatus, SocketEvent, type MessageAck } from '@mira/shared-types';
 import type { Socket } from 'socket.io-client';
-import { WidgetApi } from './api';
+import { WidgetApi, WidgetApiError } from './api';
 import { connectWidgetSocket } from './socket';
-import { WidgetUi } from './ui';
+import { WidgetUi, WidgetSendError } from './ui';
 import { getStoredVisitorRef, newClientMessageId, storeVisitorRef } from './storage';
 
 interface WidgetConfig {
@@ -76,7 +76,10 @@ async function main(): Promise<void> {
         cancelTrigger();
         if (!socket?.connected || !visitorToken) throw new Error('اتصال برقرار نیست');
         if (!conversationId) {
-          const started = await api.startConversation(visitorToken);
+          const started = await api.startConversation(visitorToken).catch((error: unknown) => {
+            if (error instanceof WidgetApiError) throw new WidgetSendError(error.message);
+            throw error;
+          });
           conversationId = started.conversationId;
           socket?.emit(SocketEvent.ConversationJoin, { conversationId });
         }
@@ -84,11 +87,20 @@ async function main(): Promise<void> {
         // clientMessageId برای idempotency: اگه سوکت وسط ارسال قطع/وصل شه و پیام دوباره
         // فرستاده شه، سرور پیام تکراری نمی‌سازه (فاز ۷)
         if (pendingSend?.content !== content) pendingSend = { content, id: newClientMessageId() };
-        await socket.timeout(12_000).emitWithAck(SocketEvent.MessageSend, {
-          conversationId,
+        const targetId = conversationId;
+        const ack = (await socket.timeout(12_000).emitWithAck(SocketEvent.MessageSend, {
+          conversationId: targetId,
           content,
           clientMessageId: pendingSend.id,
-        });
+        })) as MessageAck;
+        if (!ack || !('id' in ack)) {
+          if (ack && 'error' in ack) {
+            if (ack.error.code === 'CONVERSATION_DELETED' && conversationId === targetId)
+              forgetConversation();
+            throw new WidgetSendError(ack.error.message);
+          }
+          throw new WidgetSendError('ارسال تأیید نشد. پیام شما حفظ شده؛ دوباره تلاش کنید.');
+        }
         pendingSend = null;
       },
       onTypingChange: (isTyping) => {
@@ -109,6 +121,25 @@ async function main(): Promise<void> {
   ui.setConnected(false);
   if (config.autoOpen || config.fullscreen) ui.openPanel();
 
+  function forgetConversation(): void {
+    conversationId = null;
+    pendingSend = null;
+    ui.resetConversation('این گفتگو حذف شده است. می‌توانید گفتگوی تازه‌ای شروع کنید.');
+  }
+
+  async function loadHistory(targetId: string, pendingRatingId?: string | null): Promise<void> {
+    try {
+      const history = await api.getMessages(visitorToken, targetId);
+      if (conversationId !== targetId) return;
+      for (const message of history) ui.appendMessage(message.content, message.senderType, message);
+      if (pendingRatingId === targetId) showCsatPromptFor(targetId);
+    } catch (error) {
+      if (conversationId !== targetId) return;
+      if (error instanceof WidgetApiError && error.status === 404) forgetConversation();
+      else ui.showError('بارگذاری تاریخچه مکالمه ناموفق بود');
+    }
+  }
+
   function showCsatPromptFor(targetConversationId: string): void {
     ui.showCsatPrompt((score, comment) => {
       api
@@ -126,6 +157,7 @@ async function main(): Promise<void> {
       email: config.visitorEmail,
     });
     visitorToken = session.visitorToken;
+    ui.setVisitorModeration(session.moderation);
     ui.configureAppearance({
       appearance: session.appearance,
       color: config.color || session.appearance?.color,
@@ -184,13 +216,7 @@ async function main(): Promise<void> {
         if (conversationId === id) return;
         conversationId = id;
         socket?.emit(SocketEvent.ConversationJoin, { conversationId: id });
-        try {
-          const history = await api.getMessages(visitorToken, id);
-          for (const message of history)
-            ui.appendMessage(message.content, message.senderType, message);
-        } catch {
-          /* هنگام اتصال دوباره تاریخچه دریافت می‌شود. */
-        }
+        await loadHistory(id);
       },
       onMessage: (message) => {
         if (message.conversationId !== conversationId) return;
@@ -207,6 +233,10 @@ async function main(): Promise<void> {
       },
       onConversationUpdated: (payload) => {
         if (payload.conversationId !== conversationId) return;
+        if (payload.deleted) {
+          forgetConversation();
+          return;
+        }
         if (payload.status === ConversationStatus.RESOLVED) {
           ui.clearAiStatus();
           showCsatPromptFor(payload.conversationId);
@@ -214,6 +244,7 @@ async function main(): Promise<void> {
           ui.hideCsatPrompt();
         }
       },
+      onModeration: (payload) => ui.setVisitorModeration(payload),
       onError: (message) => ui.showError(message),
     });
 
@@ -221,17 +252,7 @@ async function main(): Promise<void> {
       ui.setConnected(true);
       if (conversationId) {
         socket?.emit(SocketEvent.ConversationJoin, { conversationId });
-        try {
-          const history = await api.getMessages(visitorToken, conversationId);
-          for (const message of history) {
-            ui.appendMessage(message.content, message.senderType, message);
-          }
-          if (session.pendingRatingConversationId === conversationId) {
-            showCsatPromptFor(conversationId);
-          }
-        } catch {
-          ui.showError('بارگذاری تاریخچه مکالمه ناموفق بود');
-        }
+        await loadHistory(conversationId, session.pendingRatingConversationId);
       }
     });
     socket.on('disconnect', () => ui.setConnected(false));

@@ -25,6 +25,10 @@ import type {
 } from '@mira/shared-types';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+class ModerationPolicyDto {
+  @IsBoolean() spamEnabled!: boolean;
+  @IsInt() @Min(1) @Max(1440) blockMinutes!: number;
+}
 
 class AiPolicyDto implements AiPolicy {
   @IsOptional()
@@ -117,6 +121,11 @@ class TriggerMessageDto implements TriggerMessageConfig {
 }
 
 export class UpdateSiteSettingsRequestDto implements UpdateSiteSettingsDto {
+  @ValidateIf((dto: UpdateSiteSettingsRequestDto) => dto.moderationPolicy !== undefined)
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ModerationPolicyDto)
+  moderationPolicy?: ModerationPolicyDto;
   @ValidateIf((_object, value) => value !== undefined)
   @IsObject()
   @ValidateNested()

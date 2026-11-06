@@ -1,3 +1,4 @@
+import type { VisitorFlag, VisitorModeration } from './moderation';
 export interface PageViewDto {
   url: string;
   title: string | null;
@@ -5,6 +6,10 @@ export interface PageViewDto {
 }
 
 export interface VisitorInfoDto {
+  externalId?: string | null;
+  displayName: string | null;
+  flags: VisitorFlag[];
+  moderation: VisitorModeration;
   isOnline: boolean;
   currentPage: PageViewDto | null;
   entryPage: { url: string; title: string | null } | null;

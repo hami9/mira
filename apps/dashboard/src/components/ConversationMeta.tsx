@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react';
 import { ConversationStatus } from '@mira/shared-types';
 import { ConversationDto } from '../api';
 import { useApiClient } from '../api-context';
+import { TagChips } from './VisitorLabels';
 
 interface ConversationMetaProps {
   conversation: ConversationDto;
   onUpdated: (conversation: ConversationDto) => void;
+  canResolve?: boolean;
 }
 
-export function ConversationMeta({ conversation, onUpdated }: ConversationMetaProps) {
+export function ConversationMeta({
+  conversation,
+  onUpdated,
+  canResolve = false,
+}: ConversationMetaProps) {
   const apiClient = useApiClient();
   const [department, setDepartment] = useState(conversation.department ?? '');
   const [tagsInput, setTagsInput] = useState(conversation.tags.join(', '));
@@ -16,6 +22,11 @@ export function ConversationMeta({ conversation, onUpdated }: ConversationMetaPr
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
   const [controlBusy, setControlBusy] = useState(false);
   const [controlError, setControlError] = useState('');
+  const [detailsError, setDetailsError] = useState('');
+  useEffect(() => {
+    setDepartment(conversation.department ?? '');
+    setTagsInput(conversation.tags.join('، '));
+  }, [conversation.id, conversation.department, conversation.tags.join('\n')]);
   useEffect(() => {
     let mounted = true;
     apiClient
@@ -53,24 +64,46 @@ export function ConversationMeta({ conversation, onUpdated }: ConversationMetaPr
 
   async function saveDetails(): Promise<void> {
     setSaving(true);
+    setDetailsError('');
     try {
-      const tags = tagsInput
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean);
+      const tags = [
+        ...new Set(
+          tagsInput
+            .split(/[,،]/)
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        ),
+      ];
       const updated = await apiClient.updateConversation(conversation.id, {
         department: department.trim() || null,
         tags,
       });
       onUpdated(updated);
+    } catch {
+      setDetailsError('ذخیره جزئیات انجام نشد؛ دوباره تلاش کنید.');
     } finally {
       setSaving(false);
     }
   }
 
   async function resolve(): Promise<void> {
-    const updated = await apiClient.resolveConversation(conversation.id);
-    onUpdated(updated);
+    try {
+      const updated = await apiClient.resolveConversation(conversation.id);
+      onUpdated(updated);
+    } catch {
+      setDetailsError('بستن گفتگو انجام نشد؛ دسترسی و اتصال را بررسی کنید.');
+    }
+  }
+  async function setPriority(priority: 'normal' | 'high') {
+    setDetailsError('');
+    setSaving(true);
+    try {
+      onUpdated(await apiClient.updateConversation(conversation.id, { priority }));
+    } catch {
+      setDetailsError('تغییر اولویت انجام نشد؛ دوباره تلاش کنید.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const isResolved = conversation.status === ConversationStatus.RESOLVED;
@@ -118,24 +151,49 @@ export function ConversationMeta({ conversation, onUpdated }: ConversationMetaPr
           onChange={(e) => setDepartment(e.target.value)}
           onBlur={saveDetails}
           placeholder="دپارتمان"
+          aria-label="دپارتمان گفتگو"
           className="w-28 rounded border border-gray-300 p-1"
         />
         <input
           value={tagsInput}
           onChange={(e) => setTagsInput(e.target.value)}
           onBlur={saveDetails}
-          placeholder="برچسب‌ها (با کاما جدا کنید)"
+          placeholder="برچسب‌ها (با ، یا , جدا کنید)"
+          aria-label="برچسب‌های گفتگو"
           className="w-40 rounded border border-gray-300 p-1"
         />
         {saving && <span className="text-gray-400">در حال ذخیره...</span>}
-        <button
-          onClick={resolve}
-          disabled={isResolved}
-          className="mr-auto rounded bg-green-600 px-3 py-1 text-white disabled:bg-gray-300"
-        >
-          {isResolved ? 'حل‌شده' : 'حل مکالمه'}
-        </button>
+        <label className="flex items-center gap-2">
+          اولویت گفتگو
+          <select
+            aria-label="اولویت گفتگو"
+            value={conversation.priority}
+            disabled={saving}
+            onChange={(event) => void setPriority(event.target.value as 'normal' | 'high')}
+            className="min-h-10 rounded-xl border border-slate-200 px-2"
+          >
+            <option value="normal">عادی</option>
+            <option value="high">فوری</option>
+          </select>
+        </label>
+        {canResolve && (
+          <button
+            onClick={resolve}
+            disabled={isResolved}
+            className="mr-auto rounded bg-green-600 px-3 py-1 text-white disabled:bg-gray-300"
+          >
+            {isResolved ? 'حل‌شده' : 'حل مکالمه'}
+          </button>
+        )}
       </div>
+      <div className="px-3 pb-2">
+        <TagChips tags={conversation.tags} />
+      </div>
+      {detailsError && (
+        <p role="alert" className="px-3 pb-2 text-xs text-red-700">
+          {detailsError}
+        </p>
+      )}
       {conversation.summary && (
         <div className="border-t border-gray-100 bg-teal-50 px-2 py-1 text-xs text-teal-800">
           ✨ خلاصه: {conversation.summary}

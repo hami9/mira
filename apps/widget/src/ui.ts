@@ -13,6 +13,7 @@ import type {
   AiProduct,
   WidgetAppearance,
   WidgetAction,
+  VisitorModeration,
 } from '@mira/shared-types';
 import { icons } from './icons';
 import { injectStyles } from './styles';
@@ -34,6 +35,7 @@ export interface WidgetUiCallbacks {
 }
 
 const HUMAN_PROMPT = 'می‌خواهم با اپراتور انسانی صحبت کنم';
+export class WidgetSendError extends Error {}
 
 function hexColor(value?: string): string | undefined {
   return value && /^#[\da-f]{6}$/i.test(value) ? value.toLowerCase() : undefined;
@@ -119,6 +121,8 @@ export class WidgetUi {
   private aiMessageId: string | null = null;
   private sending = false;
   private connected = false;
+  private moderation: VisitorModeration = { blocked: false, blockedUntil: null, mutedUntil: null };
+  private moderationTimeout: number | null = null;
   private fullscreen = false;
   private bodyOverflow = '';
   private botName = 'دستیار میرا';
@@ -183,6 +187,7 @@ export class WidgetUi {
       <div class="mira-ai-status" role="status" aria-live="polite"></div>
       <div class="mira-typing" role="status"></div>
       <div class="mira-footer">
+        <div class="mira-moderation" role="status" aria-live="polite"></div>
         <div class="mira-actions" aria-label="دسترسی سریع">
           <button type="button" class="mira-shopping">${icons.spark}<span>مشاوره خرید</span></button>
           <button type="button" class="mira-shipping">${icons.truck}<span>شرایط ارسال</span></button>
@@ -408,6 +413,7 @@ export class WidgetUi {
     this.destroyed = true;
     if (this.typingTimeout) this.view.clearTimeout(this.typingTimeout);
     if (this.aiTimeout) this.view.clearTimeout(this.aiTimeout);
+    if (this.moderationTimeout) this.view.clearTimeout(this.moderationTimeout);
     if (this.fullscreen) this.doc.body.style.overflow = this.bodyOverflow;
     this.callbacks.onTypingChange(false);
     for (const element of [this.panel, this.bubble, this.triggerEl, this.backdrop])
@@ -452,7 +458,7 @@ export class WidgetUi {
 
   private async submit(): Promise<void> {
     const value = this.inputEl.value.trim();
-    if (!value || this.sending || !this.connected) return;
+    if (!value || this.sending || !this.connected || this.isRestricted()) return;
     this.sending = true;
     this.showError('');
     this.updateSendButton();
@@ -461,8 +467,12 @@ export class WidgetUi {
       if (this.inputEl.value.trim() === value) this.inputEl.value = '';
       this.resizeInput();
       this.callbacks.onTypingChange(false);
-    } catch {
-      this.showError('ارسال انجام نشد. پیام شما حفظ شده؛ دوباره ارسال کنید.');
+    } catch (error) {
+      this.showError(
+        error instanceof WidgetSendError
+          ? error.message
+          : 'ارسال انجام نشد. پیام شما حفظ شده؛ دوباره ارسال کنید.',
+      );
     } finally {
       this.sending = false;
       this.updateSendButton();
@@ -470,7 +480,7 @@ export class WidgetUi {
   }
 
   private handleTyping(): void {
-    if (!this.connected) return;
+    if (!this.connected || this.isRestricted()) return;
     this.callbacks.onTypingChange(Boolean(this.inputEl.value.trim()));
     if (this.typingTimeout) this.view.clearTimeout(this.typingTimeout);
     this.typingTimeout = this.view.setTimeout(() => this.callbacks.onTypingChange(false), 2000);
@@ -723,6 +733,73 @@ export class WidgetUi {
     else this.messagesEl.appendChild(welcome);
   }
 
+  resetConversation(message = ''): void {
+    this.hideCsatPrompt();
+    this.clearAiStatus();
+    this.setTypingIndicator(false);
+    this.seenMessages.clear();
+    this.messageCount = 0;
+    this.messagesEl.replaceChildren();
+    this.renderWelcome();
+    this.showError(message);
+  }
+
+  private isRestricted(): boolean {
+    const now = Date.now();
+    return (
+      (this.moderation.blocked &&
+        (!this.moderation.blockedUntil ||
+          new Date(this.moderation.blockedUntil).getTime() > now)) ||
+      !!(this.moderation.mutedUntil && new Date(this.moderation.mutedUntil).getTime() > now)
+    );
+  }
+
+  setVisitorModeration(value?: VisitorModeration): void {
+    this.moderation = value
+      ? { blocked: value.blocked, blockedUntil: value.blockedUntil, mutedUntil: value.mutedUntil }
+      : { blocked: false, blockedUntil: null, mutedUntil: null };
+    if (this.moderationTimeout) this.view.clearTimeout(this.moderationTimeout);
+    this.moderationTimeout = null;
+    const now = Date.now();
+    const blocked =
+      this.moderation.blocked &&
+      (!this.moderation.blockedUntil || new Date(this.moderation.blockedUntil).getTime() > now);
+    const muted =
+      this.moderation.mutedUntil && new Date(this.moderation.mutedUntil).getTime() > now;
+    const until = blocked
+      ? this.moderation.blockedUntil
+      : muted
+        ? this.moderation.mutedUntil
+        : null;
+    const expiry = until
+      ? new Date(until).toLocaleString('fa-IR', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '';
+    this.panel.querySelector('.mira-moderation')!.textContent = blocked
+      ? `ارسال پیام برای این کاربر غیرفعال است.${expiry ? ` پایان محدودیت: ${expiry}` : ''}`
+      : muted
+        ? `ارسال پیام موقتاً متوقف شده است. پایان سکوت: ${expiry}`
+        : '';
+    if (blocked || muted) {
+      this.clearAiStatus();
+      this.callbacks.onTypingChange(false);
+    }
+    this.updateSendButton();
+    const deadlines = [this.moderation.blockedUntil, this.moderation.mutedUntil]
+      .filter((date): date is string => !!date)
+      .map((date) => new Date(date).getTime())
+      .filter((date) => date > now);
+    if (deadlines.length)
+      this.moderationTimeout = this.view.setTimeout(
+        () => this.setVisitorModeration(this.moderation),
+        Math.min(Math.min(...deadlines) - now + 50, 2_147_483_647),
+      );
+  }
+
   setConnected(connected: boolean): void {
     this.connected = connected;
     this.panel.classList.toggle('mira-connected', connected);
@@ -738,7 +815,7 @@ export class WidgetUi {
 
   private updateSendButton(): void {
     (this.panel.querySelector('.mira-send') as HTMLButtonElement).disabled =
-      !this.connected || this.sending || !this.inputEl.value.trim();
+      !this.connected || this.sending || this.isRestricted() || !this.inputEl.value.trim();
     this.panel.querySelector('.mira-input-row')!.setAttribute('aria-busy', String(this.sending));
   }
 

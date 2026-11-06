@@ -7,6 +7,8 @@ export const AI_QUEUE_NAMES = {
 } as const;
 
 export interface AiBotReplyJobData {
+  conversationVersion?: number;
+  visitorVersion?: number;
   siteId: string;
   conversationId: string;
   visitorMessageId: string;
@@ -19,12 +21,16 @@ export interface AiEmbedDocumentJobData {
 }
 
 export interface AiSuggestReplyJobData {
+  conversationVersion?: number;
+  visitorVersion?: number;
   siteId: string;
   conversationId: string;
   agentId: string;
 }
 
 export interface AiSummarizeConversationJobData {
+  conversationVersion?: number;
+  visitorVersion?: number;
   siteId: string;
   conversationId: string;
 }

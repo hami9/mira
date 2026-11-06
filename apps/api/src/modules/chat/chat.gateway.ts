@@ -7,7 +7,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Inject, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { HttpException, Inject, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import Redis from 'ioredis';
@@ -21,7 +21,11 @@ import {
   SocketEvent,
   TypingPayload,
   containsUrgentKeywords,
+  visitorModerationState,
+  MessageAck,
+  VisitorUpdatedPayload,
 } from '@mira/shared-types';
+import { ModerationService } from '../moderation/moderation.service';
 import { ConversationEntity } from '../../database/entities';
 import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { TokenService } from '../../common/token/token.service';
@@ -72,6 +76,7 @@ export class ChatGateway
     private readonly webhookQueue: WebhookQueueService,
     private readonly automationService: AutomationService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly moderation: ModerationService,
   ) {}
 
   // پل Redis pub/sub: worker (فرآیند جدا) نتیجه‌ی AI رو روی این کانال منتشر می‌کنه چون
@@ -132,6 +137,11 @@ export class ChatGateway
       };
       Object.assign(client.data, data);
       await client.join(`visitor:${visitorPayload.siteId}:${visitorPayload.sub}`);
+      const visitor = await this.moderation.visitor(visitorPayload.siteId, visitorPayload.sub);
+      client.emit(SocketEvent.VisitorModerationChanged, {
+        visitorId: visitor.id,
+        ...visitorModerationState(visitor),
+      });
       const active = await this.conversationsService.findActiveForVisitor(
         visitorPayload.sub,
         visitorPayload.siteId,
@@ -173,108 +183,121 @@ export class ChatGateway
   async onMessageSend(
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { conversationId?: string; content?: string; clientMessageId?: string },
-  ): Promise<{ id: string } | void> {
-    if (!body?.conversationId || !body?.content?.trim()) return;
+  ): Promise<MessageAck> {
+    try {
+      if (!body?.conversationId || typeof body.content !== 'string' || !body.content.trim())
+        return { error: { code: 'SEND_FAILED', message: 'متن پیام معتبر نیست' } };
+      const data = client.data as SocketData;
+      const isAgent = data.role === 'agent';
+      const siteId = isAgent ? data.agentSiteId : data.visitorSiteId;
+      if (!siteId || (data.role !== 'agent' && data.role !== 'visitor'))
+        return { error: { code: 'SEND_FAILED', message: 'احراز هویت معتبر نیست' } };
+      const senderType = isAgent ? MessageSenderType.AGENT : MessageSenderType.VISITOR;
+      const senderId = (isAgent ? data.agentId : data.visitorId) ?? null;
+      const accepted = await this.moderation.acceptMessage(
+        {
+          siteId,
+          conversationId: body.conversationId,
+          senderType,
+          senderId,
+          rawContent: body.content.slice(0, MESSAGE_MAX_LENGTH),
+          clientMessageId: body.clientMessageId?.slice(0, 64) || null,
+        },
+        () =>
+          this.rateLimiter.consume(
+            `ws-msg:${siteId}:${isAgent ? 'agent' : 'visitor'}:${senderId}`,
+            isAgent ? 60 : 20,
+            10,
+          ),
+      );
+      const { message, conversation } = accepted;
+      if (accepted.duplicate) return { id: message.id };
 
-    let conversation = await this.assertAccess(client, body.conversationId);
-    if (!conversation) return;
-
-    const data = client.data as SocketData;
-    const isAgent = data.role === 'agent';
-
-    // اگه بازدیدکننده به یک مکالمه‌ی حل‌شده پیام بده، خودکار دوباره باز می‌شه
-    if (!isAgent && conversation.status === ConversationStatus.RESOLVED) {
-      conversation = await this.conversationsService.reopenIfResolved(conversation);
+      const payload: MessagePayload = {
+        id: message.id,
+        conversationId: message.conversationId,
+        senderType: message.senderType,
+        senderId: message.senderId,
+        content: message.content,
+        createdAt: message.createdAt.toISOString(),
+      };
       this.broadcastConversationStatus(conversation.id, conversation.siteId, conversation.status);
-    }
-    const rateLimitKey = isAgent
-      ? `ws-msg-agent:${data.agentId}`
-      : `ws-msg-visitor:${data.visitorId}`;
-    const allowed = await this.rateLimiter.consume(rateLimitKey, isAgent ? 60 : 20, 10);
-    if (!allowed) {
-      this.emitError(client, 'ارسال پیام بیش از حد مجاز است، لحظه‌ای صبر کنید');
-      return;
-    }
 
-    const senderType = isAgent ? MessageSenderType.AGENT : MessageSenderType.VISITOR;
-    // دیدن گفتگو کنترل را عوض نمی‌کند؛ ارسال پاسخ یعنی تحویل واقعی به پشتیبان.
-    if (isAgent && data.agentId) {
-      conversation = await this.conversationsService.assignAgent(
-        conversation.id,
-        conversation.siteId,
-        data.agentId,
-      );
-    }
-    const senderId = (isAgent ? data.agentId : data.visitorId) ?? null;
+      this.server
+        .to(`conversation:${conversation.id}`)
+        .to(`visitor:${conversation.siteId}:${conversation.visitorId}`)
+        .emit(SocketEvent.MessageNew, payload);
 
-    const message = await this.messagesService.create({
-      siteId: conversation.siteId,
-      conversationId: conversation.id,
-      senderType,
-      senderId,
-      rawContent: body.content.slice(0, MESSAGE_MAX_LENGTH),
-      clientMessageId: body.clientMessageId?.slice(0, 64) || null,
-    });
-
-    const payload: MessagePayload = {
-      id: message.id,
-      conversationId: message.conversationId,
-      senderType: message.senderType,
-      senderId: message.senderId,
-      content: message.content,
-      createdAt: message.createdAt.toISOString(),
-    };
-
-    this.server
-      .to(`conversation:${conversation.id}`)
-      .to(`visitor:${conversation.siteId}:${conversation.visitorId}`)
-      .emit(SocketEvent.MessageNew, payload);
-
-    // وب‌هوک message.created (فاز ۶) — در صف، چون سرور گیرنده ممکنه کند یا از دسترس خارج باشه
-    await this.webhookQueue.enqueueDispatch({
-      siteId: conversation.siteId,
-      event: 'message.created',
-      payload: { ...payload },
-    });
-
-    // اگه اپراتور پاسخ داده، یعنی مکالمه رو دیده — badge نخوانده براش صفر می‌شه
-    if (isAgent && data.agentId) {
-      await this.conversationsService.touchRead(conversation.id, data.agentId);
-    }
-
-    if (senderType === MessageSenderType.VISITOR) {
-      // تشخیص فوریت/نارضایتی شدید با کلیدواژه (ارزان، بدون فراخوانی مدل زبانی) — فاز ۴
-      const escalated = containsUrgentKeywords(message.content)
-        ? await this.conversationsService.escalateIfUrgent(conversation.id)
-        : null;
-
-      // قوانین اتوماسیون (فاز ۶) — هم فقط کلیدواژه‌ست، پس روی مسیر زنده مشکلی نداره.
-      // بعد از escalation اجرا می‌شه و خودش مکالمه رو تازه می‌خونه، پس نوشتن قبلی گم نمی‌شه.
-      await this.automationService.evaluateAndApply(
-        conversation.siteId,
-        conversation.id,
-        message.content,
-      );
-
-      // پیام مجزا (نه MessageNew) به کل سایت — چون اپراتورهایی که هم‌زمان در اتاق site و اتاق
-      // همین conversation عضو هستن، با emit روی MessageNew پیام رو دوبار دریافت می‌کردن
-      this.server.to(`site:${conversation.siteId}`).emit(SocketEvent.ConversationUpdated, {
-        conversationId: conversation.id,
-        lastMessage: payload,
-        priority: escalated?.priority,
+      // وب‌هوک message.created (فاز ۶) — در صف، چون سرور گیرنده ممکنه کند یا از دسترس خارج باشه
+      await this.webhookQueue.enqueueDispatch({
+        siteId: conversation.siteId,
+        event: 'message.created',
+        payload: { ...payload },
       });
 
-      // اگه هنوز اپراتوری assign نشده، ربات RAG (فاز ۴) سعی می‌کنه توی صف BullMQ پاسخ بده —
-      // مسیر Socket.io هیچ‌وقت منتظر پاسخ کند مدل زبانی نمی‌مونه
-      if (!conversation.assignedAgentId && !conversation.aiPaused) {
-        await this.aiQueue.enqueueBotReply({
-          siteId: conversation.siteId,
-          conversationId: conversation.id,
-          visitorMessageId: message.id,
-        });
+      // اگه اپراتور پاسخ داده، یعنی مکالمه رو دیده — badge نخوانده براش صفر می‌شه
+      if (isAgent && data.agentId) {
+        await this.conversationsService.touchRead(conversation.id, data.agentId);
       }
+
+      if (senderType === MessageSenderType.VISITOR) {
+        // تشخیص فوریت/نارضایتی شدید با کلیدواژه (ارزان، بدون فراخوانی مدل زبانی) — فاز ۴
+        const escalated = containsUrgentKeywords(message.content)
+          ? await this.conversationsService.escalateIfUrgent(conversation.id, conversation.siteId)
+          : null;
+
+        // قوانین اتوماسیون (فاز ۶) — هم فقط کلیدواژه‌ست، پس روی مسیر زنده مشکلی نداره.
+        // بعد از escalation اجرا می‌شه و خودش مکالمه رو تازه می‌خونه، پس نوشتن قبلی گم نمی‌شه.
+        await this.automationService.evaluateAndApply(
+          conversation.siteId,
+          conversation.id,
+          message.content,
+        );
+
+        // پیام مجزا (نه MessageNew) به کل سایت — چون اپراتورهایی که هم‌زمان در اتاق site و اتاق
+        // همین conversation عضو هستن، با emit روی MessageNew پیام رو دوبار دریافت می‌کردن
+        this.server.to(`site:${conversation.siteId}`).emit(SocketEvent.ConversationUpdated, {
+          conversationId: conversation.id,
+          lastMessage: payload,
+          priority: escalated?.priority,
+        });
+
+        // اگه هنوز اپراتوری assign نشده، ربات RAG (فاز ۴) سعی می‌کنه توی صف BullMQ پاسخ بده —
+        // مسیر Socket.io هیچ‌وقت منتظر پاسخ کند مدل زبانی نمی‌مونه
+        if (!conversation.assignedAgentId && !conversation.aiPaused) {
+          await this.aiQueue.enqueueBotReply({
+            siteId: conversation.siteId,
+            conversationId: conversation.id,
+            visitorMessageId: message.id,
+            conversationVersion: conversation.lifecycleVersion,
+            visitorVersion: accepted.visitorVersion,
+          });
+        }
+      }
+      return { id: message.id };
+    } catch (error) {
+      const response = error instanceof HttpException ? error.getResponse() : null;
+      const detail =
+        response && typeof response === 'object'
+          ? (response as { code?: string; message?: string; retryUntil?: string })
+          : null;
+      const codes = [
+        'VISITOR_BLOCKED',
+        'VISITOR_MUTED',
+        'CONVERSATION_DELETED',
+        'RATE_LIMITED',
+        'SEND_FAILED',
+      ];
+      return {
+        error: {
+          code: (codes.includes(detail?.code || '')
+            ? detail!.code
+            : 'SEND_FAILED') as 'SEND_FAILED',
+          message: detail?.message || 'ارسال پیام انجام نشد؛ دوباره تلاش کنید',
+          ...(detail?.retryUntil ? { retryUntil: detail.retryUntil } : {}),
+        },
+      };
     }
-    return { id: message.id };
   }
 
   @SubscribeMessage(SocketEvent.TypingStart)
@@ -316,6 +339,8 @@ export class ChatGateway
       await this.aiQueue.enqueueSummarizeConversation({
         siteId: event.siteId,
         conversationId: event.conversationId,
+        conversationVersion: event.conversationVersion,
+        visitorVersion: event.visitorVersion,
       });
     }
   }
@@ -351,8 +376,21 @@ export class ChatGateway
     this.server.to(`site:${siteId}`).emit(SocketEvent.ConversationUpdated, payload);
   }
 
-  private broadcastTyping(client: Socket, conversationId: string, isTyping: boolean): void {
+  private async broadcastTyping(
+    client: Socket,
+    conversationId: string,
+    isTyping: boolean,
+  ): Promise<void> {
     const data = client.data as SocketData;
+    const conversation = await this.assertAccess(client, conversationId);
+    if (!conversation) return;
+    if (data.role === 'visitor') {
+      try {
+        await this.moderation.assertVisitorAllowed(conversation.siteId, conversation.visitorId);
+      } catch {
+        return;
+      }
+    }
     const senderType = data.role === 'agent' ? MessageSenderType.AGENT : MessageSenderType.VISITOR;
     const payload: TypingPayload = { conversationId, senderType, isTyping };
     client.to(`conversation:${conversationId}`).emit(SocketEvent.Typing, payload);
@@ -371,6 +409,7 @@ export class ChatGateway
         return await this.conversationsService.ensureVisitorOwnsConversation(
           conversationId,
           data.visitorId,
+          data.visitorSiteId,
         );
       }
     } catch {
@@ -383,6 +422,34 @@ export class ChatGateway
 
   private emitError(client: Socket, message: string): void {
     client.emit(SocketEvent.ConnectionError, { message });
+  }
+
+  @OnEvent('visitor.updated')
+  onVisitorUpdated(event: VisitorUpdatedPayload & { siteId: string }): void {
+    const { siteId, ...details } = event;
+    this.server.to(`site:${siteId}`).emit(SocketEvent.VisitorUpdated, details);
+    this.server
+      .to(`visitor:${siteId}:${event.visitorId}`)
+      .emit(SocketEvent.VisitorModerationChanged, {
+        visitorId: event.visitorId,
+        ...event.moderation,
+      });
+  }
+
+  @OnEvent('conversation.lifecycle')
+  onConversationLifecycle(event: {
+    siteId: string;
+    visitorId: string;
+    conversationId: string;
+    deleted: boolean;
+    deletedAt: string | null;
+  }): void {
+    const { siteId, visitorId, ...payload } = event;
+    this.server
+      .to(`site:${siteId}`)
+      .to(`conversation:${event.conversationId}`)
+      .to(`visitor:${siteId}:${visitorId}`)
+      .emit(SocketEvent.ConversationUpdated, payload);
   }
 
   private rejectConnection(client: Socket, message: string): void {

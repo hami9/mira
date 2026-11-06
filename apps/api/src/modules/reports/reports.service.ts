@@ -26,7 +26,7 @@ export class ReportsService {
     const dailyRows: { day: string; count: string }[] = await this.dataSource.query(
       `SELECT to_char("createdAt", 'YYYY-MM-DD') as day, COUNT(*)::int as count
        FROM conversations
-       WHERE "siteId" = $1 AND "createdAt" >= $2 AND "createdAt" < $3
+       WHERE "siteId" = $1 AND "deletedAt" IS NULL AND "createdAt" >= $2 AND "createdAt" < $3
        GROUP BY day
        ORDER BY day`,
       [siteId, range.from, range.to],
@@ -38,8 +38,8 @@ export class ReportsService {
            MIN(m."createdAt") FILTER (WHERE m."senderType" != 'agent') AS first_visitor_at,
            MIN(m."createdAt") FILTER (WHERE m."senderType" = 'agent') AS first_agent_at
          FROM messages m
-         JOIN conversations c ON c.id = m."conversationId"
-         WHERE c."siteId" = $1 AND c."createdAt" >= $2 AND c."createdAt" < $3
+         JOIN conversations c ON c.id = m."conversationId" AND c."siteId" = m."siteId"
+         WHERE c."siteId" = $1 AND c."deletedAt" IS NULL AND c."createdAt" >= $2 AND c."createdAt" < $3
          GROUP BY m."conversationId"
        )
        SELECT AVG(EXTRACT(EPOCH FROM (first_agent_at - first_visitor_at)) / 60)::float AS avg_minutes
@@ -50,11 +50,12 @@ export class ReportsService {
 
     const [csatRow] = await this.dataSource.query(
       `SELECT
-         AVG(score)::float AS average,
+         AVG(r.score)::float AS average,
          COUNT(*)::int AS total,
-         (COUNT(*) FILTER (WHERE score >= 4) * 100.0 / NULLIF(COUNT(*), 0))::float AS positive_percent
-       FROM csat_ratings
-       WHERE "siteId" = $1 AND "createdAt" >= $2 AND "createdAt" < $3`,
+         (COUNT(*) FILTER (WHERE r.score >= 4) * 100.0 / NULLIF(COUNT(*), 0))::float AS positive_percent
+       FROM csat_ratings r
+       JOIN conversations c ON c.id=r."conversationId" AND c."siteId"=r."siteId"
+       WHERE r."siteId" = $1 AND c."deletedAt" IS NULL AND r."createdAt" >= $2 AND r."createdAt" < $3`,
       [siteId, range.from, range.to],
     );
 
@@ -79,12 +80,14 @@ export class ReportsService {
            MIN(m."createdAt") FILTER (WHERE m."senderType" != 'agent') AS first_visitor_at,
            MIN(m."createdAt") FILTER (WHERE m."senderType" = 'agent') AS first_agent_at
          FROM messages m
+         JOIN conversations c ON c.id=m."conversationId" AND c."siteId"=m."siteId"
+         WHERE c."siteId"=$1 AND c."deletedAt" IS NULL AND c."createdAt">=$2 AND c."createdAt"<$3
          GROUP BY m."conversationId"
        ),
        conv_in_range AS (
          SELECT c.id, c."assignedAgentId"
          FROM conversations c
-         WHERE c."siteId" = $1 AND c."createdAt" >= $2 AND c."createdAt" < $3
+         WHERE c."siteId" = $1 AND c."deletedAt" IS NULL AND c."createdAt" >= $2 AND c."createdAt" < $3
            AND c."assignedAgentId" IS NOT NULL
        )
        SELECT
@@ -99,7 +102,7 @@ export class ReportsService {
        FROM agents a
        LEFT JOIN conv_in_range cr ON cr."assignedAgentId" = a.id
        LEFT JOIN first_msgs fm ON fm."conversationId" = cr.id
-       LEFT JOIN csat_ratings csat ON csat."conversationId" = cr.id
+       LEFT JOIN csat_ratings csat ON csat."conversationId" = cr.id AND csat."siteId"=$1
        WHERE a."siteId" = $1
        GROUP BY a.id, a."fullName"
        ORDER BY "conversationsHandled" DESC`,

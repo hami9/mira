@@ -442,6 +442,48 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
   });
 
+  it.each(['block-unblock', 'mute-unmute', 'trash-restore'])(
+    'discards an in-flight answer after %s even when the restriction is cleared',
+    async (transition) => {
+      model.mockImplementationOnce(async () => {
+        if (transition === 'trash-restore') {
+          await db.query(
+            `UPDATE conversations SET "deletedAt"=now(),"lifecycleVersion"="lifecycleVersion"+1 WHERE id=$1`,
+            [conversationId],
+          );
+          await db.query(
+            `UPDATE conversations SET "deletedAt"=NULL,"lifecycleVersion"="lifecycleVersion"+1 WHERE id=$1`,
+            [conversationId],
+          );
+        } else {
+          const column = transition === 'block-unblock' ? 'blockedAt' : 'mutedUntil';
+          await db.query(
+            `UPDATE visitors SET "${column}"=now()+interval '1 hour',"moderationVersion"="moderationVersion"+1 WHERE id=(SELECT "visitorId" FROM conversations WHERE id=$1)`,
+            [conversationId],
+          );
+          await db.query(
+            `UPDATE visitors SET "${column}"=NULL,"moderationVersion"="moderationVersion"+1 WHERE id=(SELECT "visitorId" FROM conversations WHERE id=$1)`,
+            [conversationId],
+          );
+        }
+        return reply();
+      });
+      await processBotReply(job());
+      expect(model).toHaveBeenCalledTimes(1);
+      expect(await messages()).toHaveLength(0);
+    },
+  );
+
+  it('rejects queued legacy jobs after a moderation lifecycle change', async () => {
+    await db.query(
+      `UPDATE visitors SET "moderationVersion"=2 WHERE id=(SELECT "visitorId" FROM conversations WHERE id=$1)`,
+      [conversationId],
+    );
+    await processBotReply(job());
+    expect(model).not.toHaveBeenCalled();
+    expect(await messages()).toHaveLength(0);
+  });
+
   it('does not post after an agent takes ownership during generation', async () => {
     const agent = (
       await db.query(

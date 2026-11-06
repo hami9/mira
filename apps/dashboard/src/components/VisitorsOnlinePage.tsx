@@ -1,22 +1,51 @@
 import { useEffect, useState } from 'react';
-import type { VisitorListItemDto, VisitorStatsDto } from '@mira/shared-types';
+import {
+  visitorDisplayName,
+  type VisitorListItemDto,
+  type VisitorStatsDto,
+} from '@mira/shared-types';
 import { useApiClient } from '../api-context';
 import { PageLocation } from './PageLocation';
+import { VisitorModerationControl } from './VisitorControls';
+import { ModerationBadges, VisitorFlags } from './VisitorLabels';
 
 interface VisitorsOnlinePageProps {
   onOpenVisitor: (visitorId: string) => void;
   onChat: (visitorId: string) => Promise<void>;
+  canModerate?: boolean;
 }
 
 const REFRESH_INTERVAL_MS = 15_000;
 
 // صفحه‌ی «چه کسانی همین الان روی سایت هستند» — خودش هر ۱۵ ثانیه تازه می‌شود
-export function VisitorsOnlinePage({ onOpenVisitor, onChat }: VisitorsOnlinePageProps) {
+export function VisitorsOnlinePage({
+  onOpenVisitor,
+  onChat,
+  canModerate = false,
+}: VisitorsOnlinePageProps) {
   const apiClient = useApiClient();
   const [visitors, setVisitors] = useState<VisitorListItemDto[]>([]);
   const [stats, setStats] = useState<VisitorStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  useEffect(
+    () =>
+      apiClient.onVisitorUpdated((visitor) =>
+        setVisitors((current) =>
+          current.map((item) =>
+            item.id === visitor.visitorId
+              ? {
+                  ...item,
+                  displayName: visitor.displayName,
+                  flags: visitor.flags,
+                  moderation: visitor.moderation,
+                }
+              : item,
+          ),
+        ),
+      ),
+    [apiClient],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +118,7 @@ export function VisitorsOnlinePage({ onOpenVisitor, onChat }: VisitorsOnlinePage
           visitor={visitor}
           onOpen={() => onOpenVisitor(visitor.id)}
           onChat={() => onChat(visitor.id)}
+          canModerate={canModerate}
         />
       ))}
     </div>
@@ -99,10 +129,12 @@ export function VisitorRow({
   visitor,
   onOpen,
   onChat,
+  canModerate = false,
 }: {
   visitor: VisitorListItemDto;
   onOpen: () => void;
   onChat: () => Promise<void>;
+  canModerate?: boolean;
 }) {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState(false);
@@ -131,7 +163,7 @@ export function VisitorRow({
               onClick={onOpen}
               className="text-sm font-medium text-primary-700 hover:underline"
             >
-              {visitor.name || visitor.email || `مهمان ${visitor.visitorRef.slice(0, 8)}`}
+              {visitorDisplayName(visitor)}
             </button>
             <span className="text-[10px] text-gray-400">{visitor.conversationCount} گفتگو</span>
           </div>
@@ -146,6 +178,25 @@ export function VisitorRow({
           {opening ? 'در حال بازکردن…' : visitor.conversationCount ? 'بازکردن گفتگو' : 'شروع گفتگو'}
         </button>
       </div>
+      <div className="mt-2 space-y-1">
+        <VisitorFlags flags={visitor.flags} />
+        <ModerationBadges moderation={visitor.moderation} />
+      </div>
+      {canModerate && (
+        <details className="mt-3 rounded-xl border border-slate-100 p-2">
+          <summary className="cursor-pointer text-xs text-slate-600">
+            مدیریت دسترسی بازدیدکننده
+          </summary>
+          <div className="mt-2">
+            <VisitorModerationControl
+              visitorId={visitor.id}
+              name={visitorDisplayName(visitor)}
+              moderation={visitor.moderation}
+              allowed
+            />
+          </div>
+        </details>
+      )}
       <div className="mt-4 grid min-w-0 gap-3 rounded-xl bg-gray-50/80 p-3 sm:grid-cols-2">
         <PageLocation
           compact

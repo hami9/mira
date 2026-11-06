@@ -18,6 +18,7 @@ import { SystemSection } from './SystemSection';
 import { InstallSection } from './InstallSection';
 import { KnowledgeSection } from './KnowledgeSection';
 import { WidgetStudio } from './WidgetStudio';
+import { ModerationSettings } from './ModerationSettings';
 
 interface SettingsPageProps {
   onSiteNameChange?: (name: string) => void;
@@ -293,6 +294,9 @@ export function SettingsPage({
       {activeTab === 'billing' && isAdmin && <AiBillingSection />}
       {activeTab === 'system' && isAdmin && <SystemSection />}
 
+      {activeTab === 'operations' && canManageSiteSettings && (
+        <ModerationSettings settings={settings} onSave={handleSaveAiSettings} />
+      )}
       {activeTab === 'operations' && canManageSiteSettings && (
         <section className="mb-6 rounded border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-bold text-gray-700">ساعت کاری</h2>

@@ -15,6 +15,8 @@ export enum SocketEvent {
   ConversationStarted = 'conversation:started',
   ConversationUpdated = 'conversation:updated',
   ConnectionError = 'connection:error',
+  VisitorUpdated = 'visitor:updated',
+  VisitorModerationChanged = 'visitor:moderation',
   // server -> client: پاسخ پیشنهادی Copilot برای اپراتور (نتیجه‌ی صف ai-suggest-reply) آماده شد
   AiReplySuggested = 'ai:reply-suggested',
   AiStatus = 'ai:status',
@@ -50,6 +52,9 @@ export interface ConversationSummary {
 // - lastMessage: پیام تازه‌ی یک بازدیدکننده (برای تازه‌سازی لیست/بج در داشبورد، بدون تکرار در پنجره چت)
 // - status: تغییر وضعیت مکالمه (مثلاً resolved — برای نمایش پرامپت CSAT در ویجت)
 export interface ConversationUpdatedPayload {
+  deleted?: boolean;
+  deletedAt?: string | null;
+  restoredAsHistory?: boolean;
   conversationId: string;
   status?: ConversationStatus;
   lastMessage?: MessagePayload;

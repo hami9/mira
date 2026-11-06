@@ -1,4 +1,5 @@
 export * from './enums';
+export * from './moderation';
 export * from './socket-events';
 export * from './dto';
 export * from './business-hours';

@@ -31,11 +31,16 @@ export class VisitorsService {
         where: { siteId: input.siteId, visitorRef: input.visitorRef },
       });
       if (existing) {
-        existing.lastSeenAt = new Date();
-        if (input.name) existing.name = input.name;
-        if (input.email) existing.email = input.email;
-        if (input.userAgent) existing.userAgent = input.userAgent;
-        return this.visitorsRepository.save(existing);
+        await this.visitorsRepository.update(
+          { id: existing.id, siteId: input.siteId },
+          {
+            lastSeenAt: new Date(),
+            ...(input.name ? { name: input.name } : {}),
+            ...(input.email ? { email: input.email } : {}),
+            ...(input.userAgent ? { userAgent: input.userAgent } : {}),
+          },
+        );
+        return this.findByIdForSite(existing.id, input.siteId);
       }
     }
 

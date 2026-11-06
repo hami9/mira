@@ -49,6 +49,10 @@ See [AI assistant setup and boundaries](docs/ai-assistant.md).
 
 ### Operator workspace
 
+Operators can name visitors, add colored flags and priority tags, block or temporarily mute
+senders, and move conversations to a recoverable trash folder. Automatic flood/repetition
+protection is configurable per store. See [visitor moderation](docs/visitor-moderation.md).
+
 AI sources settings can approve published store phone numbers without exempting visitor
 history or credentials from filtering. See the [assistant guide](docs/ai-assistant.md).
 

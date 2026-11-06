@@ -6,15 +6,38 @@ import { VisitorRow } from './VisitorsOnlinePage';
 interface VisitorsAllPageProps {
   onOpenVisitor: (visitorId: string) => void;
   onChat: (visitorId: string) => Promise<void>;
+  canModerate?: boolean;
 }
 
 // فهرست کامل بازدیدکنندگان با جست‌وجو در نام/ایمیل/شناسه
-export function VisitorsAllPage({ onOpenVisitor, onChat }: VisitorsAllPageProps) {
+export function VisitorsAllPage({
+  onOpenVisitor,
+  onChat,
+  canModerate = false,
+}: VisitorsAllPageProps) {
   const apiClient = useApiClient();
   const [visitors, setVisitors] = useState<VisitorListItemDto[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  useEffect(
+    () =>
+      apiClient.onVisitorUpdated((visitor) =>
+        setVisitors((current) =>
+          current.map((item) =>
+            item.id === visitor.visitorId
+              ? {
+                  ...item,
+                  displayName: visitor.displayName,
+                  flags: visitor.flags,
+                  moderation: visitor.moderation,
+                }
+              : item,
+          ),
+        ),
+      ),
+    [apiClient],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -82,6 +105,7 @@ export function VisitorsAllPage({ onOpenVisitor, onChat }: VisitorsAllPageProps)
           visitor={visitor}
           onOpen={() => onOpenVisitor(visitor.id)}
           onChat={() => onChat(visitor.id)}
+          canModerate={canModerate}
         />
       ))}
     </div>

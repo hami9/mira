@@ -1,6 +1,7 @@
 import type { BusinessHours, TriggerMessageConfig } from './business-hours';
 import type { AiPolicy, WidgetAssistant } from './ai';
 import type { WidgetAppearance } from './widget-appearance';
+import type { VisitorModeration, ModerationPolicy } from './moderation';
 
 export interface LoginRequestDto {
   email: string;
@@ -32,6 +33,7 @@ export interface WidgetSessionRequestDto {
 }
 
 export interface WidgetSessionResponseDto {
+  moderation?: VisitorModeration;
   appearance?: WidgetAppearance;
   assistant?: WidgetAssistant;
   visitorToken: string;
@@ -58,6 +60,7 @@ export interface SubmitCsatDto {
 }
 
 export interface SiteSettingsDto {
+  moderationPolicy: ModerationPolicy;
   aiPolicy: AiPolicy;
   id: string;
   name: string;
@@ -87,6 +90,7 @@ export interface SiteSettingsDto {
 }
 
 export interface UpdateSiteSettingsDto {
+  moderationPolicy?: ModerationPolicy;
   aiPolicy?: AiPolicy;
   name?: string;
   allowedDomains?: string[];

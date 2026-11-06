@@ -25,6 +25,7 @@ import {
   isSimpleGreeting,
 } from '../ai/guardrails';
 import { getSiteContext, SiteContext } from '../ai/site-context';
+import { captureLifecycle, lockLifecycle, LifecycleJob } from './lifecycle';
 
 interface SiteAiSettings {
   name: string;
@@ -47,7 +48,8 @@ interface SiteAiSettings {
 const DEFAULT_HANDOFF =
   'برای پاسخ دقیق‌تر، گفتگو را به پشتیبان انسانی سپردم. همکارانم در اولین فرصت پاسخ می‌دهند.';
 
-export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
+export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
+  const data: AiBotReplyJobData & LifecycleJob = { ...input };
   // قفل مکالمه بین چند worker و جلوگیری از پاسخ تکراری با clientMessageId.
   const client = await pool.connect();
   const lockKey = `${data.siteId}:${data.conversationId}`;
@@ -57,6 +59,10 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
   try {
     await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [lockKey]);
     locked = true;
+    const lifecycle = await captureLifecycle(data, client);
+    if (!lifecycle) return;
+    data.conversationVersion = lifecycle.conversationVersion;
+    data.visitorVersion = lifecycle.visitorVersion;
     const site = (
       await client.query<SiteAiSettings>(
         `SELECT name, "aiBotName", "aiEnabled", "aiSystemPrompt", "aiConfidenceThreshold", "aiHandoffMessage", "aiGreetingMessage",
@@ -113,6 +119,7 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
         )
       ).rowCount;
     if (hasKnowledge) {
+      if (!(await eligible(client, data))) return;
       const [embedding] = await embedTexts([question], {
         siteId: data.siteId,
         conversationId: data.conversationId,
@@ -174,6 +181,7 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
       .reverse()
       .map((m) => ({ role: m.senderType, content: redactSensitive(m.content).slice(0, 2000) }));
     await status(data, 'thinking');
+    if (!(await eligible(client, data))) return;
     const raw = await chatCompletion(
       [
         {
@@ -254,13 +262,15 @@ export async function processBotReply(data: AiBotReplyJobData): Promise<void> {
 
 async function eligible(
   client: PoolClient,
-  data: AiBotReplyJobData,
+  data: AiBotReplyJobData & LifecycleJob,
   lock = false,
 ): Promise<boolean> {
+  const lifecycle = await captureLifecycle(data, client);
+  if (!lifecycle || (lock && !(await lockLifecycle(client, data, lifecycle)))) return false;
   const conversation = (
     await client.query(
       `SELECT id FROM conversations WHERE id = $1 AND "siteId" = $2
-     AND "assignedAgentId" IS NULL AND "aiPaused" = false AND status = 'open' ${lock ? 'FOR UPDATE' : ''}`,
+     AND "deletedAt" IS NULL AND "assignedAgentId" IS NULL AND "aiPaused" = false AND status = 'open'`,
       [data.conversationId, data.siteId],
     )
   ).rows[0];
@@ -290,7 +300,7 @@ async function status(data: AiBotReplyJobData, stage: AiStatusPayload['stage']):
 
 async function postReply(
   client: PoolClient,
-  data: AiBotReplyJobData,
+  data: AiBotReplyJobData & LifecycleJob,
   content: string,
   metadata: AiMessageMetadata,
   usedKnowledge: { id: string; revision: number }[] = [],

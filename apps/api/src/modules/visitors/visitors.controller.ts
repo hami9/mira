@@ -19,6 +19,7 @@ import {
   StartConversationResponseDto,
   DEFAULT_AI_POLICY,
   normalizeWidgetAppearance,
+  visitorModerationState,
 } from '@mira/shared-types';
 import { VisitorJwtGuard } from '../../common/guards/visitor-jwt.guard';
 import { CurrentVisitor } from '../../common/decorators/current-visitor.decorator';
@@ -33,6 +34,7 @@ import { WidgetSessionDto } from './dto/widget-session.dto';
 import { ReportPageViewRequestDto } from './dto/report-page-view.dto';
 import { SubmitCsatRequestDto } from './dto/submit-csat.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
+import { ModerationService } from '../moderation/moderation.service';
 
 @Controller('v1/widget')
 export class VisitorsController {
@@ -43,6 +45,7 @@ export class VisitorsController {
     private readonly messagesService: MessagesService,
     private readonly tokenService: TokenService,
     private readonly rateLimiter: RedisRateLimiterService,
+    private readonly moderation: ModerationService,
   ) {}
 
   @Post('sessions')
@@ -86,6 +89,7 @@ export class VisitorsController {
     });
 
     return {
+      moderation: visitorModerationState(visitor),
       visitorToken,
       appearance: normalizeWidgetAppearance(site.appearance),
       visitorRef: visitor.visitorRef,
@@ -111,6 +115,7 @@ export class VisitorsController {
     @CurrentVisitor() visitor: VisitorTokenPayload,
     @Body() dto: StartConversationDto,
   ): Promise<StartConversationResponseDto> {
+    await this.moderation.assertVisitorAllowed(visitor.siteId, visitor.sub);
     const allowed = await this.rateLimiter.consume(`widget-start:${visitor.sub}`, 10, 60);
     if (!allowed) {
       throw new HttpException('تعداد درخواست‌ها بیش از حد مجاز است', HttpStatus.TOO_MANY_REQUESTS);
@@ -157,7 +162,11 @@ export class VisitorsController {
     if (!allowed) {
       throw new HttpException('درخواست بیش از حد مجاز', HttpStatus.TOO_MANY_REQUESTS);
     }
-    await this.conversationsService.ensureVisitorOwnsConversation(conversationId, visitor.sub);
+    await this.conversationsService.ensureVisitorOwnsConversation(
+      conversationId,
+      visitor.sub,
+      visitor.siteId,
+    );
     return this.messagesService.listForConversation(conversationId, { before });
   }
 
@@ -178,6 +187,7 @@ export class VisitorsController {
       visitor.sub,
       dto.score,
       dto.comment,
+      visitor.siteId,
     );
   }
 

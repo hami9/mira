@@ -1,10 +1,17 @@
 import { io, Socket } from 'socket.io-client';
-import { SocketEvent, MessagePayload, TypingPayload } from '@mira/shared-types';
+import {
+  SocketEvent,
+  MessagePayload,
+  TypingPayload,
+  type VisitorUpdatedPayload,
+} from '@mira/shared-types';
 import { API_URL } from './config';
 
 export interface ConversationUpdatedPayload {
   conversationId: string;
-  lastMessage: MessagePayload;
+  lastMessage?: MessagePayload;
+  deleted?: boolean;
+  deletedAt?: string | null;
 }
 
 export interface DashboardSocketHandlers {
@@ -12,6 +19,7 @@ export interface DashboardSocketHandlers {
   onConversationUpdated: (payload: ConversationUpdatedPayload) => void;
   onTyping: (payload: TypingPayload) => void;
   onError: (message: string) => void;
+  onVisitorUpdated?: (visitor: VisitorUpdatedPayload) => void;
 }
 
 export function connectDashboardSocket(
@@ -29,6 +37,7 @@ export function connectDashboardSocket(
 
   socket.on(SocketEvent.ConversationUpdated, handlers.onConversationUpdated);
   socket.on(SocketEvent.Typing, handlers.onTyping);
+  if (handlers.onVisitorUpdated) socket.on(SocketEvent.VisitorUpdated, handlers.onVisitorUpdated);
   socket.on(SocketEvent.ConnectionError, (payload: { message: string }) => {
     handlers.onError(payload?.message ?? 'خطای ناشناخته در اتصال');
   });

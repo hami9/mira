@@ -261,6 +261,7 @@ export function injectStyles(doc: Document = document): void {
     @keyframes mira-panel-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
     @keyframes mira-panel-scale { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
     @keyframes mira-panel-reveal { from { opacity: 0; clip-path: inset(10% 0 0 round var(--mira-panel-radius, 24px)); } to { opacity: 1; clip-path: inset(0 round var(--mira-panel-radius, 24px)); } }
+    .mira-moderation:not(:empty) { margin-bottom: 8px; padding: 10px 12px; border: 1px solid var(--mira-line); border-radius: 12px; background: var(--mira-soft); color: var(--mira-danger); font-size: 11px; line-height: 1.9; }
     @media (prefers-reduced-motion: reduce) {
       .mira-panel, .mira-panel *, .mira-bubble, .mira-trigger { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
       .mira-bubble::before { animation: none !important; display: none !important; }

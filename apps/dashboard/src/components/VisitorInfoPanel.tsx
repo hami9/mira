@@ -1,22 +1,49 @@
 import { useEffect, useState } from 'react';
-import type { CustomerContextDto, VisitorInfoDto } from '@mira/shared-types';
+import {
+  visitorDisplayName,
+  type CustomerContextDto,
+  type VisitorInfoDto,
+} from '@mira/shared-types';
 import { useApiClient } from '../api-context';
 import { PageLocation } from './PageLocation';
+import { VisitorDetailsEditor } from './VisitorControls';
+import { ModerationBadges, VisitorFlags } from './VisitorLabels';
 
 interface VisitorInfoPanelProps {
   conversationId: string;
   onClose?: () => void;
+  canModerate?: boolean;
 }
 
 function formatCurrency(amount: number, currency: string): string {
   return `${amount.toLocaleString('fa-IR')} ${currency}`;
 }
 
-export function VisitorInfoPanel({ conversationId, onClose }: VisitorInfoPanelProps) {
+export function VisitorInfoPanel({
+  conversationId,
+  onClose,
+  canModerate = false,
+}: VisitorInfoPanelProps) {
   const apiClient = useApiClient();
   const [info, setInfo] = useState<VisitorInfoDto | null>(null);
   const [customerContext, setCustomerContext] = useState<CustomerContextDto | null>(null);
   const [error, setError] = useState(false);
+  useEffect(
+    () =>
+      apiClient.onVisitorUpdated((visitor) =>
+        setInfo((current) =>
+          current?.id === visitor.visitorId
+            ? {
+                ...current,
+                displayName: visitor.displayName,
+                flags: visitor.flags,
+                moderation: visitor.moderation,
+              }
+            : current,
+        ),
+      ),
+    [apiClient],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -100,16 +127,19 @@ export function VisitorInfoPanel({ conversationId, onClose }: VisitorInfoPanelPr
       </div>
       <div className="mb-4 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-50 font-bold text-primary-600">
-          {(info.name || info.email || 'م').charAt(0)}
+          {visitorDisplayName(info).charAt(0)}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-bold">
-            {info.name || info.email || `مهمان ${info.id.slice(0, 8)}`}
-          </div>
+          <div className="truncate text-sm font-bold">{visitorDisplayName(info)}</div>
           <div className={`mt-1 text-[10px] ${info.isOnline ? 'text-teal-600' : 'text-gray-400'}`}>
             {info.isOnline ? '● فعال در ۵ دقیقهٔ اخیر' : 'آفلاین'}
           </div>
         </div>
+      </div>
+      <div className="mb-4 space-y-2">
+        <VisitorFlags flags={info.flags} />
+        <ModerationBadges moderation={info.moderation} />
+        {canModerate && <VisitorDetailsEditor visitor={info} allowed />}
       </div>
       <div className="mb-4 space-y-3">
         <PageLocation
@@ -132,6 +162,7 @@ export function VisitorInfoPanel({ conversationId, onClose }: VisitorInfoPanelPr
         <summary className="cursor-pointer font-medium">مشخصات و دستگاه</summary>
         <div className="mt-3 space-y-2 text-gray-500">
           <div>نام: {info.name ?? '—'}</div>
+          <div>شناسه کاربر سایت: {info.externalId ?? '—'}</div>
           <div>ایمیل: {info.email ?? '—'}</div>
           <div>مرورگر: {info.browser ?? 'نامشخص'}</div>
           <div>سیستم‌عامل: {info.os ?? 'نامشخص'}</div>

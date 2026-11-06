@@ -26,7 +26,7 @@ export class PublicApiService {
     const rows = await this.dataSource.query(
       `SELECT id, status, department, tags, priority, "createdAt", "updatedAt", "resolvedAt"
        FROM conversations
-       WHERE "siteId" = $1 ${statusFilter}
+       WHERE "siteId" = $1 AND "deletedAt" IS NULL ${statusFilter}
        ORDER BY "createdAt" DESC
        LIMIT $${params.length}`,
       params,
@@ -45,24 +45,22 @@ export class PublicApiService {
   }
 
   async listMessages(siteId: string, conversationId: string): Promise<PublicMessageDto[]> {
-    const conversation = await this.dataSource.query(
-      `SELECT id FROM conversations WHERE id = $1 AND "siteId" = $2`,
+    const rows = await this.dataSource.query(
+      `SELECT c.id AS "conversationId", m.id, m."senderType", m.content, m."createdAt"
+       FROM conversations c LEFT JOIN messages m
+         ON m."conversationId"=c.id AND m."siteId"=c."siteId"
+       WHERE c.id=$1 AND c."siteId"=$2 AND c."deletedAt" IS NULL
+       ORDER BY m."createdAt" ASC, m.id ASC`,
       [conversationId, siteId],
     );
-    if (conversation.length === 0) {
-      throw new NotFoundException('مکالمه پیدا نشد');
-    }
-
-    const rows = await this.dataSource.query(
-      `SELECT id, "senderType", content, "createdAt" FROM messages
-       WHERE "conversationId" = $1 ORDER BY "createdAt" ASC`,
-      [conversationId],
-    );
-    return rows.map((row: Record<string, unknown>) => ({
-      id: row.id as string,
-      senderType: row.senderType as string,
-      content: row.content as string,
-      createdAt: (row.createdAt as Date).toISOString(),
-    }));
+    if (!rows.length) throw new NotFoundException('مکالمه پیدا نشد');
+    return rows
+      .filter((row: Record<string, unknown>) => row.id)
+      .map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        senderType: row.senderType as string,
+        content: row.content as string,
+        createdAt: (row.createdAt as Date).toISOString(),
+      }));
   }
 }

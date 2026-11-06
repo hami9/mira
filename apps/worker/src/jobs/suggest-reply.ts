@@ -3,6 +3,7 @@ import { pool } from '../db';
 import { chatCompletion } from '../ai/chat';
 import { publishSocketEvent } from '../redis-bridge';
 import { plainText } from '../ai/guardrails';
+import { captureLifecycle, lockLifecycle } from './lifecycle';
 
 const HISTORY_LIMIT = 15;
 
@@ -13,12 +14,20 @@ const SYSTEM_PROMPT =
   'گفتگو، یک پاسخ کوتاه، مودبانه و حرفه‌ای به زبان همون گفتگو پیشنهاد بده. فقط متن پاسخ رو بنویس، بدون توضیح اضافه.';
 
 export async function processSuggestReply(data: AiSuggestReplyJobData): Promise<void> {
+  const lifecycle = await captureLifecycle(data);
+  if (!lifecycle) return;
+  const expected = {
+    ...data,
+    conversationVersion: lifecycle.conversationVersion,
+    visitorVersion: lifecycle.visitorVersion,
+  };
   const transcript = await getTranscript(data.conversationId, data.siteId);
   if (!transcript) return;
   const site = (
     await pool.query<{ name: string }>('SELECT name FROM sites WHERE id = $1', [data.siteId])
   ).rows[0];
   if (!site) return;
+  if (!(await captureLifecycle(expected))) return;
 
   // تاریخچه رو به‌عنوان متن داخل یک user turn تنها می‌فرستیم (نه چندین نوبت user/assistant متناوب)
   // چون بعضی providerها (از جمله Gemini) درخواستی که آخرین پیامش نوبت مدل باشه رو رد می‌کنن —
@@ -44,11 +53,25 @@ export async function processSuggestReply(data: AiSuggestReplyJobData): Promise<
   if (!suggestion) return;
 
   const payload: AiSuggestionPayload = { conversationId: data.conversationId, suggestion };
-  await publishSocketEvent(
-    `conversation:${data.conversationId}`,
-    SocketEvent.AiReplySuggested,
-    payload,
-  );
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    if (!(await lockLifecycle(client, expected, lifecycle))) {
+      await client.query('ROLLBACK');
+      return;
+    }
+    await publishSocketEvent(
+      `conversation:${data.conversationId}`,
+      SocketEvent.AiReplySuggested,
+      payload,
+    );
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function getTranscript(conversationId: string, siteId: string): Promise<string> {

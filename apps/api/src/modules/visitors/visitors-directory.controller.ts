@@ -1,4 +1,6 @@
-import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModerationService } from '../moderation/moderation.service';
+import { ModerateVisitorRequestDto, UpdateVisitorDetailsRequestDto } from './dto/moderation.dto';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator';
 import { AgentAccessTokenPayload } from '../../common/token/token.service';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
@@ -11,7 +13,27 @@ export class VisitorsDirectoryController {
   constructor(
     private readonly directoryService: VisitorsDirectoryService,
     private readonly conversationsService: ConversationsService,
+    private readonly moderation: ModerationService,
   ) {}
+
+  @Patch(':id/details')
+  @RequirePermission('moderateVisitors')
+  updateDetails(
+    @CurrentAgent() agent: AgentAccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateVisitorDetailsRequestDto,
+  ) {
+    return this.moderation.updateDetails(agent.siteId, id, dto);
+  }
+  @Post(':id/moderation')
+  @RequirePermission('moderateVisitors')
+  moderate(
+    @CurrentAgent() agent: AgentAccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: ModerateVisitorRequestDto,
+  ) {
+    return this.moderation.moderate(agent.siteId, id, dto);
+  }
 
   @Post(':id/conversation')
   @RequirePermission('viewVisitors')

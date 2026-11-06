@@ -7,6 +7,24 @@ import type {
   ReportPageViewDto,
 } from '@mira/shared-types';
 
+export class WidgetApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+async function requestError(response: Response): Promise<WidgetApiError> {
+  const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+  const message =
+    typeof body?.message === 'string' && body.message.length <= 300
+      ? body.message
+      : `درخواست انجام نشد (${response.status}). دوباره تلاش کنید.`;
+  return new WidgetApiError(message, response.status);
+}
+
 export class WidgetApi {
   constructor(private readonly baseUrl: string) {}
 
@@ -51,7 +69,7 @@ export class WidgetApi {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
-      throw new Error(`درخواست به ${path} با خطا مواجه شد (${response.status})`);
+      throw await requestError(response);
     }
     return response.json() as Promise<T>;
   }
@@ -66,7 +84,7 @@ export class WidgetApi {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
-      throw new Error(`درخواست به ${path} با خطا مواجه شد (${response.status})`);
+      throw await requestError(response);
     }
   }
 
@@ -75,7 +93,7 @@ export class WidgetApi {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
-      throw new Error(`درخواست به ${path} با خطا مواجه شد (${response.status})`);
+      throw await requestError(response);
     }
     return response.json() as Promise<T>;
   }

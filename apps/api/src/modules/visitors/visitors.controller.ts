@@ -35,6 +35,7 @@ import { ReportPageViewRequestDto } from './dto/report-page-view.dto';
 import { SubmitCsatRequestDto } from './dto/submit-csat.dto';
 import { StartConversationDto } from './dto/start-conversation.dto';
 import { ModerationService } from '../moderation/moderation.service';
+import { verifyWordPressIdentity } from '../wordpress/wordpress-identity';
 
 @Controller('v1/widget')
 export class VisitorsController {
@@ -71,6 +72,7 @@ export class VisitorsController {
       visitorRef: dto.visitorRef,
       name: dto.name,
       email: dto.email,
+      externalId: verifyWordPressIdentity(dto.visitorProof, site.wordpressApiKey, site.widgetKey),
       userAgent: Array.isArray(userAgentHeader) ? userAgentHeader[0] : userAgentHeader,
     });
 

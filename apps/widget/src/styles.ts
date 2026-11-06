@@ -262,6 +262,20 @@ export function injectStyles(doc: Document = document): void {
     @keyframes mira-panel-scale { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
     @keyframes mira-panel-reveal { from { opacity: 0; clip-path: inset(10% 0 0 round var(--mira-panel-radius, 24px)); } to { opacity: 1; clip-path: inset(0 round var(--mira-panel-radius, 24px)); } }
     .mira-moderation:not(:empty) { margin-bottom: 8px; padding: 10px 12px; border: 1px solid var(--mira-line); border-radius: 12px; background: var(--mira-soft); color: var(--mira-danger); font-size: 11px; line-height: 1.9; }
+    .mira-tool { margin-top:12px; padding:16px; border:1px solid var(--mira-line); border-radius:16px; background:var(--mira-surface); color:var(--mira-ink); min-width:0; }
+    .mira-tool strong { display:block; font-size:14px; line-height:1.8; }
+    .mira-tool p { font-size:12px; line-height:1.9; margin:8px 0; overflow-wrap:anywhere; }
+    .mira-link-card { border-inline-start:3px solid var(--mira-accent); }
+    .mira-link-host { display:block; text-align:start; font-size:11px; color:var(--mira-muted); overflow-wrap:anywhere; margin-bottom:8px; }
+    .mira-link-card a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:12px; background:var(--mira-soft); color:var(--mira-ink); font-size:12px; font-weight:700; text-decoration:none; }
+    .mira-chat-form fieldset { padding:0; margin:12px 0 0; border:0; min-width:0; display:grid; gap:12px; }
+    .mira-chat-form label { display:grid; gap:6px; font-size:12px; }
+    .mira-chat-form input:not([type=checkbox]), .mira-chat-form select, .mira-chat-form textarea { box-sizing:border-box; width:100%; min-width:0; min-height:44px; border:1px solid var(--mira-line); border-radius:10px; padding:10px; background:var(--mira-surface); color:var(--mira-ink); font:inherit; }
+    .mira-chat-form input[type=checkbox] { width:22px; height:22px; accent-color:var(--mira-accent); }
+    .mira-chat-form button { min-height:44px; border:0; border-radius:12px; background:var(--mira-color); color:var(--mira-color-foreground); font:inherit; cursor:pointer; }
+    .mira-chat-form fieldset:disabled { opacity:.65; }
+    .mira-chat-form :focus-visible, .mira-link-card a:focus-visible { outline:2px solid var(--mira-color); outline-offset:3px; }
+    .mira-form-success { color:var(--mira-accent-ink); }
     @media (prefers-reduced-motion: reduce) {
       .mira-panel, .mira-panel *, .mira-bubble, .mira-trigger { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
       .mira-bubble::before { animation: none !important; display: none !important; }

@@ -28,6 +28,20 @@ async function requestError(response: Response): Promise<WidgetApiError> {
 export class WidgetApi {
   constructor(private readonly baseUrl: string) {}
 
+  async submitForm(
+    token: string,
+    conversationId: string,
+    messageId: string,
+    answers: Record<string, string | boolean>,
+    clientMessageId: string,
+  ): Promise<MessagePayload> {
+    return this.post<MessagePayload>(
+      `/v1/widget/conversations/${conversationId}/forms/${messageId}/submit`,
+      { answers, clientMessageId },
+      token,
+    );
+  }
+
   async createSession(payload: WidgetSessionRequestDto): Promise<WidgetSessionResponseDto> {
     return this.post<WidgetSessionResponseDto>('/v1/widget/sessions', payload);
   }

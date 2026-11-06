@@ -2,6 +2,10 @@ import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 import type { WidgetSessionRequestDto } from '@mira/shared-types';
 
 export class WidgetSessionDto implements WidgetSessionRequestDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  visitorProof?: string;
   @IsString()
   @MaxLength(64)
   widgetKey!: string;

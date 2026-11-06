@@ -785,3 +785,20 @@ if a newer active chat exists. Widget deletion recovery preserves its current dr
 Review regressions: merge mutation responses into existing dashboard rows to retain visitor
 metadata; return 404 for an owned deleted history so reconnect can reset the widget; never
 restore a second active conversation. Verification results are recorded in the guide.
+
+## 18. Chat tools
+
+Migration `1737301400000` adds reusable tenant forms and independent message.toolMetadata.
+Both agent roles send forms/link cards. Template owners edit/archive; admins manage tenant
+templates. Sent snapshots and response field labels are immutable. Submission serializes on
+visitor→conversation→request, rejects restrictions/trash and persists one response. Answers
+stay out of plain message content, AI history and automatic webhooks. MessageUpdated carries
+the full request receipt; reconnect history refreshes submitted receipts without erasing drafts.
+Links are bounded credential-free HTTP(S); no arbitrary page fetch, image or price extraction.
+
+WordPress plugin 1.5.3 signs wp1 user-ID/expiry proofs using its configured API key and widget
+key. API verifies HMAC and binds wp:id:expiry in externalId, with a 15-minute proof lifetime.
+Email alone never authorizes customer orders. Absent/expired proof clears or disables identity.
+Registered customer/admin/shop-manager accounts are found even without orders. Plugin updates
+are required on customer websites; updating Mira alone cannot install their plugin. See the
+chat-tools guide. Real WC fixture tests clean temporary users after checking all three roles.

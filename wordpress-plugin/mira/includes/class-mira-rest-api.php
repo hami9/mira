@@ -42,7 +42,7 @@ class Mira_Rest_Api {
 				'permission_callback' => array( $this, 'check_api_key' ),
 				'args'                => array(
 					'email' => array(
-						'required'          => true,
+						'required'          => false,
 						'sanitize_callback' => 'sanitize_email',
 						'validate_callback' => function ( $value ) {
 							return is_email( $value );
@@ -71,6 +71,14 @@ class Mira_Rest_Api {
 	}
 
 	public function handle_customer_context( WP_REST_Request $request ) {
+		$user_id = absint( $request->get_param( 'user_id' ) );
+		if ( $user_id ) {
+			$user = get_user_by( 'id', $user_id );
+			if ( ! $user ) {
+				return new WP_REST_Response( array( 'found' => false ), 200 );
+			}
+			return new WP_REST_Response( Mira_WooCommerce::get_customer_context( $user->user_email ), 200 );
+		}
 		$email   = $request->get_param( 'email' );
 		$context = Mira_WooCommerce::get_customer_context( $email );
 		return new WP_REST_Response( $context, 200 );

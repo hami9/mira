@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ChatToolsModule } from './modules/chat-tools/chat-tools.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -41,6 +42,7 @@ import { AvatarsModule } from './modules/avatars/avatars.module';
     WebhookQueueModule,
     DatabaseModule,
     ModerationModule,
+    ChatToolsModule,
     // بعد از DatabaseModule چون به AgentEntity نیاز دارد
     PermissionsModule,
     HealthModule,

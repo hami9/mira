@@ -17,6 +17,8 @@ import { CannedResponsesPicker } from './CannedResponsesPicker';
 import { InternalNotesPanel } from './InternalNotesPanel';
 import { VisitorModerationControl } from './VisitorControls';
 import { conversationName, VisitorFlags } from './VisitorLabels';
+import { ChatTools } from './ChatTools';
+import { ToolMessage } from './ToolMessage';
 
 const SUGGESTION_TIMEOUT_MS = 20_000;
 
@@ -165,6 +167,11 @@ export function ChatWindow({
     }
 
     socket.on(SocketEvent.MessageNew, onMessage);
+    const onMessageUpdated = (message: MessagePayload) => {
+      if (message.conversationId === conversation.id)
+        setMessages((current) => current.map((item) => (item.id === message.id ? message : item)));
+    };
+    socket.on(SocketEvent.MessageUpdated, onMessageUpdated);
     socket.on(SocketEvent.AiStatus, onAiStatus);
     socket.on('disconnect', onDisconnect);
     socket.on('connect', onConnect);
@@ -176,6 +183,7 @@ export function ChatWindow({
       socket.off('disconnect', onDisconnect);
       socket.off('connect', onConnect);
       socket.off(SocketEvent.MessageNew, onMessage);
+      socket.off(SocketEvent.MessageUpdated, onMessageUpdated);
       socket.off(SocketEvent.Typing, onTyping);
       socket.off(SocketEvent.AiReplySuggested, onAiSuggestion);
     };
@@ -368,6 +376,7 @@ export function ChatWindow({
               {SENDER_LABELS[message.senderType]}
             </div>
             <div className="whitespace-pre-wrap break-words">{message.content}</div>
+            <ToolMessage message={message} messages={messages} />
             <time
               dateTime={message.createdAt}
               className="mt-1 block text-left text-[10px] leading-4 opacity-50"
@@ -456,7 +465,16 @@ export function ChatWindow({
       </div>
       <InternalNotesPanel conversationId={conversation.id} />
       <div className="border-t border-gray-100 bg-white p-3">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <ChatTools
+            draft={draft}
+            conversationId={conversation.id}
+            onSent={(message) =>
+              setMessages((current) =>
+                current.some((item) => item.id === message.id) ? current : [...current, message],
+              )
+            }
+          />
           <CannedResponsesPicker onPick={(content) => setDraft(content)} />
           <button
             onClick={handleSuggestReply}

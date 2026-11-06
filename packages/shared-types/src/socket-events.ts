@@ -1,5 +1,6 @@
 import { MessageSenderType, ConversationStatus } from './enums';
 import type { AiMessageMetadata } from './ai';
+import type { ChatToolMetadata } from './chat-tools';
 
 // نام رویدادهای Socket.io مشترک بین api/dashboard/widget — تغییرشون فقط باید اینجا انجام شه
 export enum SocketEvent {
@@ -10,6 +11,7 @@ export enum SocketEvent {
   TypingStop = 'typing:stop',
   // server -> client
   MessageNew = 'message:new',
+  MessageUpdated = 'message:updated',
   Typing = 'typing',
   ConversationCreated = 'conversation:created',
   ConversationStarted = 'conversation:started',
@@ -23,6 +25,7 @@ export enum SocketEvent {
 }
 
 export interface MessagePayload {
+  toolMetadata?: ChatToolMetadata | null;
   aiMetadata?: AiMessageMetadata | null;
   id: string;
   conversationId: string;

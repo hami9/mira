@@ -74,6 +74,7 @@ export function VisitorInfoPanel({
       .catch(() => {
         if (!cancelled)
           setCustomerContext({
+            status: 'unavailable',
             found: false,
             customerName: null,
             totalSpent: 0,
@@ -193,11 +194,37 @@ export function VisitorInfoPanel({
       <div className="mb-1 font-bold text-gray-800">مشتری ووکامرس</div>
       {!customerContext && <div className="text-gray-400">در حال بارگذاری...</div>}
       {customerContext && !customerContext.found && (
-        <div className="text-gray-400">اتصال ووکامرس تنظیم نشده یا مشتری پیدا نشد</div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-6 text-slate-500">
+          {
+            {
+              'not-configured': 'اتصال وردپرس این فروشگاه هنوز تنظیم نشده است.',
+              unverified:
+                'هویت ورود سایت هنوز تأیید نشده است. کاربر واردشده با افزونه به‌روز میرا شناسایی می‌شود.',
+              unavailable: 'ارتباط با فروشگاه برقرار نشد. اتصال و نسخه افزونه را بررسی کنید.',
+              'not-found': 'حساب کاربر در فروشگاه پیدا نشد.',
+              connected: '',
+            }[customerContext.status || 'not-found']
+          }
+        </div>
       )}
       {customerContext?.found && (
         <div className="space-y-1">
           <div>نام مشتری: {customerContext.customerName ?? '—'}</div>
+          {customerContext.accountRole && (
+            <div className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+              {
+                {
+                  administrator: 'مدیر وردپرس',
+                  shop_manager: 'مدیر فروشگاه',
+                  customer: 'مشتری ووکامرس',
+                  member: 'عضو سایت',
+                }[customerContext.accountRole]
+              }
+            </div>
+          )}
+          {customerContext.recentOrders.length === 0 && (
+            <p className="text-xs text-slate-500">این حساب هنوز سفارشی ندارد.</p>
+          )}
           <div>
             مجموع خرید: {formatCurrency(customerContext.totalSpent, customerContext.currency)}
           </div>

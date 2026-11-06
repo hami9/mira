@@ -49,6 +49,10 @@ See [AI assistant setup and boundaries](docs/ai-assistant.md).
 
 ### Operator workspace
 
+Send reusable forms and readable page/product link cards from the chat composer. Submitted
+answers remain inline, separate from AI history. Signed WordPress identity displays customer
+and store administrator profiles even without orders. See [chat tools](docs/chat-tools.md).
+
 Operators can name visitors, add colored flags and priority tags, block or temporarily mute
 senders, and move conversations to a recoverable trash folder. Automatic flood/repetition
 protection is configurable per store. See [visitor moderation](docs/visitor-moderation.md).

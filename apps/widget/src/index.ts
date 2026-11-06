@@ -16,6 +16,7 @@ interface WidgetConfig {
   position?: 'bottom-right' | 'bottom-left';
   // این دو از افزونه‌ی وردپرس می‌آد: نام/ایمیل کاربر واردشده به وردپرس، برای پیش‌فرم خودکار (فاز ۳)
   visitorName?: string;
+  visitorProof?: string;
   visitorEmail?: string;
   // override پیام محرک برای سبد خرید رهاشده در صفحات ووکامرس (به‌جای پیام محرک عمومی سایت)
   triggerText?: string;
@@ -46,6 +47,7 @@ function readConfig(): WidgetConfig | null {
     accentColor: scriptEl?.dataset.accentColor || undefined,
     position,
     visitorName: scriptEl?.dataset.visitorName || undefined,
+    visitorProof: scriptEl?.dataset.visitorProof || undefined,
     visitorEmail: scriptEl?.dataset.visitorEmail || undefined,
     triggerText: scriptEl?.dataset.triggerText || undefined,
     triggerDelaySeconds: triggerDelayRaw ? Number(triggerDelayRaw) : undefined,
@@ -62,6 +64,7 @@ async function main(): Promise<void> {
   let socket: Socket | null = null;
   let triggerTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSend: { content: string; id: string } | null = null;
+  const pendingForms = new Map<string, string>();
 
   function cancelTrigger(): void {
     if (triggerTimeout) {
@@ -72,6 +75,21 @@ async function main(): Promise<void> {
 
   const ui = new WidgetUi(
     {
+      onFormSubmit: async (messageId, answers) => {
+        const targetId = conversationId;
+        if (!targetId) throw new WidgetSendError('گفتگو در دسترس نیست.');
+        const retryId = pendingForms.get(messageId) ?? newClientMessageId();
+        pendingForms.set(messageId, retryId);
+        try {
+          const message = await api.submitForm(visitorToken, targetId, messageId, answers, retryId);
+          if (conversationId === targetId)
+            ui.appendMessage(message.content, message.senderType, message);
+          pendingForms.delete(messageId);
+        } catch (error) {
+          if (error instanceof WidgetApiError) throw new WidgetSendError(error.message);
+          throw new WidgetSendError('ثبت پاسخ انجام نشد؛ پاسخ‌های شما حفظ شده‌اند.');
+        }
+      },
       onSend: async (content) => {
         cancelTrigger();
         if (!socket?.connected || !visitorToken) throw new Error('اتصال برقرار نیست');
@@ -131,7 +149,11 @@ async function main(): Promise<void> {
     try {
       const history = await api.getMessages(visitorToken, targetId);
       if (conversationId !== targetId) return;
-      for (const message of history) ui.appendMessage(message.content, message.senderType, message);
+      for (const message of history) {
+        ui.appendMessage(message.content, message.senderType, message);
+        if (message.toolMetadata?.kind === 'form-request' && message.toolMetadata.submittedAt)
+          ui.updateMessage(message);
+      }
       if (pendingRatingId === targetId) showCsatPromptFor(targetId);
     } catch (error) {
       if (conversationId !== targetId) return;
@@ -154,6 +176,7 @@ async function main(): Promise<void> {
       widgetKey: config.widgetKey,
       visitorRef: getStoredVisitorRef() ?? undefined,
       name: config.visitorName,
+      visitorProof: config.visitorProof,
       email: config.visitorEmail,
     });
     visitorToken = session.visitorToken;
@@ -212,6 +235,9 @@ async function main(): Promise<void> {
     }
 
     socket = connectWidgetSocket(config.apiUrl, visitorToken, {
+      onMessageUpdated: (message) => {
+        if (message.conversationId === conversationId) ui.updateMessage(message);
+      },
       onConversationStarted: async (id) => {
         if (conversationId === id) return;
         conversationId = id;

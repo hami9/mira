@@ -9,6 +9,7 @@ import {
 } from '@mira/shared-types';
 
 export interface WidgetSocketHandlers {
+  onMessageUpdated: (message: MessagePayload) => void;
   onConversationStarted: (conversationId: string) => void;
   onAiStatus: (payload: AiStatusPayload) => void;
   onMessage: (message: MessagePayload) => void;
@@ -30,6 +31,7 @@ export function connectWidgetSocket(
   });
 
   socket.on(SocketEvent.MessageNew, handlers.onMessage);
+  socket.on(SocketEvent.MessageUpdated, handlers.onMessageUpdated);
   socket.on(SocketEvent.ConversationStarted, (payload: { conversationId: string }) =>
     handlers.onConversationStarted(payload.conversationId),
   );

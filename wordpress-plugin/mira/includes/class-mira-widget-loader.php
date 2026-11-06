@@ -47,6 +47,12 @@ class Mira_Widget_Loader {
 			if ( $current_user->exists() ) {
 				$attributes['data-visitor-name']  = $current_user->display_name;
 				$attributes['data-visitor-email'] = $current_user->user_email;
+				$identity_key = get_option( 'mira_api_key', '' );
+				if ( $identity_key ) {
+					$expires = time() + 900;
+					$signature = hash_hmac( 'sha256', $widget_key . ':' . $current_user->ID . ':' . $expires, $identity_key );
+					$attributes['data-visitor-proof'] = 'wp1.' . $current_user->ID . '.' . $expires . '.' . $signature;
+				}
 			}
 		}
 

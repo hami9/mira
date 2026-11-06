@@ -43,6 +43,8 @@ import type {
   VisitorUpdatedPayload,
   UpdateVisitorDetailsDto,
   ModerateVisitorDto,
+  ChatFormDto,
+  SaveChatFormDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
 
@@ -76,6 +78,33 @@ export interface ListConversationsParams {
 }
 
 export class ApiClient {
+  listChatForms(): Promise<ChatFormDto[]> {
+    return this.authedGet('/v1/chat-forms');
+  }
+  saveChatForm(dto: SaveChatFormDto, id?: string): Promise<ChatFormDto> {
+    return id
+      ? this.authedPatch(`/v1/chat-forms/${id}`, dto)
+      : this.authedPost('/v1/chat-forms', dto);
+  }
+  archiveChatForm(id: string): Promise<void> {
+    return this.authedDelete(`/v1/chat-forms/${id}`);
+  }
+  sendChatForm(
+    conversationId: string,
+    templateId: string,
+    clientMessageId: string,
+  ): Promise<MessagePayload> {
+    return this.authedPost(`/v1/conversations/${conversationId}/forms`, {
+      templateId,
+      clientMessageId,
+    });
+  }
+  sendChatLink(
+    conversationId: string,
+    dto: { url: string; title?: string; description?: string; clientMessageId: string },
+  ): Promise<MessagePayload> {
+    return this.authedPost(`/v1/conversations/${conversationId}/links`, dto);
+  }
   private readonly visitorListeners = new Set<(visitor: VisitorUpdatedPayload) => void>();
   onVisitorUpdated(listener: (visitor: VisitorUpdatedPayload) => void): () => void {
     this.visitorListeners.add(listener);

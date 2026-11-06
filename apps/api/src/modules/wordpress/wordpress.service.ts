@@ -1,6 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CustomerContextDto } from '@mira/shared-types';
 import { SiteEntity, VisitorEntity } from '../../database/entities';
+import { wordPressUserId } from './wordpress-identity';
+
+function emptyContext(status: CustomerContextDto['status']): CustomerContextDto {
+  return {
+    status,
+    found: false,
+    customerName: null,
+    totalSpent: 0,
+    currency: 'IRR',
+    lastOrderStatus: null,
+    lastOrderDate: null,
+    recentOrders: [],
+    currentCart: null,
+  };
+}
 
 // وردپرس/ووکامرس روی هاست‌های معمولی (به‌خصوص بدون کش آبجکت، یا در حالت cold-start) می‌تونه
 // چند ثانیه طول بکشه؛ چون این فقط برای نمایش اطلاعات کنار گفتگوست (نه مسیر بلادرنگ چت)، سخت‌گیری زیاد روی timeout لازم نیست
@@ -17,11 +32,10 @@ export class WordPressService {
     visitor: VisitorEntity,
   ): Promise<CustomerContextDto | null> {
     if (!site.wordpressSiteUrl || !site.wordpressApiKey) {
-      return null; // اتصال ووکامرس برای این سایت هنوز تنظیم نشده
+      return emptyContext('not-configured');
     }
-    if (!visitor.email) {
-      return null; // بدون ایمیل نمی‌شه مشتری وردپرس رو با بازدیدکننده تطبیق داد
-    }
+    const userId = wordPressUserId(visitor.externalId);
+    if (!userId) return emptyContext('unverified');
 
     let url: URL;
     try {
@@ -30,7 +44,8 @@ export class WordPressService {
       this.logger.warn(`آدرس وردپرس سایت ${site.id} نامعتبر است`);
       return null;
     }
-    url.searchParams.set('email', visitor.email);
+    url.searchParams.set('user_id', userId);
+    // نسخه‌های قدیمی افزونه برای شناسایی حساب به‌روزرسانی می‌خواهند؛ ایمیل تأییدنشده نمی‌فرستیم.
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -41,15 +56,21 @@ export class WordPressService {
         // و TypeError می‌دهد که catch پایین بی‌صدا می‌بلعیدش (بخش ۶ AGENTS.md)
         headers: { 'X-Mira-Api-Key': site.wordpressApiKey },
         signal: controller.signal,
+        redirect: 'error',
       });
       if (!response.ok) {
         this.logger.warn(`وردپرس با کد ${response.status} پاسخ داد (سایت ${site.id})`);
-        return null;
+        return emptyContext('unavailable');
       }
-      return (await response.json()) as CustomerContextDto;
+      const context = (await response.json()) as CustomerContextDto;
+      return {
+        ...emptyContext('not-found'),
+        ...context,
+        status: context.found ? 'connected' : 'not-found',
+      };
     } catch (error) {
       this.logger.warn(`اتصال به REST سفارشی وردپرس ناموفق بود: ${(error as Error).message}`);
-      return null;
+      return emptyContext('unavailable');
     } finally {
       clearTimeout(timeout);
     }

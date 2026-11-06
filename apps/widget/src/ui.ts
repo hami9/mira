@@ -17,6 +17,7 @@ import type {
 } from '@mira/shared-types';
 import { icons } from './icons';
 import { injectStyles } from './styles';
+import { renderChatTool } from './chat-tools';
 
 export interface WidgetUiOptions {
   color?: string;
@@ -30,6 +31,7 @@ export interface WidgetUiOptions {
 }
 
 export interface WidgetUiCallbacks {
+  onFormSubmit?: (messageId: string, answers: Record<string, string | boolean>) => Promise<void>;
   onSend: (content: string) => Promise<void>;
   onTypingChange: (isTyping: boolean) => void;
 }
@@ -502,6 +504,7 @@ export class WidgetUi {
       this.messagesEl.scrollHeight - this.messagesEl.scrollTop - this.messagesEl.clientHeight < 100;
     const el = this.doc.createElement('div');
     el.className = `mira-msg mira-msg-${senderType}`;
+    if (message) el.dataset.messageId = message.id;
     const meta = this.doc.createElement('div');
     meta.className = 'mira-msg-meta';
     const label = this.doc.createElement('span');
@@ -536,6 +539,12 @@ export class WidgetUi {
     body.className = 'mira-msg-body';
     body.textContent = content;
     el.appendChild(body);
+    if (message?.toolMetadata)
+      el.appendChild(
+        renderChatTool(this.doc, message.toolMetadata, (answers) =>
+          this.submitForm(message.id, answers),
+        ),
+      );
     if (message?.aiMetadata && senderType === MessageSenderType.BOT) {
       this.appendProducts(el, message.aiMetadata.products ?? []);
       for (const source of message.aiMetadata.sources ?? []) {
@@ -554,6 +563,30 @@ export class WidgetUi {
     this.messagesEl.appendChild(el);
     if (nearBottom || senderType === MessageSenderType.VISITOR)
       this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+  }
+
+  private async submitForm(
+    messageId: string,
+    answers: Record<string, string | boolean>,
+  ): Promise<void> {
+    if (!this.connected) throw new Error('اتصال برقرار نیست؛ پاسخ‌های شما حفظ شده‌اند.');
+    if (this.isRestricted()) throw new Error('ثبت فرم تا پایان محدودیت ارسال پیام ممکن نیست.');
+    if (!this.callbacks.onFormSubmit) throw new Error('ارسال در پیش‌نمایش فعال نیست.');
+    await this.callbacks.onFormSubmit(messageId, answers);
+  }
+
+  updateMessage(message: MessagePayload): void {
+    const element = Array.from(
+      this.messagesEl.querySelectorAll<HTMLElement>('[data-message-id]'),
+    ).find((item) => item.dataset.messageId === message.id);
+    if (!element) return;
+    element.querySelector('.mira-tool')?.remove();
+    if (message.toolMetadata)
+      element.appendChild(
+        renderChatTool(this.doc, message.toolMetadata, (answers) =>
+          this.submitForm(message.id, answers),
+        ),
+      );
   }
 
   private appendProducts(parent: HTMLElement, products: AiProduct[]): void {

@@ -424,6 +424,25 @@ export class ChatGateway
     client.emit(SocketEvent.ConnectionError, { message });
   }
 
+  @OnEvent('chat-tool.message')
+  onToolMessage(event: {
+    siteId: string;
+    visitorId: string;
+    message: MessagePayload;
+    updated?: MessagePayload;
+  }): void {
+    const rooms = this.server
+      .to(`site:${event.siteId}`)
+      .to(`conversation:${event.message.conversationId}`)
+      .to(`visitor:${event.siteId}:${event.visitorId}`);
+    rooms.emit(SocketEvent.MessageNew, event.message);
+    if (event.updated) rooms.emit(SocketEvent.MessageUpdated, event.updated);
+    this.server.to(`site:${event.siteId}`).emit(SocketEvent.ConversationUpdated, {
+      conversationId: event.message.conversationId,
+      lastMessage: event.message,
+    });
+  }
+
   @OnEvent('visitor.updated')
   onVisitorUpdated(event: VisitorUpdatedPayload & { siteId: string }): void {
     const { siteId, ...details } = event;

@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { VisitorEntity, VisitorPageViewEntity } from '../../database/entities';
 
 export interface UpsertVisitorInput {
+  externalId?: string | null;
   siteId: string;
   visitorRef?: string;
   name?: string;
@@ -35,6 +36,7 @@ export class VisitorsService {
           { id: existing.id, siteId: input.siteId },
           {
             lastSeenAt: new Date(),
+            ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
             ...(input.name ? { name: input.name } : {}),
             ...(input.email ? { email: input.email } : {}),
             ...(input.userAgent ? { userAgent: input.userAgent } : {}),
@@ -50,7 +52,7 @@ export class VisitorsService {
       name: input.name ?? null,
       email: input.email ?? null,
       userAgent: input.userAgent ?? null,
-      externalId: null,
+      externalId: input.externalId ?? null,
     });
     return this.visitorsRepository.save(visitor);
   }

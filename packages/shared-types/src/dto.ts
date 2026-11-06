@@ -25,6 +25,7 @@ export interface RefreshResponseDto {
 }
 
 export interface WidgetSessionRequestDto {
+  visitorProof?: string;
   widgetKey: string;
   // شناسه ناشناس و غیرحساس بازدیدکننده که ویجت در localStorage نگه می‌داره (نه توکن، نه PII)
   visitorRef?: string;

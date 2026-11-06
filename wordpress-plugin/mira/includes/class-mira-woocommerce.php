@@ -29,6 +29,7 @@ class Mira_WooCommerce {
 		}
 
 		$user = get_user_by( 'email', $email );
+		$role = $user && in_array( 'administrator', $user->roles, true ) ? 'administrator' : ( $user && in_array( 'shop_manager', $user->roles, true ) ? 'shop_manager' : ( $user && in_array( 'customer', $user->roles, true ) ? 'customer' : 'member' ) );
 
 		$orders = wc_get_orders(
 			array(
@@ -40,6 +41,12 @@ class Mira_WooCommerce {
 		);
 
 		if ( empty( $orders ) ) {
+			if ( $user ) {
+				$default['found'] = true;
+				$default['customerName'] = $user->display_name;
+				$default['accountRole'] = $role;
+				$default['status'] = 'connected';
+			}
 			return $default;
 		}
 
@@ -61,6 +68,8 @@ class Mira_WooCommerce {
 
 		return array(
 			'found'           => true,
+			'accountRole'     => $role,
+			'status'          => 'connected',
 			'customerName'    => '' !== $billing_name ? $billing_name : ( $user ? $user->display_name : null ),
 			'totalSpent'      => $total_spent,
 			'currency'        => $last_order->get_currency(),

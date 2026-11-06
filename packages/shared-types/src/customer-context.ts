@@ -8,6 +8,8 @@ export interface CustomerOrderSummary {
 }
 
 export interface CustomerContextDto {
+  status?: 'connected' | 'not-configured' | 'unverified' | 'unavailable' | 'not-found';
+  accountRole?: 'administrator' | 'shop_manager' | 'customer' | 'member';
   found: boolean;
   customerName: string | null;
   totalSpent: number;

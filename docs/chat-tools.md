@@ -24,5 +24,13 @@ and not found are distinct UI states. Keep the plugin's private API key configur
 
 Verification includes PHP syntax, three disposable WooCommerce account roles, identity unit
 checks and a real-Postgres test for form snapshots, concurrent submissions, tenant boundaries,
-link validation, restrictions and idempotent retries. Final browser/deployment results follow
-in the project handoff.
+link validation, restrictions and idempotent retries. All builds, widget TypeScript, ESLint,
+144 unit tests and 71 integration tests passed. Real Chromium checked the operator form/link
+flow, persistent submission, restrictions and 375/768/1280px layouts.
+
+Commit `b52c93c` is deployed at mira.hami9.ir in `mira-api:chat-tools`; the worker remains on
+the compatible moderation image. Production smoke used and removed a disposable tenant,
+checking form creation/send/submit, link cards and previous moderation operations. A database
+dump and prior override are retained under `/var/backups/mira/chat-tools-20261106`. The API is
+healthy. Popmobile's WordPress URL/key are configured, but installing plugin 1.5.3 on that
+separate WordPress site remains an owner action; it was not installed there by this release.

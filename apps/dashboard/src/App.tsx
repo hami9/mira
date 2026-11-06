@@ -3,6 +3,7 @@ import { ApiClient } from './api';
 import { ApiProvider } from './api-context';
 import { Dashboard } from './Dashboard';
 import { LoginPage } from './components/LoginPage';
+import { ThemePicker } from './components/ThemePicker';
 import { connectDashboardSocket, type ConversationUpdatedPayload } from './socket';
 import { playNotificationSound, showBrowserNotification } from './notifications';
 
@@ -205,6 +206,9 @@ export default function App() {
   if (loginClient) {
     return (
       <ApiProvider client={loginClient}>
+        <div className="absolute inset-x-4 top-4 z-10 flex justify-end" dir="rtl">
+          <ThemePicker />
+        </div>
         <LoginPage
           onLoggedIn={() => finishLogin(loginClient)}
           onCancel={
@@ -233,6 +237,7 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gray-50" dir="rtl">
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
+        <ThemePicker />
         <label htmlFor="store-switch" className="text-xs font-bold text-gray-600">
           فروشگاه فعال
         </label>

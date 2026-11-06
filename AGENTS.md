@@ -802,3 +802,15 @@ Email alone never authorizes customer orders. Absent/expired proof clears or dis
 Registered customer/admin/shop-manager accounts are found even without orders. Plugin updates
 are required on customer websites; updating Mira alone cannot install their plugin. See the
 chat-tools guide. Real WC fixture tests clean temporary users after checking all three roles.
+
+## 19. Dashboard theme
+
+Dashboard color mode is a browser preference (`mira-dashboard-theme`): light, dark or system.
+The external `/theme.js` boot script applies `html[data-theme]` before React paints and works
+with the existing self-only CSP. Runtime listeners handle OS and cross-tab preference changes.
+Missing/invalid or inaccessible storage defaults to system; no tenant settings or secrets are
+stored. Keep the boot and runtime preference behavior aligned.
+
+Theme styles map dashboard surfaces, neutral text, boundaries and soft status colors while
+retaining filled action colors. Native controls follow color-scheme. Avoid document filters;
+the Widget Studio iframe and saved customer widget appearance must remain independent.

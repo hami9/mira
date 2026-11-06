@@ -1,5 +1,6 @@
 /* فونت وزیرمتن — self-host از پکیج npm (بدون CDN تا آفلاین/داخل ایران هم کار کند) */
 @import 'vazirmatn/Vazirmatn-font-face.css';
+@import './theme.css';
 
 @tailwind base;
 @tailwind components;

@@ -1,0 +1,841 @@
+/* پالت داشبورد؛ داخل iframe پیش‌نمایش ویجت اعمال نمی‌شود. */
+:root[data-theme='dark'] {
+  --dashboard-canvas: #0c1422;
+  --dashboard-panel: #141f30;
+  --dashboard-raised: #1d2b40;
+  --dashboard-line: #34445c;
+  color-scheme: dark;
+  background: var(--dashboard-canvas);
+}
+:root[data-theme='dark'] body {
+  background: var(--dashboard-canvas);
+  color: #e2e8f0;
+}
+:root[data-theme='dark'] #root {
+  color: #e2e8f0;
+}
+
+:root[data-theme='dark'] #root input::placeholder,
+:root[data-theme='dark'] #root textarea::placeholder {
+  color: #8e9fb7;
+  opacity: 1;
+}
+:root[data-theme='dark'] #root option {
+  background: #141f30;
+  color: #e2e8f0;
+}
+:root[data-theme='dark'] #root dialog {
+  color: #e2e8f0;
+}
+:root[data-theme='dark'] * {
+  scrollbar-color: #475b78 transparent;
+}
+:root[data-theme='dark'] *::-webkit-scrollbar-thumb {
+  background: #475b78;
+}
+:root[data-theme='dark'] #root .input-base {
+  background: var(--dashboard-panel);
+  color: #e2e8f0;
+  border-color: var(--dashboard-line);
+}
+:root[data-theme='dark'] #root .card {
+  background: var(--dashboard-panel);
+  border-color: var(--dashboard-line);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    background: #0c1422;
+    color-scheme: dark;
+  }
+  :root:not([data-theme]) body {
+    background: #0c1422;
+    color: #e2e8f0;
+  }
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-gray-50'],
+    [class~='bg-gray-50/50'],
+    [class~='bg-gray-50/60'],
+    [class~='bg-gray-50/70'],
+    [class~='bg-gray-50/80'],
+    [class~='bg-slate-50'],
+    [class~='bg-slate-50/50'],
+    [class~='bg-slate-50/60'],
+    [class~='bg-slate-50/70'],
+    [class~='bg-slate-50/80']
+  ) {
+  background-color: #101b2b;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-gray-50']:hover,
+    [class~='hover:bg-gray-50/50']:hover,
+    [class~='hover:bg-gray-50/60']:hover,
+    [class~='hover:bg-gray-50/70']:hover,
+    [class~='hover:bg-gray-50/80']:hover,
+    [class~='hover:bg-slate-50']:hover,
+    [class~='hover:bg-slate-50/50']:hover,
+    [class~='hover:bg-slate-50/60']:hover,
+    [class~='hover:bg-slate-50/70']:hover,
+    [class~='hover:bg-slate-50/80']:hover
+  ) {
+  background-color: #101b2b;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='border-gray-50'],
+    [class~='border-gray-50/70'],
+    [class~='border-gray-50/80'],
+    [class~='border-gray-100'],
+    [class~='border-gray-100/70'],
+    [class~='border-gray-100/80'],
+    [class~='border-gray-200'],
+    [class~='border-gray-200/70'],
+    [class~='border-gray-200/80'],
+    [class~='border-gray-300'],
+    [class~='border-gray-300/70'],
+    [class~='border-gray-300/80'],
+    [class~='border-slate-50'],
+    [class~='border-slate-50/70'],
+    [class~='border-slate-50/80'],
+    [class~='border-slate-100'],
+    [class~='border-slate-100/70'],
+    [class~='border-slate-100/80'],
+    [class~='border-slate-200'],
+    [class~='border-slate-200/70'],
+    [class~='border-slate-200/80'],
+    [class~='border-slate-300'],
+    [class~='border-slate-300/70'],
+    [class~='border-slate-300/80']
+  ) {
+  border-color: var(--dashboard-line);
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-gray-100'],
+    [class~='bg-gray-100/50'],
+    [class~='bg-gray-100/60'],
+    [class~='bg-gray-100/70'],
+    [class~='bg-gray-100/80'],
+    [class~='bg-slate-100'],
+    [class~='bg-slate-100/50'],
+    [class~='bg-slate-100/60'],
+    [class~='bg-slate-100/70'],
+    [class~='bg-slate-100/80']
+  ) {
+  background-color: #1a283c;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-gray-100']:hover,
+    [class~='hover:bg-gray-100/50']:hover,
+    [class~='hover:bg-gray-100/60']:hover,
+    [class~='hover:bg-gray-100/70']:hover,
+    [class~='hover:bg-gray-100/80']:hover,
+    [class~='hover:bg-slate-100']:hover,
+    [class~='hover:bg-slate-100/50']:hover,
+    [class~='hover:bg-slate-100/60']:hover,
+    [class~='hover:bg-slate-100/70']:hover,
+    [class~='hover:bg-slate-100/80']:hover
+  ) {
+  background-color: #1a283c;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-gray-200'],
+    [class~='bg-gray-200/50'],
+    [class~='bg-gray-200/60'],
+    [class~='bg-gray-200/70'],
+    [class~='bg-gray-200/80'],
+    [class~='bg-gray-300'],
+    [class~='bg-gray-300/50'],
+    [class~='bg-gray-300/60'],
+    [class~='bg-gray-300/70'],
+    [class~='bg-gray-300/80'],
+    [class~='bg-slate-200'],
+    [class~='bg-slate-200/50'],
+    [class~='bg-slate-200/60'],
+    [class~='bg-slate-200/70'],
+    [class~='bg-slate-200/80'],
+    [class~='bg-slate-300'],
+    [class~='bg-slate-300/50'],
+    [class~='bg-slate-300/60'],
+    [class~='bg-slate-300/70'],
+    [class~='bg-slate-300/80']
+  ) {
+  background-color: #26364c;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-gray-200']:hover,
+    [class~='hover:bg-gray-200/50']:hover,
+    [class~='hover:bg-gray-200/60']:hover,
+    [class~='hover:bg-gray-200/70']:hover,
+    [class~='hover:bg-gray-200/80']:hover,
+    [class~='hover:bg-gray-300']:hover,
+    [class~='hover:bg-gray-300/50']:hover,
+    [class~='hover:bg-gray-300/60']:hover,
+    [class~='hover:bg-gray-300/70']:hover,
+    [class~='hover:bg-gray-300/80']:hover,
+    [class~='hover:bg-slate-200']:hover,
+    [class~='hover:bg-slate-200/50']:hover,
+    [class~='hover:bg-slate-200/60']:hover,
+    [class~='hover:bg-slate-200/70']:hover,
+    [class~='hover:bg-slate-200/80']:hover,
+    [class~='hover:bg-slate-300']:hover,
+    [class~='hover:bg-slate-300/50']:hover,
+    [class~='hover:bg-slate-300/60']:hover,
+    [class~='hover:bg-slate-300/70']:hover,
+    [class~='hover:bg-slate-300/80']:hover
+  ) {
+  background-color: #26364c;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-gray-300'],
+    [class~='text-gray-400'],
+    [class~='text-slate-300'],
+    [class~='text-slate-400']
+  ) {
+  color: #94a6bf;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-gray-300']:hover,
+    [class~='hover:text-gray-400']:hover,
+    [class~='hover:text-slate-300']:hover,
+    [class~='hover:text-slate-400']:hover
+  ) {
+  color: #94a6bf;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-gray-500'],
+    [class~='text-gray-600'],
+    [class~='text-slate-500'],
+    [class~='text-slate-600']
+  ) {
+  color: #b6c4d8;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-gray-500']:hover,
+    [class~='hover:text-gray-600']:hover,
+    [class~='hover:text-slate-500']:hover,
+    [class~='hover:text-slate-600']:hover
+  ) {
+  color: #b6c4d8;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-gray-700'],
+    [class~='text-gray-800'],
+    [class~='text-gray-900'],
+    [class~='text-gray-950'],
+    [class~='text-slate-700'],
+    [class~='text-slate-800'],
+    [class~='text-slate-900'],
+    [class~='text-slate-950']
+  ) {
+  color: #e2e8f0;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-gray-700']:hover,
+    [class~='hover:text-gray-800']:hover,
+    [class~='hover:text-gray-900']:hover,
+    [class~='hover:text-gray-950']:hover,
+    [class~='hover:text-slate-700']:hover,
+    [class~='hover:text-slate-800']:hover,
+    [class~='hover:text-slate-900']:hover,
+    [class~='hover:text-slate-950']:hover
+  ) {
+  color: #e2e8f0;
+}
+
+:root[data-theme='dark']
+  #root
+  :is([class~='bg-white'], [class~='bg-white/70'], [class~='bg-white/95']) {
+  background-color: var(--dashboard-panel);
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-white']:hover,
+    [class~='hover:bg-white/70']:hover,
+    [class~='hover:bg-white/95']:hover
+  ) {
+  background-color: var(--dashboard-panel);
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-red-50'],
+    [class~='bg-red-50/40'],
+    [class~='bg-red-50/50'],
+    [class~='bg-red-50/60'],
+    [class~='bg-red-100'],
+    [class~='bg-red-100/40'],
+    [class~='bg-red-100/50'],
+    [class~='bg-red-100/60']
+  ) {
+  background-color: #3a202b;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-red-50']:hover,
+    [class~='hover:bg-red-50/40']:hover,
+    [class~='hover:bg-red-50/50']:hover,
+    [class~='hover:bg-red-50/60']:hover,
+    [class~='hover:bg-red-100']:hover,
+    [class~='hover:bg-red-100/40']:hover,
+    [class~='hover:bg-red-100/50']:hover,
+    [class~='hover:bg-red-100/60']:hover
+  ) {
+  background-color: #3a202b;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-red-500'],
+    [class~='text-red-600'],
+    [class~='text-red-700'],
+    [class~='text-red-800'],
+    [class~='text-red-900']
+  ) {
+  color: #ffb3be;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-red-500']:hover,
+    [class~='hover:text-red-600']:hover,
+    [class~='hover:text-red-700']:hover,
+    [class~='hover:text-red-800']:hover,
+    [class~='hover:text-red-900']:hover
+  ) {
+  color: #ffb3be;
+}
+
+:root[data-theme='dark']
+  #root
+  :is([class~='border-red-100'], [class~='border-red-200'], [class~='border-red-300']) {
+  border-color: #77404e;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-blue-50'],
+    [class~='bg-blue-50/40'],
+    [class~='bg-blue-50/50'],
+    [class~='bg-blue-50/60'],
+    [class~='bg-blue-100'],
+    [class~='bg-blue-100/40'],
+    [class~='bg-blue-100/50'],
+    [class~='bg-blue-100/60'],
+    [class~='bg-primary-50'],
+    [class~='bg-primary-50/40'],
+    [class~='bg-primary-50/50'],
+    [class~='bg-primary-50/60'],
+    [class~='bg-primary-100'],
+    [class~='bg-primary-100/40'],
+    [class~='bg-primary-100/50'],
+    [class~='bg-primary-100/60']
+  ) {
+  background-color: #142c4c;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-blue-50']:hover,
+    [class~='hover:bg-blue-50/40']:hover,
+    [class~='hover:bg-blue-50/50']:hover,
+    [class~='hover:bg-blue-50/60']:hover,
+    [class~='hover:bg-blue-100']:hover,
+    [class~='hover:bg-blue-100/40']:hover,
+    [class~='hover:bg-blue-100/50']:hover,
+    [class~='hover:bg-blue-100/60']:hover,
+    [class~='hover:bg-primary-50']:hover,
+    [class~='hover:bg-primary-50/40']:hover,
+    [class~='hover:bg-primary-50/50']:hover,
+    [class~='hover:bg-primary-50/60']:hover,
+    [class~='hover:bg-primary-100']:hover,
+    [class~='hover:bg-primary-100/40']:hover,
+    [class~='hover:bg-primary-100/50']:hover,
+    [class~='hover:bg-primary-100/60']:hover
+  ) {
+  background-color: #142c4c;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-blue-500'],
+    [class~='text-blue-600'],
+    [class~='text-blue-700'],
+    [class~='text-blue-800'],
+    [class~='text-blue-900'],
+    [class~='text-primary-500'],
+    [class~='text-primary-600'],
+    [class~='text-primary-700'],
+    [class~='text-primary-800'],
+    [class~='text-primary-900']
+  ) {
+  color: #a6cbff;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-blue-500']:hover,
+    [class~='hover:text-blue-600']:hover,
+    [class~='hover:text-blue-700']:hover,
+    [class~='hover:text-blue-800']:hover,
+    [class~='hover:text-blue-900']:hover,
+    [class~='hover:text-primary-500']:hover,
+    [class~='hover:text-primary-600']:hover,
+    [class~='hover:text-primary-700']:hover,
+    [class~='hover:text-primary-800']:hover,
+    [class~='hover:text-primary-900']:hover
+  ) {
+  color: #a6cbff;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='border-blue-100'],
+    [class~='border-blue-200'],
+    [class~='border-blue-300'],
+    [class~='border-primary-100'],
+    [class~='border-primary-200'],
+    [class~='border-primary-300']
+  ) {
+  border-color: #284d7a;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-amber-50'],
+    [class~='bg-amber-50/40'],
+    [class~='bg-amber-50/50'],
+    [class~='bg-amber-50/60'],
+    [class~='bg-amber-100'],
+    [class~='bg-amber-100/40'],
+    [class~='bg-amber-100/50'],
+    [class~='bg-amber-100/60'],
+    [class~='bg-yellow-50'],
+    [class~='bg-yellow-50/40'],
+    [class~='bg-yellow-50/50'],
+    [class~='bg-yellow-50/60'],
+    [class~='bg-yellow-100'],
+    [class~='bg-yellow-100/40'],
+    [class~='bg-yellow-100/50'],
+    [class~='bg-yellow-100/60'],
+    [class~='bg-orange-50'],
+    [class~='bg-orange-50/40'],
+    [class~='bg-orange-50/50'],
+    [class~='bg-orange-50/60'],
+    [class~='bg-orange-100'],
+    [class~='bg-orange-100/40'],
+    [class~='bg-orange-100/50'],
+    [class~='bg-orange-100/60'],
+    [class~='bg-accent-50'],
+    [class~='bg-accent-50/40'],
+    [class~='bg-accent-50/50'],
+    [class~='bg-accent-50/60'],
+    [class~='bg-accent-100'],
+    [class~='bg-accent-100/40'],
+    [class~='bg-accent-100/50'],
+    [class~='bg-accent-100/60']
+  ) {
+  background-color: #382c19;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-amber-50']:hover,
+    [class~='hover:bg-amber-50/40']:hover,
+    [class~='hover:bg-amber-50/50']:hover,
+    [class~='hover:bg-amber-50/60']:hover,
+    [class~='hover:bg-amber-100']:hover,
+    [class~='hover:bg-amber-100/40']:hover,
+    [class~='hover:bg-amber-100/50']:hover,
+    [class~='hover:bg-amber-100/60']:hover,
+    [class~='hover:bg-yellow-50']:hover,
+    [class~='hover:bg-yellow-50/40']:hover,
+    [class~='hover:bg-yellow-50/50']:hover,
+    [class~='hover:bg-yellow-50/60']:hover,
+    [class~='hover:bg-yellow-100']:hover,
+    [class~='hover:bg-yellow-100/40']:hover,
+    [class~='hover:bg-yellow-100/50']:hover,
+    [class~='hover:bg-yellow-100/60']:hover,
+    [class~='hover:bg-orange-50']:hover,
+    [class~='hover:bg-orange-50/40']:hover,
+    [class~='hover:bg-orange-50/50']:hover,
+    [class~='hover:bg-orange-50/60']:hover,
+    [class~='hover:bg-orange-100']:hover,
+    [class~='hover:bg-orange-100/40']:hover,
+    [class~='hover:bg-orange-100/50']:hover,
+    [class~='hover:bg-orange-100/60']:hover,
+    [class~='hover:bg-accent-50']:hover,
+    [class~='hover:bg-accent-50/40']:hover,
+    [class~='hover:bg-accent-50/50']:hover,
+    [class~='hover:bg-accent-50/60']:hover,
+    [class~='hover:bg-accent-100']:hover,
+    [class~='hover:bg-accent-100/40']:hover,
+    [class~='hover:bg-accent-100/50']:hover,
+    [class~='hover:bg-accent-100/60']:hover
+  ) {
+  background-color: #382c19;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-amber-500'],
+    [class~='text-amber-600'],
+    [class~='text-amber-700'],
+    [class~='text-amber-800'],
+    [class~='text-amber-900'],
+    [class~='text-yellow-500'],
+    [class~='text-yellow-600'],
+    [class~='text-yellow-700'],
+    [class~='text-yellow-800'],
+    [class~='text-yellow-900'],
+    [class~='text-orange-500'],
+    [class~='text-orange-600'],
+    [class~='text-orange-700'],
+    [class~='text-orange-800'],
+    [class~='text-orange-900'],
+    [class~='text-accent-500'],
+    [class~='text-accent-600'],
+    [class~='text-accent-700'],
+    [class~='text-accent-800'],
+    [class~='text-accent-900']
+  ) {
+  color: #f9d08d;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-amber-500']:hover,
+    [class~='hover:text-amber-600']:hover,
+    [class~='hover:text-amber-700']:hover,
+    [class~='hover:text-amber-800']:hover,
+    [class~='hover:text-amber-900']:hover,
+    [class~='hover:text-yellow-500']:hover,
+    [class~='hover:text-yellow-600']:hover,
+    [class~='hover:text-yellow-700']:hover,
+    [class~='hover:text-yellow-800']:hover,
+    [class~='hover:text-yellow-900']:hover,
+    [class~='hover:text-orange-500']:hover,
+    [class~='hover:text-orange-600']:hover,
+    [class~='hover:text-orange-700']:hover,
+    [class~='hover:text-orange-800']:hover,
+    [class~='hover:text-orange-900']:hover,
+    [class~='hover:text-accent-500']:hover,
+    [class~='hover:text-accent-600']:hover,
+    [class~='hover:text-accent-700']:hover,
+    [class~='hover:text-accent-800']:hover,
+    [class~='hover:text-accent-900']:hover
+  ) {
+  color: #f9d08d;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='border-amber-100'],
+    [class~='border-amber-200'],
+    [class~='border-amber-300'],
+    [class~='border-yellow-100'],
+    [class~='border-yellow-200'],
+    [class~='border-yellow-300'],
+    [class~='border-orange-100'],
+    [class~='border-orange-200'],
+    [class~='border-orange-300'],
+    [class~='border-accent-100'],
+    [class~='border-accent-200'],
+    [class~='border-accent-300']
+  ) {
+  border-color: #725631;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-emerald-50'],
+    [class~='bg-emerald-50/40'],
+    [class~='bg-emerald-50/50'],
+    [class~='bg-emerald-50/60'],
+    [class~='bg-emerald-100'],
+    [class~='bg-emerald-100/40'],
+    [class~='bg-emerald-100/50'],
+    [class~='bg-emerald-100/60']
+  ) {
+  background-color: #10352e;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-emerald-50']:hover,
+    [class~='hover:bg-emerald-50/40']:hover,
+    [class~='hover:bg-emerald-50/50']:hover,
+    [class~='hover:bg-emerald-50/60']:hover,
+    [class~='hover:bg-emerald-100']:hover,
+    [class~='hover:bg-emerald-100/40']:hover,
+    [class~='hover:bg-emerald-100/50']:hover,
+    [class~='hover:bg-emerald-100/60']:hover
+  ) {
+  background-color: #10352e;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-emerald-500'],
+    [class~='text-emerald-600'],
+    [class~='text-emerald-700'],
+    [class~='text-emerald-800'],
+    [class~='text-emerald-900']
+  ) {
+  color: #86e7c7;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-emerald-500']:hover,
+    [class~='hover:text-emerald-600']:hover,
+    [class~='hover:text-emerald-700']:hover,
+    [class~='hover:text-emerald-800']:hover,
+    [class~='hover:text-emerald-900']:hover
+  ) {
+  color: #86e7c7;
+}
+
+:root[data-theme='dark']
+  #root
+  :is([class~='border-emerald-100'], [class~='border-emerald-200'], [class~='border-emerald-300']) {
+  border-color: #286351;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-violet-50'],
+    [class~='bg-violet-50/40'],
+    [class~='bg-violet-50/50'],
+    [class~='bg-violet-50/60'],
+    [class~='bg-violet-100'],
+    [class~='bg-violet-100/40'],
+    [class~='bg-violet-100/50'],
+    [class~='bg-violet-100/60']
+  ) {
+  background-color: #2d2344;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-violet-50']:hover,
+    [class~='hover:bg-violet-50/40']:hover,
+    [class~='hover:bg-violet-50/50']:hover,
+    [class~='hover:bg-violet-50/60']:hover,
+    [class~='hover:bg-violet-100']:hover,
+    [class~='hover:bg-violet-100/40']:hover,
+    [class~='hover:bg-violet-100/50']:hover,
+    [class~='hover:bg-violet-100/60']:hover
+  ) {
+  background-color: #2d2344;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-violet-500'],
+    [class~='text-violet-600'],
+    [class~='text-violet-700'],
+    [class~='text-violet-800'],
+    [class~='text-violet-900']
+  ) {
+  color: #d1b8fa;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-violet-500']:hover,
+    [class~='hover:text-violet-600']:hover,
+    [class~='hover:text-violet-700']:hover,
+    [class~='hover:text-violet-800']:hover,
+    [class~='hover:text-violet-900']:hover
+  ) {
+  color: #d1b8fa;
+}
+
+:root[data-theme='dark']
+  #root
+  :is([class~='border-violet-100'], [class~='border-violet-200'], [class~='border-violet-300']) {
+  border-color: #584573;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-green-50'],
+    [class~='bg-green-50/40'],
+    [class~='bg-green-50/50'],
+    [class~='bg-green-50/60'],
+    [class~='bg-green-100'],
+    [class~='bg-green-100/40'],
+    [class~='bg-green-100/50'],
+    [class~='bg-green-100/60']
+  ) {
+  background-color: #173725;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-green-50']:hover,
+    [class~='hover:bg-green-50/40']:hover,
+    [class~='hover:bg-green-50/50']:hover,
+    [class~='hover:bg-green-50/60']:hover,
+    [class~='hover:bg-green-100']:hover,
+    [class~='hover:bg-green-100/40']:hover,
+    [class~='hover:bg-green-100/50']:hover,
+    [class~='hover:bg-green-100/60']:hover
+  ) {
+  background-color: #173725;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-green-500'],
+    [class~='text-green-600'],
+    [class~='text-green-700'],
+    [class~='text-green-800'],
+    [class~='text-green-900']
+  ) {
+  color: #98e8b1;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-green-500']:hover,
+    [class~='hover:text-green-600']:hover,
+    [class~='hover:text-green-700']:hover,
+    [class~='hover:text-green-800']:hover,
+    [class~='hover:text-green-900']:hover
+  ) {
+  color: #98e8b1;
+}
+
+:root[data-theme='dark']
+  #root
+  :is([class~='border-green-100'], [class~='border-green-200'], [class~='border-green-300']) {
+  border-color: #356744;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='bg-teal-50'],
+    [class~='bg-teal-50/40'],
+    [class~='bg-teal-50/50'],
+    [class~='bg-teal-50/60'],
+    [class~='bg-teal-100'],
+    [class~='bg-teal-100/40'],
+    [class~='bg-teal-100/50'],
+    [class~='bg-teal-100/60']
+  ) {
+  background-color: #103438;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:bg-teal-50']:hover,
+    [class~='hover:bg-teal-50/40']:hover,
+    [class~='hover:bg-teal-50/50']:hover,
+    [class~='hover:bg-teal-50/60']:hover,
+    [class~='hover:bg-teal-100']:hover,
+    [class~='hover:bg-teal-100/40']:hover,
+    [class~='hover:bg-teal-100/50']:hover,
+    [class~='hover:bg-teal-100/60']:hover
+  ) {
+  background-color: #103438;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='text-teal-500'],
+    [class~='text-teal-600'],
+    [class~='text-teal-700'],
+    [class~='text-teal-800'],
+    [class~='text-teal-900']
+  ) {
+  color: #83ddd8;
+}
+
+:root[data-theme='dark']
+  #root
+  :is(
+    [class~='hover:text-teal-500']:hover,
+    [class~='hover:text-teal-600']:hover,
+    [class~='hover:text-teal-700']:hover,
+    [class~='hover:text-teal-800']:hover,
+    [class~='hover:text-teal-900']:hover
+  ) {
+  color: #83ddd8;
+}
+
+:root[data-theme='dark']
+  #root
+  :is([class~='border-teal-100'], [class~='border-teal-200'], [class~='border-teal-300']) {
+  border-color: #286169;
+}

@@ -49,6 +49,9 @@ See [AI assistant setup and boundaries](docs/ai-assistant.md).
 
 ### Operator workspace
 
+The dashboard offers light, dark and system color modes. The picker is available before
+and after login; the browser remembers the choice independently of store appearance.
+
 Send reusable forms and readable page/product link cards from the chat composer. Submitted
 answers remain inline, separate from AI history. Signed WordPress identity displays customer
 and store administrator profiles even without orders. See [chat tools](docs/chat-tools.md).

@@ -814,3 +814,10 @@ stored. Keep the boot and runtime preference behavior aligned.
 Theme styles map dashboard surfaces, neutral text, boundaries and soft status colors while
 retaining filled action colors. Native controls follow color-scheme. Avoid document filters;
 the Widget Studio iframe and saved customer widget appearance must remain independent.
+
+Verification: dashboard build and scoped ESLint passed. Chromium exercised explicit/system
+selection, reload persistence, cross-tab updates, authenticated dialogs at 375/768/1280px
+and unchanged iframe appearance. Commit `44f4c91` is deployed in `mira-api:theme-44f4c91`.
+Production Chromium verified CSP-safe startup and preference persistence without signing in
+or sending a customer message. Prior override is in `/var/backups/mira/theme-44f4c91`;
+the database and worker are unchanged.

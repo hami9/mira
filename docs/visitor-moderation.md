@@ -70,5 +70,11 @@ model request.
 Local checks passed: all workspace builds, ESLint, 142 unit tests, 70 real-Postgres
 integration tests and ten existing Chromium scenarios. Moderation browser coverage verifies
 names/flags, draft preservation, restriction updates and reconnects, tenant/permission
-boundaries, recoverable trash and idempotent spam detection. Deployment verification is
-recorded separately after installation.
+boundaries, recoverable trash, idempotent retries and fifteen concurrent messages triggering
+one durable spam block. All eleven selected Chromium scenarios passed.
+
+Commit `6de5581` was deployed to mira.hami9.ir with a database backup and matching API/worker
+images. A disposable production tenant verified aliases/flags, block/unblock, rejected
+visitor starts, hidden deleted history, restore and migration presence, then was removed.
+The API is healthy, the worker is running and the public widget hash matches the deployed
+bundle. No real customer conversation was changed during verification.

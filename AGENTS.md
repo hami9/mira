@@ -821,3 +821,14 @@ and unchanged iframe appearance. Commit `44f4c91` is deployed in `mira-api:theme
 Production Chromium verified CSP-safe startup and preference persistence without signing in
 or sending a customer message. Prior override is in `/var/backups/mira/theme-44f4c91`;
 the database and worker are unchanged.
+
+## 20. Dashboard controls
+
+The dashboard shares native select and button styles in index.css. Preserve RTL chevrons,
+visible keyboard focus, theme colors and touch targets when adding controls. Native dialogs
+keep their keyboard and focus behavior. The conversation toolbox previews forms and links,
+confirms archiving and retries failed loads. Replies from tools preserve the draft.
+
+Save conversation labels and department explicitly. Filtering or paginating the inbox does
+not close the open chat. Reconnect checks its ID separately and clears it on 404. Scroll
+follows new messages while the operator is near the end of the conversation.

@@ -23,6 +23,9 @@ export function ConversationMeta({
   const [controlBusy, setControlBusy] = useState(false);
   const [controlError, setControlError] = useState('');
   const [detailsError, setDetailsError] = useState('');
+  const [detailsNotice, setDetailsNotice] = useState('');
+  const [resolving, setResolving] = useState(false);
+  const [editingDetails, setEditingDetails] = useState(false);
   useEffect(() => {
     setDepartment(conversation.department ?? '');
     setTagsInput(conversation.tags.join('، '));
@@ -62,23 +65,30 @@ export function ConversationMeta({
     }
   }
 
+  const tags = [
+    ...new Set(
+      tagsInput
+        .split(/[,،]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  ];
+  const detailsChanged =
+    department.trim() !== (conversation.department ?? '') ||
+    JSON.stringify(tags) !== JSON.stringify(conversation.tags);
+
   async function saveDetails(): Promise<void> {
+    if (saving || !detailsChanged) return;
     setSaving(true);
     setDetailsError('');
+    setDetailsNotice('');
     try {
-      const tags = [
-        ...new Set(
-          tagsInput
-            .split(/[,،]/)
-            .map((tag) => tag.trim())
-            .filter(Boolean),
-        ),
-      ];
       const updated = await apiClient.updateConversation(conversation.id, {
         department: department.trim() || null,
         tags,
       });
       onUpdated(updated);
+      setDetailsNotice('جزئیات گفتگو ذخیره شد.');
     } catch {
       setDetailsError('ذخیره جزئیات انجام نشد؛ دوباره تلاش کنید.');
     } finally {
@@ -87,11 +97,15 @@ export function ConversationMeta({
   }
 
   async function resolve(): Promise<void> {
+    setResolving(true);
+    setDetailsError('');
     try {
       const updated = await apiClient.resolveConversation(conversation.id);
       onUpdated(updated);
     } catch {
       setDetailsError('بستن گفتگو انجام نشد؛ دسترسی و اتصال را بررسی کنید.');
+    } finally {
+      setResolving(false);
     }
   }
   async function setPriority(priority: 'normal' | 'high') {
@@ -110,7 +124,11 @@ export function ConversationMeta({
 
   return (
     <div className="border-b border-gray-200 bg-white">
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2 text-xs">
+      <div
+        role="group"
+        aria-label="وضعیت و تنظیمات گفتگو"
+        className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs"
+      >
         <span
           className={`rounded-full px-3 py-1.5 ${aiActive ? 'bg-teal-50 text-teal-700' : 'bg-slate-100 text-slate-600'}`}
           role="status"
@@ -131,38 +149,16 @@ export function ConversationMeta({
             type="button"
             disabled={controlBusy || aiEnabled !== true}
             onClick={() => void changeControl()}
-            className="rounded-xl border border-slate-200 px-3 py-1.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="control-button"
           >
             {controlBusy ? 'در حال تغییر…' : aiActive ? 'تحویل به پشتیبان' : 'بازگردانی به AI'}
           </button>
         )}
-        <span className="text-[10px] text-slate-400">
-          مشاهدهٔ گفتگو AI را متوقف نمی‌کند؛ ارسال پاسخ، گفتگو را به شما می‌سپارد.
-        </span>
         {controlError && (
           <span role="alert" className="text-red-600">
             {controlError}
           </span>
         )}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 p-2 text-xs">
-        <input
-          value={department}
-          onChange={(e) => setDepartment(e.target.value)}
-          onBlur={saveDetails}
-          placeholder="دپارتمان"
-          aria-label="دپارتمان گفتگو"
-          className="w-28 rounded border border-gray-300 p-1"
-        />
-        <input
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          onBlur={saveDetails}
-          placeholder="برچسب‌ها (با ، یا , جدا کنید)"
-          aria-label="برچسب‌های گفتگو"
-          className="w-40 rounded border border-gray-300 p-1"
-        />
-        {saving && <span className="text-gray-400">در حال ذخیره...</span>}
         <label className="flex items-center gap-2">
           اولویت گفتگو
           <select
@@ -170,7 +166,7 @@ export function ConversationMeta({
             value={conversation.priority}
             disabled={saving}
             onChange={(event) => void setPriority(event.target.value as 'normal' | 'high')}
-            className="min-h-10 rounded-xl border border-slate-200 px-2"
+            className="text-xs"
           >
             <option value="normal">عادی</option>
             <option value="high">فوری</option>
@@ -178,16 +174,77 @@ export function ConversationMeta({
         </label>
         {canResolve && (
           <button
+            type="button"
             onClick={resolve}
-            disabled={isResolved}
-            className="mr-auto rounded bg-green-600 px-3 py-1 text-white disabled:bg-gray-300"
+            disabled={isResolved || resolving}
+            className="control-button"
           >
-            {isResolved ? 'حل‌شده' : 'حل مکالمه'}
+            {resolving ? 'در حال بستن…' : isResolved ? 'حل‌شده' : 'حل مکالمه'}
           </button>
         )}
+        <button
+          type="button"
+          aria-expanded={editingDetails}
+          aria-controls={`conversation-details-${conversation.id}`}
+          className="control-button"
+          onClick={() => setEditingDetails((current) => !current)}
+        >
+          جزئیات و برچسب‌ها
+          {detailsChanged && <span className="text-amber-700">ذخیره نشده</span>}
+        </button>
       </div>
-      <div className="px-3 pb-2">
-        <TagChips tags={conversation.tags} />
+      <div
+        id={`conversation-details-${conversation.id}`}
+        hidden={!editingDetails}
+        className="px-3 pb-2 text-xs"
+      >
+        <form
+          className="mt-2 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveDetails();
+          }}
+        >
+          <label className="block text-slate-600">
+            دپارتمان گفتگو
+            <input
+              value={department}
+              onChange={(event) => {
+                setDepartment(event.target.value);
+                setDetailsNotice('');
+              }}
+              disabled={saving}
+              placeholder="مثلاً فروش…"
+              className="input-base mt-1 min-h-11 w-full bg-white px-3"
+            />
+          </label>
+          <label className="block text-slate-600">
+            برچسب‌های گفتگو
+            <input
+              value={tagsInput}
+              onChange={(event) => {
+                setTagsInput(event.target.value);
+                setDetailsNotice('');
+              }}
+              disabled={saving}
+              placeholder="مثلاً ارسال، پیگیری…"
+              className="input-base mt-1 min-h-11 w-full bg-white px-3"
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+            <button
+              type="submit"
+              disabled={saving || !detailsChanged}
+              className="control-button control-button-primary"
+            >
+              {saving ? 'در حال ذخیره…' : 'ذخیره جزئیات'}
+            </button>
+            <p role="status" className="text-teal-700">
+              {detailsNotice}
+            </p>
+            <TagChips tags={conversation.tags} />
+          </div>
+        </form>
       </div>
       {detailsError && (
         <p role="alert" className="px-3 pb-2 text-xs text-red-700">

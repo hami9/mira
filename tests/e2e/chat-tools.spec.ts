@@ -40,6 +40,10 @@ test('operators send reusable forms and page cards with durable private submissi
     };
     const headers = await login(email);
     const other = await login('other-' + email);
+    await db.query(
+      'INSERT INTO canned_responses ("siteId",shortcut,title,content) VALUES ($1,$2,$3,$4)',
+      [sites[0], 'shipping', 'زمان ارسال', 'سفارش امروز ارسال می‌شود.'],
+    );
     await page.goto(dashboard);
     await page.locator('input[type=email]').fill(email);
     await page.locator('input[type=password]').fill(password);
@@ -53,6 +57,19 @@ test('operators send reusable forms and page cards with durable private submissi
       await db.query('SELECT * FROM conversations WHERE "siteId"=$1', [sites[0]])
     ).rows[0];
     await page.locator(`[data-conversation-id="${conversation.id}"]`).click();
+    const composer = page.getByRole('textbox', { name: 'پاسخ به بازدیدکننده', exact: true });
+    await composer.fill('سلام، پیگیری کردم.');
+    await page.getByRole('button', { name: 'پاسخ آماده', exact: true }).click();
+    await page
+      .getByRole('dialog', { name: 'پاسخ‌های آماده' })
+      .getByRole('button', { name: /زمان ارسال/ })
+      .click();
+    await expect(composer).toHaveValue('سلام، پیگیری کردم.\nسفارش امروز ارسال می‌شود.');
+    const search = page.getByRole('searchbox', { name: 'جست‌وجوی گفتگوها', exact: true });
+    await search.fill('این نام در صندوق وجود ندارد');
+    await expect(page.getByText('گفتگویی با این فیلترها پیدا نشد.')).toBeVisible();
+    await expect(composer).toHaveValue('سلام، پیگیری کردم.\nسفارش امروز ارسال می‌شود.');
+    await page.getByRole('button', { name: 'پاک کردن فیلترها', exact: true }).click();
     await page.getByRole('button', { name: /ارسال لینک/ }).click();
     await page
       .getByLabel('نشانی لینک', { exact: true })

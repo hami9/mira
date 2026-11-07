@@ -4,20 +4,23 @@ import { safeHttpUrl } from '@mira/shared-types';
 export function ToolMessage({
   message,
   messages = [],
+  preview = false,
 }: {
   message: MessagePayload;
   messages?: MessagePayload[];
+  preview?: boolean;
 }) {
   const tool = message.toolMetadata;
   if (!tool) return null;
   if (tool.kind === 'link') {
     const url = safeHttpUrl(tool.url);
     if (!url) return null;
+    const Card = preview ? 'div' : 'a';
     return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Card
+        href={preview ? undefined : url}
+        target={preview ? undefined : '_blank'}
+        rel={preview ? undefined : 'noopener noreferrer'}
         className="mt-3 block min-w-0 max-w-sm overflow-hidden rounded-2xl border border-emerald-200 bg-white text-slate-800 shadow-sm"
       >
         <div className="flex items-center gap-3 border-b border-emerald-100 bg-emerald-50 p-3">
@@ -39,7 +42,7 @@ export function ToolMessage({
             مشاهده صفحه ↗
           </span>
         </div>
-      </a>
+      </Card>
     );
   }
   if (tool.kind === 'form-request')

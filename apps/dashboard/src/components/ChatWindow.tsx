@@ -16,7 +16,7 @@ import { ConversationMeta } from './ConversationMeta';
 import { CannedResponsesPicker } from './CannedResponsesPicker';
 import { InternalNotesPanel } from './InternalNotesPanel';
 import { VisitorModerationControl } from './VisitorControls';
-import { conversationName, VisitorFlags } from './VisitorLabels';
+import { conversationName, ModerationBadges, VisitorFlags } from './VisitorLabels';
 import { ChatTools } from './ChatTools';
 import { ToolMessage } from './ToolMessage';
 
@@ -64,6 +64,10 @@ export function ChatWindow({
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(false);
   const [historyError, setHistoryError] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyRetry, setHistoryRetry] = useState(0);
+  const [suggestion, setSuggestion] = useState('');
+  const [suggestionError, setSuggestionError] = useState('');
   const pendingSend = useRef<{ content: string; id: string } | null>(null);
   const [isVisitorTyping, setIsVisitorTyping] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
@@ -72,7 +76,9 @@ export function ChatWindow({
   const [trashBusy, setTrashBusy] = useState(false);
   const [trashError, setTrashError] = useState('');
   const trashDialog = useRef<HTMLDialogElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageLog = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const composer = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -96,8 +102,8 @@ export function ChatWindow({
 
   useEffect(() => {
     let cancelled = false;
-    setMessages([]);
     setHistoryError(false);
+    setHistoryLoading(true);
     apiClient
       .getMessages(conversation.id)
       .then((history) => {
@@ -111,12 +117,15 @@ export function ChatWindow({
       })
       .catch(() => {
         if (!cancelled) setHistoryError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
       });
     socket?.emit(SocketEvent.ConversationJoin, { conversationId: conversation.id });
     return () => {
       cancelled = true;
     };
-  }, [conversation.id, socket]);
+  }, [apiClient, conversation.id, socket, historyRetry]);
 
   useEffect(() => {
     if (!socket) return;
@@ -163,7 +172,8 @@ export function ChatWindow({
       if (payload.conversationId !== conversation.id) return;
       if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
       setSuggestingReply(false);
-      setDraft(payload.suggestion);
+      setSuggestionError('');
+      setSuggestion(payload.suggestion);
     }
 
     socket.on(SocketEvent.MessageNew, onMessage);
@@ -179,6 +189,8 @@ export function ChatWindow({
     socket.on(SocketEvent.AiReplySuggested, onAiSuggestion);
     return () => {
       clearTimeout(aiTimeout);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
       socket.off(SocketEvent.AiStatus, onAiStatus);
       socket.off('disconnect', onDisconnect);
       socket.off('connect', onConnect);
@@ -190,8 +202,24 @@ export function ChatWindow({
   }, [socket, conversation.id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const log = messageLog.current;
+    if (log && followLatest.current) log.scrollTop = log.scrollHeight;
+  }, [messages, aiStage]);
+
+  function insertReply(content: string): void {
+    const input = composer.current;
+    if (!input) return;
+    const end = input.selectionEnd;
+    // متن ابزار در محل نشانگر اضافه می‌شود و پیش‌نویس موجود باقی می‌ماند.
+    const prefix = input.value.slice(0, end);
+    const after = input.value.slice(end);
+    const inserted = (prefix && !/\s$/.test(prefix) ? '\n' : '') + content;
+    handleDraftChange(prefix + inserted + (after && !/^\s/.test(after) ? '\n' : '') + after);
+    requestAnimationFrame(() => {
+      input.focus();
+      input.setSelectionRange(prefix.length + inserted.length, prefix.length + inserted.length);
+    });
+  }
 
   async function handleSend(): Promise<void> {
     const content = draft.trim();
@@ -200,6 +228,7 @@ export function ChatWindow({
     if (pendingSend.current?.content !== content)
       pendingSend.current = { content, id: crypto.randomUUID() };
     setSending(true);
+    followLatest.current = true;
     setSendError(false);
     try {
       const ack = await socket.timeout(12_000).emitWithAck(SocketEvent.MessageSend, {
@@ -221,15 +250,18 @@ export function ChatWindow({
   async function handleSuggestReply(): Promise<void> {
     if (suggestingReply) return;
     setSuggestingReply(true);
+    setSuggestion('');
+    setSuggestionError('');
+    suggestionTimeoutRef.current = setTimeout(() => {
+      setSuggestingReply(false);
+      setSuggestionError('پیشنهادی دریافت نشد. دوباره تلاش کنید.');
+    }, SUGGESTION_TIMEOUT_MS);
     try {
       await apiClient.suggestReply(conversation.id);
-      // اگه worker جواب ندیم (کلید AI تنظیم نشده، خطای مدل و ...)، اسپینر برای همیشه گیر نکنه
-      suggestionTimeoutRef.current = setTimeout(
-        () => setSuggestingReply(false),
-        SUGGESTION_TIMEOUT_MS,
-      );
     } catch {
+      clearTimeout(suggestionTimeoutRef.current ?? undefined);
       setSuggestingReply(false);
+      setSuggestionError('دریافت پیشنهاد انجام نشد. دوباره تلاش کنید.');
     }
   }
 
@@ -245,11 +277,12 @@ export function ChatWindow({
 
   return (
     <section aria-label="پنجرهٔ گفتگو" className="flex min-w-0 flex-1 flex-col bg-white">
-      <header className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2">
         <div className="flex min-w-0 items-center gap-3">
           <button
+            type="button"
             onClick={onBack}
-            className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-500 lg:hidden"
+            className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 lg:hidden"
             aria-label="بازگشت به فهرست گفتگوها"
           >
             →
@@ -265,44 +298,56 @@ export function ChatWindow({
             <VisitorFlags flags={conversation.visitorFlags} />
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span
-            title={connected ? 'متصل' : 'در حال اتصال'}
-            className={`h-2 w-2 rounded-full ${connected ? 'bg-teal-500' : 'animate-pulse bg-amber-400'}`}
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          {!connected && (
+            <span
+              role="status"
+              className="rounded-full bg-amber-50 px-2 py-1 text-[11px] text-amber-800"
+            >
+              در حال اتصال…
+            </span>
+          )}
           <button
+            type="button"
             onClick={onToggleDetails}
             aria-expanded={showDetails}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+            className="control-button"
           >
             اطلاعات و مسیر بازدید
           </button>
         </div>
       </header>
-      {(canModerate ||
-        canDelete ||
-        conversation.visitorModeration?.blocked ||
-        conversation.visitorModeration?.mutedUntil) && (
-        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2">
-          <VisitorModerationControl
-            visitorId={conversation.visitorId}
-            name={conversationName(conversation)}
-            moderation={conversation.visitorModeration}
-            allowed={canModerate}
-          />
-          {canDelete && (
-            <button
-              type="button"
-              onClick={() => {
-                setTrashError('');
-                setTrashOpen(true);
-              }}
-              className="min-h-11 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs text-red-700"
-            >
-              انتقال به زباله‌دان
-            </button>
-          )}
-        </div>
+      {(canModerate || canDelete) && (
+        <details className="border-b border-slate-100 px-3 py-1">
+          <summary className="control-button cursor-pointer">
+            <span aria-hidden="true">⋯</span>
+            مدیریت گفتگو
+            <ModerationBadges moderation={conversation.visitorModeration} />
+          </summary>
+          <div className="my-2 flex flex-wrap items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <VisitorModerationControl
+              visitorId={conversation.visitorId}
+              name={conversationName(conversation)}
+              moderation={conversation.visitorModeration}
+              allowed={canModerate}
+            />
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTrashError('');
+                  setTrashOpen(true);
+                }}
+                className="control-button control-button-danger"
+              >
+                انتقال به زباله‌دان
+              </button>
+            )}
+          </div>
+        </details>
+      )}
+      {!canModerate && !canDelete && (
+        <ModerationBadges moderation={conversation.visitorModeration} />
       )}
       <dialog
         ref={trashDialog}
@@ -351,13 +396,34 @@ export function ChatWindow({
         canResolve={canResolve}
       />
       <div
+        ref={messageLog}
+        onScroll={(event) => {
+          const log = event.currentTarget;
+          followLatest.current = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+        }}
         role="log"
         aria-label="پیام‌های گفتگو"
+        aria-busy={historyLoading}
         className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/70 p-4 md:p-6"
       >
         {historyError && (
-          <p role="alert" className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
-            دریافت تاریخچه ناموفق بود؛ گفتگو را دوباره باز کنید.
+          <div
+            role="alert"
+            className="flex flex-wrap items-center gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"
+          >
+            دریافت تاریخچه ناموفق بود.
+            <button
+              type="button"
+              className="control-button"
+              onClick={() => setHistoryRetry((current) => current + 1)}
+            >
+              دریافت دوباره
+            </button>
+          </div>
+        )}
+        {historyLoading && (
+          <p role="status" className="text-xs text-slate-600">
+            در حال دریافت پیام‌ها…
           </p>
         )}
         {messages.map((message) => (
@@ -448,7 +514,6 @@ export function ChatWindow({
             )}
           </div>
         ))}
-        <div ref={messagesEndRef} />
         {aiStage !== 'idle' && (
           <div role="status" className="flex items-center gap-2 p-3 text-xs text-teal-700">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-teal-100 border-t-teal-600 motion-reduce:animate-none" />
@@ -458,14 +523,18 @@ export function ChatWindow({
       </div>
       <div className="h-5 px-4 text-xs text-gray-500">
         {isVisitorTyping ? (
-          <span className="animate-pulse-soft">بازدیدکننده در حال تایپ است...</span>
+          <span className="animate-pulse-soft">بازدیدکننده در حال تایپ است…</span>
         ) : (
           ''
         )}
       </div>
       <InternalNotesPanel conversationId={conversation.id} />
       <div className="border-t border-gray-100 bg-white p-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label="ابزارهای پاسخ"
+          className="mb-2 flex flex-wrap items-center gap-2"
+        >
           <ChatTools
             draft={draft}
             conversationId={conversation.id}
@@ -475,18 +544,50 @@ export function ChatWindow({
               )
             }
           />
-          <CannedResponsesPicker onPick={(content) => setDraft(content)} />
+          <CannedResponsesPicker onPick={insertReply} />
           <button
+            type="button"
             onClick={handleSuggestReply}
             disabled={suggestingReply}
             title="پیشنهاد پاسخ با هوش مصنوعی"
-            className="rounded-lg px-3 py-2 text-xs text-teal-600 hover:bg-teal-50 disabled:opacity-60"
+            className="control-button"
           >
-            {suggestingReply ? '...' : '✨ پیشنهاد پاسخ'}
+            {suggestingReply ? 'در حال آماده‌سازی…' : 'پیشنهاد پاسخ'}
           </button>
         </div>
+        {suggestionError && (
+          <p role="alert" className="mb-2 text-xs text-red-700">
+            {suggestionError}
+          </p>
+        )}
+        {suggestion && (
+          <div className="mb-2 rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs leading-6 text-teal-800">
+            <p role="status" className="font-bold">
+              پیشنهاد پاسخ آماده است
+            </p>
+            <p className="my-2 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
+              {suggestion}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="control-button"
+                onClick={() => {
+                  insertReply(suggestion);
+                  setSuggestion('');
+                }}
+              >
+                افزودن به پیش‌نویس
+              </button>
+              <button type="button" className="control-button" onClick={() => setSuggestion('')}>
+                بستن پیشنهاد
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50/60 p-2 focus-within:border-primary-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-50">
           <textarea
+            ref={composer}
             value={draft}
             onChange={(e) => handleDraftChange(e.target.value)}
             onKeyDown={(e) => {
@@ -495,12 +596,13 @@ export function ChatWindow({
                 handleSend();
               }
             }}
-            placeholder="پاسخ خود را بنویسید..."
+            placeholder="پاسخ خود را بنویسید…"
             aria-label="پاسخ به بازدیدکننده"
             rows={2}
             className="min-w-0 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm leading-6 outline-none"
           />
           <button
+            type="button"
             onClick={handleSend}
             disabled={!draft.trim() || !connected || sending}
             className="btn-primary rounded-lg px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"

@@ -143,19 +143,23 @@ interface NavItemProps {
 function NavItem({ icon, label, active, badge, onClick }: NavItemProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={label}
+      aria-current={active ? 'page' : undefined}
       title={label}
-      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+      className={`relative flex min-h-11 w-full items-center justify-center gap-3 rounded-xl px-2 py-2.5 text-sm transition-colors md:justify-start md:px-3 ${
         active
           ? 'bg-primary-50 font-bold text-primary-700'
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
       }`}
     >
-      <span className={active ? 'text-primary-600' : 'text-gray-400'}>{icon}</span>
+      <span aria-hidden="true" className={active ? 'text-primary-600' : 'text-gray-500'}>
+        {icon}
+      </span>
       <span className="hidden flex-1 text-right md:block">{label}</span>
       {badge != null && badge > 0 && (
-        <span className="rounded-full bg-accent-500 px-2 py-0.5 text-[10px] font-bold text-white">
+        <span className="absolute end-0 top-0 rounded-full bg-accent-500 px-1.5 py-0.5 text-[10px] font-bold text-[#172033] md:static">
           {Math.min(badge, 99).toLocaleString('fa-IR')}
         </span>
       )}
@@ -188,7 +192,7 @@ export function Sidebar({
       </div>
 
       {/* ناوبری اصلی */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+      <nav aria-label="بخش‌های داشبورد" className="flex-1 space-y-1 overflow-y-auto p-2">
         <NavItem
           icon={<IconChat />}
           label="گفتگوها"
@@ -246,11 +250,20 @@ export function Sidebar({
           }`}
         >
           <button
+            type="button"
             onClick={onOpenMyProfile}
-            className="flex min-w-0 flex-1 items-center gap-2 text-right"
+            aria-label="پروفایل من"
+            aria-current={activeItem === 'profile' ? 'page' : undefined}
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg text-right md:justify-start"
           >
             {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+              <img
+                src={avatarUrl}
+                alt=""
+                width="36"
+                height="36"
+                className="h-9 w-9 shrink-0 rounded-full object-cover"
+              />
             ) : (
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
                 {profileName ? profileName.charAt(0) : '؟'}
@@ -266,9 +279,11 @@ export function Sidebar({
             </span>
           </button>
           <button
+            type="button"
             onClick={onLogout}
+            aria-label="خروج از این فروشگاه"
             title="خروج از این فروشگاه"
-            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            className="grid min-h-11 min-w-11 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <IconLogout />
           </button>

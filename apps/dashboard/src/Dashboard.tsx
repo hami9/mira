@@ -8,7 +8,7 @@ import {
   type AgentProfileDto,
   type VisitorUpdatedPayload,
 } from '@mira/shared-types';
-import { ConversationDto, ListConversationsParams } from './api';
+import { ApiRequestError, ConversationDto, ListConversationsParams } from './api';
 import { connectDashboardSocket, type ConversationUpdatedPayload } from './socket';
 import { decodeJwtPayload } from './jwt';
 import { useApiClient } from './api-context';
@@ -100,7 +100,7 @@ export function Dashboard({
         setListError('');
         setSelectedConversation((current) => {
           const fresh = list.find((item) => item.id === current?.id);
-          if (currentFilters.deleted === 'only' || (current && !fresh)) return null;
+          if (currentFilters.deleted === 'only') return null;
           return current && fresh && fresh.updatedAt >= current.updatedAt
             ? { ...fresh, unreadCount: current.unreadCount }
             : current;
@@ -149,6 +149,14 @@ export function Dashboard({
     socket.on('connect', () => {
       loadConversations(filtersRef.current);
       onUnreadChange(siteId);
+      const selectedId = selectedConversationIdRef.current;
+      if (selectedId) {
+        // نبودن در نتایج فیلتر، به معنای حذف گفتگو نیست.
+        void apiClient.getConversation(selectedId).catch((error: unknown) => {
+          if (error instanceof ApiRequestError && error.status === 404)
+            setSelectedConversation((current) => (current?.id === selectedId ? null : current));
+        });
+      }
     });
 
     return () => {
@@ -413,7 +421,17 @@ export function Dashboard({
         }}
         onLogout={handleLogout}
       />
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <a
+        href="#dashboard-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-xl focus:bg-white focus:p-3"
+      >
+        رفتن به محتوای داشبورد
+      </a>
+      <main
+        id="dashboard-content"
+        tabIndex={-1}
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+      >
         {lastTrashed && (
           <div
             role="status"

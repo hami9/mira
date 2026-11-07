@@ -235,10 +235,12 @@ export default function App() {
   }
   if (!active) return null;
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-gray-50" dir="rtl">
-      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
-        <ThemePicker />
-        <label htmlFor="store-switch" className="text-xs font-bold text-gray-600">
+    <div className="flex h-dvh flex-col overflow-hidden bg-gray-50" dir="rtl">
+      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 sm:px-4">
+        <label
+          htmlFor="store-switch"
+          className="sr-only sm:not-sr-only text-xs font-bold text-gray-600"
+        >
           فروشگاه فعال
         </label>
         <select
@@ -249,7 +251,7 @@ export default function App() {
             setNotice(null);
             refreshUnread(event.target.value);
           }}
-          className="input-base max-w-xs p-2 text-sm font-bold"
+          className="min-w-0 flex-1 basis-36 text-xs font-bold sm:max-w-xs"
         >
           {sessions.map((session) => (
             <option key={session.siteId} value={session.siteId}>
@@ -258,14 +260,18 @@ export default function App() {
             </option>
           ))}
         </select>
+        <ThemePicker />
         <button
           type="button"
           onClick={() => setLoginClient(new ApiClient())}
-          className="btn-primary px-3 py-2 text-xs"
+          className="control-button"
         >
           افزودن فروشگاه
         </button>
-        <div aria-label="پیام‌های فروشگاه‌ها" className="flex flex-1 flex-wrap gap-2">
+        <div
+          aria-label="پیام‌های فروشگاه‌ها"
+          className="flex min-w-0 flex-wrap gap-2 empty:hidden sm:flex-1"
+        >
           {sessions
             .filter((s) => s.unread > 0 && !s.expired)
             .map((session) => (
@@ -286,7 +292,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => logout()}
-          className="text-xs text-gray-500 hover:text-red-600"
+          className="control-button control-button-danger ms-auto"
         >
           خروج از همهٔ فروشگاه‌ها
         </button>

@@ -46,6 +46,121 @@ body {
   }
 }
 
+#root {
+  --control-surface: #fff;
+  --control-ink: #334155;
+  --control-border: #cbd5e1;
+  --control-hover: #f1f5f9;
+  --control-focus: #2e6be6;
+  --control-danger: #b91c1c;
+  --control-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23475569' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+:root[data-theme='dark'] #root {
+  --control-surface: var(--dashboard-panel);
+  --control-ink: #e2e8f0;
+  --control-border: var(--dashboard-line);
+  --control-hover: var(--dashboard-raised);
+  --control-focus: #9abff5;
+  --control-danger: #ffb3be;
+  --control-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23b6c4d8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* فهرست بومی، پیمایش با صفحه‌کلید و انتخاب‌گر خود گوشی را حفظ می‌کند. */
+#root select:not([multiple]):not([size]) {
+  appearance: none;
+  min-height: 44px;
+  max-width: 100%;
+  padding-inline-start: 0.75rem;
+  padding-inline-end: 2.25rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.75rem;
+  background-color: var(--control-surface);
+  background-image: var(--control-chevron);
+  background-repeat: no-repeat;
+  background-position: left 0.7rem center;
+  color: var(--control-ink);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+#root select:not([multiple]):not([size]):dir(ltr) {
+  background-position: right 0.7rem center;
+}
+
+#root select:not([multiple]):not([size]):disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+#root select option {
+  background-color: var(--control-surface);
+  color: var(--control-ink);
+}
+
+#root .control-button {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.75rem;
+  background-color: var(--control-surface);
+  color: var(--control-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+#root .control-button:hover:not(:disabled),
+#root select:not([multiple]):not([size]):hover:not(:disabled) {
+  border-color: var(--control-focus);
+  background-color: var(--control-hover);
+}
+
+#root .control-button-danger {
+  color: var(--control-danger);
+}
+
+#root .control-button-primary,
+#root .control-button-primary:hover:not(:disabled) {
+  border-color: #2e6be6;
+  background-color: #2e6be6;
+  color: #fff;
+}
+
+#root .control-button-primary:hover:not(:disabled) {
+  background-color: #2455c4;
+}
+
+#root .btn-primary {
+  min-height: 44px;
+}
+
+#root :is(button, summary, select, a):focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
+}
+
+#root :is(button, summary, select) {
+  touch-action: manipulation;
+}
+
+#root .control-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+#root dialog {
+  overscroll-behavior: contain;
+}
+
 /* احترام به کاربرانی که حرکت کمتر می‌خواهند */
 @media (prefers-reduced-motion: reduce) {
   *,

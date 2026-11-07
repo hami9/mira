@@ -3,7 +3,9 @@
   var mode = 'system';
   try {
     mode = window.localStorage.getItem('mira-dashboard-theme') || 'system';
-  } catch (_) {}
+  } catch {
+    // اگر ذخیره مرورگر در دسترس نیست، حالت سیستم اعمال می‌شود.
+  }
   var dark =
     mode === 'dark' ||
     (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);

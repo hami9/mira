@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import type { CannedResponseDto } from '@mira/shared-types';
 import { useApiClient } from '../api-context';
 
@@ -8,49 +8,122 @@ interface CannedResponsesPickerProps {
 
 export function CannedResponsesPicker({ onPick }: CannedResponsesPickerProps) {
   const apiClient = useApiClient();
-  const [open, setOpen] = useState(false);
-  const [responses, setResponses] = useState<CannedResponseDto[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [responses, setResponses] = useState<CannedResponseDto[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    if (open && !loaded) {
-      apiClient.listCannedResponses().then((data) => {
-        setResponses(data);
-        setLoaded(true);
-      });
+  async function loadResponses() {
+    setLoading(true);
+    setError(false);
+    try {
+      setResponses(await apiClient.listCannedResponses());
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-  }, [open, loaded]);
+  }
+
+  const needle = query.trim().toLocaleLowerCase('fa-IR');
+  const matches = responses?.filter((response) =>
+    `${response.title}\n${response.content}`.toLocaleLowerCase('fa-IR').includes(needle),
+  );
 
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="border-l border-gray-200 px-3 text-xs text-gray-600 hover:bg-gray-50"
+        aria-haspopup="dialog"
+        onClick={() => {
+          setQuery('');
+          dialog.current?.showModal();
+          if (!responses && !loading) void loadResponses();
+        }}
+        className="control-button"
       >
         پاسخ آماده
       </button>
-      {open && (
-        <div className="absolute bottom-full right-0 mb-1 max-h-56 w-64 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
-          {responses.length === 0 && (
-            <div className="p-3 text-xs text-gray-400">پاسخ آماده‌ای ثبت نشده</div>
+      <dialog
+        ref={dialog}
+        aria-labelledby={titleId}
+        className="w-[min(480px,calc(100vw-24px))] max-h-[85dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-0 text-right text-slate-800 shadow-2xl backdrop:bg-slate-900/40"
+      >
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+          <div>
+            <h2 id={titleId} className="font-bold">
+              پاسخ‌های آماده
+            </h2>
+            <p className="mt-1 text-xs leading-6 text-slate-500">
+              پاسخ را انتخاب کنید تا به متن گفتگو اضافه شود.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="control-button"
+            aria-label="بستن پاسخ‌های آماده"
+            onClick={() => dialog.current?.close()}
+          >
+            ×
+          </button>
+        </header>
+        <div className="space-y-3 p-4">
+          {loading ? (
+            <p role="status" className="text-xs text-slate-500">
+              در حال دریافت پاسخ‌ها…
+            </p>
+          ) : error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <p role="alert" className="mb-2 text-xs text-red-700">
+                دریافت پاسخ‌ها انجام نشد.
+              </p>
+              <button type="button" className="control-button" onClick={() => void loadResponses()}>
+                تلاش دوباره
+              </button>
+            </div>
+          ) : responses?.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 p-4 text-xs text-slate-500">
+              پاسخ آماده‌ای ثبت نشده است.
+            </p>
+          ) : (
+            <>
+              {responses && responses.length > 4 && (
+                <input
+                  aria-label="جست‌وجوی پاسخ آماده"
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="جست‌وجو در پاسخ‌ها"
+                  className="input-base min-h-11 w-full bg-white px-3 text-sm"
+                />
+              )}
+              {matches?.length === 0 && (
+                <p role="status" className="rounded-xl bg-slate-50 p-4 text-xs text-slate-500">
+                  پاسخی با این عبارت پیدا نشد.
+                </p>
+              )}
+              {matches?.map((response) => (
+                <button
+                  key={response.id}
+                  type="button"
+                  onClick={() => {
+                    dialog.current?.close();
+                    onPick(response.content);
+                  }}
+                  className="block min-h-11 w-full rounded-xl border border-slate-200 bg-white p-3 text-start hover:bg-slate-50"
+                >
+                  <span className="block break-words text-sm font-bold">{response.title}</span>
+                  <span className="mt-1 block break-words whitespace-pre-wrap text-xs leading-6 text-slate-500">
+                    {response.content}
+                  </span>
+                </button>
+              ))}
+            </>
           )}
-          {responses.map((response) => (
-            <button
-              key={response.id}
-              type="button"
-              onClick={() => {
-                onPick(response.content);
-                setOpen(false);
-              }}
-              className="block w-full border-b border-gray-100 p-2 text-right text-xs hover:bg-gray-50"
-            >
-              <div className="font-medium text-gray-800">{response.title}</div>
-              <div className="truncate text-gray-500">{response.content}</div>
-            </button>
-          ))}
         </div>
-      )}
-    </div>
+      </dialog>
+    </>
   );
 }

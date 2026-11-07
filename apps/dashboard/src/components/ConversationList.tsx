@@ -35,34 +35,40 @@ function ConversationRow({
   const isUrgent = conversation.priority === 'high';
   return (
     <button
+      type="button"
       data-conversation-id={conversation.id}
+      aria-current={selected ? 'true' : undefined}
       onClick={() => onSelect(conversation)}
-      className={`flex w-full items-start justify-between border-b border-gray-100 p-3 text-right text-sm transition-colors hover:bg-gray-50 ${
-        selected ? 'bg-primary-50 hover:bg-primary-50' : ''
-      } ${isUrgent ? 'border-r-4 border-r-red-500' : ''}`}
+      className={`flex min-h-16 w-full items-start justify-between gap-2 rounded-xl border border-transparent px-3 py-2.5 text-start text-sm transition-colors ${
+        selected ? 'border-primary-200 bg-primary-50' : 'hover:bg-gray-50'
+      } ${isUrgent ? 'border-s-4 border-s-red-500' : ''}`}
     >
-      <div>
-        <div className={hasUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}>
+      <div className="min-w-0">
+        <div
+          className={`flex min-w-0 items-center gap-1.5 ${hasUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}`}
+        >
           {isUrgent && (
-            <span className="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-800">
+            <span className="shrink-0 rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-800">
               فوری
             </span>
           )}
-          {conversationName(conversation)}
+          <span className="truncate" title={conversationName(conversation)}>
+            {conversationName(conversation)}
+          </span>
         </div>
         <div className="mt-2 space-y-1">
           <VisitorFlags flags={conversation.visitorFlags} />
           <ModerationBadges moderation={conversation.visitorModeration} />
           <TagChips tags={conversation.tags} />
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="truncate text-xs text-gray-500">
           وضعیت: {STATUS_LABELS[conversation.status] ?? conversation.status}
           {conversation.department ? ` · ${conversation.department}` : ''}
         </div>
       </div>
       {hasUnread && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-500 px-1.5 text-[11px] font-bold text-white">
-          {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent-100 px-1.5 text-[11px] font-bold text-accent-800">
+          {conversation.unreadCount > 99 ? '۹۹+' : conversation.unreadCount.toLocaleString('fa-IR')}
         </span>
       )}
     </button>
@@ -89,14 +95,22 @@ export function ConversationList({
   const answered = conversations.filter((c) => c.unreadCount === 0).sort(byUrgencyThenOrder);
 
   return (
-    <div className="flex w-full flex-col overflow-hidden border-l border-gray-200 bg-white sm:w-72">
-      <div className="border-b border-gray-100 px-4 py-4 text-base font-bold tracking-tight text-gray-800">
-        مکالمات ({conversations.length})
+    <div className="flex w-full min-w-0 flex-col overflow-hidden border-e border-gray-200 bg-white sm:w-72">
+      <div className="border-b border-gray-100 px-4 py-4 text-base font-bold text-gray-800">
+        مکالمات ({conversations.length.toLocaleString('fa-IR')})
         <div className="mt-1 truncate text-xs font-normal text-primary-600">{siteName}</div>
       </div>
-      <div className="space-y-2 border-b border-gray-200 p-2">
+      <div className="grid grid-cols-2 gap-2 border-b border-gray-200 p-3">
+        <input
+          type="search"
+          value={filters.search ?? ''}
+          onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
+          placeholder="جست‌وجوی نام، ایمیل یا دپارتمان…"
+          aria-label="جست‌وجوی گفتگوها"
+          className="input-base col-span-2 min-h-11 w-full rounded-xl bg-gray-50 px-3 text-xs"
+        />
         {canDelete && (
-          <label className="block text-[10px] text-slate-500">
+          <label className="block min-w-0 text-[11px] font-medium text-slate-600">
             پوشه گفتگو
             <select
               aria-label="پوشه گفتگو"
@@ -114,27 +128,24 @@ export function ConversationList({
             </select>
           </label>
         )}
-        <input
-          value={filters.search ?? ''}
-          onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
-          placeholder="جست‌وجوی نام، ایمیل یا دپارتمان..."
-          aria-label="جست‌وجوی گفتگوها"
-          className="input-base w-full rounded-lg bg-gray-50 p-2.5 text-xs"
-        />
-        <div className="flex gap-2">
+        <label
+          className={`block min-w-0 text-[11px] font-medium text-slate-600 ${canDelete ? '' : 'col-span-2'}`}
+        >
+          وضعیت گفتگو
           <select
+            aria-label="وضعیت گفتگو"
             value={filters.status ?? ''}
             onChange={(e) => onFiltersChange({ ...filters, status: e.target.value || undefined })}
-            className="w-full rounded border border-gray-300 p-1.5 text-xs"
+            className="mt-1 w-full text-xs"
           >
             <option value="">همه وضعیت‌ها</option>
             <option value="open">باز</option>
             <option value="pending">در انتظار</option>
             <option value="resolved">حل‌شده</option>
           </select>
-        </div>
+        </label>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 space-y-1 overflow-y-auto p-2" aria-busy={loading}>
         {loading && (
           <p role="status" className="p-3 text-xs text-slate-500">
             در حال دریافت گفتگوها…
@@ -143,17 +154,28 @@ export function ConversationList({
         {error && (
           <div role="alert" className="p-3 text-xs text-red-700">
             {error}
-            <button
-              type="button"
-              onClick={onRetry}
-              className="mt-2 block min-h-11 rounded-lg border px-3"
-            >
+            <button type="button" onClick={onRetry} className="control-button mt-2">
               تلاش دوباره
             </button>
           </div>
         )}
         {!loading && !error && conversations.length === 0 && (
-          <p className="p-3 text-sm text-gray-400">مکالمه‌ای پیدا نشد</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-6 text-slate-600">
+            {filters.search || filters.status
+              ? 'گفتگویی با این فیلترها پیدا نشد.'
+              : filters.deleted
+                ? 'زباله‌دان خالی است.'
+                : 'هنوز گفتگویی در این پوشه نیست.'}
+            {(filters.search || filters.status) && (
+              <button
+                type="button"
+                className="control-button mt-2 w-full"
+                onClick={() => onFiltersChange({ deleted: filters.deleted })}
+              >
+                پاک کردن فیلترها
+              </button>
+            )}
+          </div>
         )}
 
         {filters.deleted === 'only' ? (
@@ -180,7 +202,7 @@ export function ConversationList({
                   type="button"
                   disabled={restoring}
                   onClick={() => onRestore?.(conversation)}
-                  className="mt-3 min-h-11 rounded-xl border border-slate-200 px-3 text-xs text-primary-700"
+                  className="control-button mt-3"
                 >
                   بازگردانی گفتگو
                 </button>
@@ -191,8 +213,8 @@ export function ConversationList({
           <>
             {unanswered.length > 0 && (
               <>
-                <div className="bg-accent-50 px-3 py-1.5 text-xs font-bold text-accent-700">
-                  بدون پاسخ ({unanswered.length})
+                <div className="rounded-lg bg-accent-50 px-3 py-1.5 text-xs font-bold text-accent-800">
+                  خوانده‌نشده ({unanswered.length.toLocaleString('fa-IR')})
                 </div>
                 {unanswered.map((conversation) => (
                   <ConversationRow
@@ -207,8 +229,8 @@ export function ConversationList({
 
             {answered.length > 0 && (
               <>
-                <div className="bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500">
-                  پاسخ داده‌شده ({answered.length})
+                <div className="rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600">
+                  خوانده‌شده ({answered.length.toLocaleString('fa-IR')})
                 </div>
                 {answered.map((conversation) => (
                   <ConversationRow

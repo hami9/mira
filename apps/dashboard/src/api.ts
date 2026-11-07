@@ -77,6 +77,15 @@ export interface ListConversationsParams {
   search?: string;
 }
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 export class ApiClient {
   listChatForms(): Promise<ChatFormDto[]> {
     return this.authedGet('/v1/chat-forms');
@@ -239,6 +248,10 @@ export class ApiClient {
 
   async getMessages(conversationId: string): Promise<MessagePayload[]> {
     return this.authedGet<MessagePayload[]>(`/v1/conversations/${conversationId}/messages`);
+  }
+
+  async getConversation(conversationId: string): Promise<ConversationDto> {
+    return this.authedGet<ConversationDto>(`/v1/conversations/${conversationId}`);
   }
 
   async assignConversation(conversationId: string): Promise<ConversationDto> {
@@ -493,7 +506,10 @@ export class ApiClient {
       headers: { Authorization: `Bearer ${this.accessToken}` },
     });
     if (!response.ok) {
-      throw new Error(`درخواست ${path} با خطا مواجه شد (${response.status})`);
+      throw new ApiRequestError(
+        `درخواست ${path} با خطا مواجه شد (${response.status})`,
+        response.status,
+      );
     }
     return response.json() as Promise<T>;
   }

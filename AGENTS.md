@@ -832,3 +832,19 @@ confirms archiving and retries failed loads. Replies from tools preserve the dra
 Save conversation labels and department explicitly. Filtering or paginating the inbox does
 not close the open chat. Reconnect checks its ID separately and clears it on 404. Scroll
 follows new messages while the operator is near the end of the conversation.
+
+## 21. WooCommerce diagnostics
+
+Settings → Install has a manual connection check using saved site settings. The endpoint
+requires fresh `manageSiteSettings` permission and a matching tenant/agent. Its fixed WordPress
+paths use public HTTPS with pinned DNS, bounded JSON and no redirects. Legacy plugins that
+answer ai-context but lack status are reported as needing an update; no capability is inferred.
+See [the WooCommerce guide](docs/woocommerce.md).
+
+WordPress plugin 1.5.4 adds authenticated capabilities, rejects customer lookups without an
+identity and uses WooCommerce's lifetime paid total for registered accounts. Updating Mira
+does not install the plugin on customer hosting. The real WooCommerce fixture checked 401/200
+status routes, missing-identity 400, twelve orders including a cancellation and ten-order history.
+All 164 unit tests, relevant builds, scoped lint and a real-service mobile Chromium diagnostic
+scenario passed. The API/dashboard image is `mira-api:woo-20261117`; the worker/schema are unchanged.
+The prior image override and database backup are in `/var/backups/mira/woo-20261117`.

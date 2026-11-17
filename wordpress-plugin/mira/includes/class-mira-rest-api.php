@@ -23,6 +23,11 @@ class Mira_Rest_Api {
 	}
 
 	public function register_routes() {
+		register_rest_route( 'mira/v1', '/status', array(
+			'methods' => 'GET',
+			'callback' => array( $this, 'handle_status' ),
+			'permission_callback' => array( $this, 'check_api_key' ),
+		) );
 		register_rest_route( 'mira/v1', '/ai-context', array(
 			'methods' => 'GET',
 			'callback' => array( $this, 'handle_ai_context' ),
@@ -80,8 +85,23 @@ class Mira_Rest_Api {
 			return new WP_REST_Response( Mira_WooCommerce::get_customer_context( $user->user_email ), 200 );
 		}
 		$email   = $request->get_param( 'email' );
+		if ( ! is_string( $email ) || ! is_email( $email ) ) {
+			return new WP_Error( 'mira_identity_required', 'شناسه حساب یا ایمیل معتبر لازم است', array( 'status' => 400 ) );
+		}
 		$context = Mira_WooCommerce::get_customer_context( $email );
 		return new WP_REST_Response( $context, 200 );
+	}
+
+	public function handle_status() {
+		$woocommerce = class_exists( 'WooCommerce' ) && function_exists( 'wc_get_orders' ) && function_exists( 'wc_get_product' );
+		$response = new WP_REST_Response( array(
+			'pluginVersion' => MIRA_VERSION,
+			'woocommerceAvailable' => $woocommerce,
+			'signedIdentity' => true,
+			'capabilities' => array( 'products' => $woocommerce, 'pages' => true, 'customerContext' => $woocommerce ),
+		), 200 );
+		$response->header( 'Cache-Control', 'no-store' );
+		return $response;
 	}
 
 	/** فقط محتوای عمومی منتشرشده؛ بدون سفارش، حساب مشتری، پیش‌نویس یا محتوای رمزدار. */

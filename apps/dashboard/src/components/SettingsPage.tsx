@@ -19,6 +19,7 @@ import { InstallSection } from './InstallSection';
 import { KnowledgeSection } from './KnowledgeSection';
 import { WidgetStudio } from './WidgetStudio';
 import { ModerationSettings } from './ModerationSettings';
+import { WooConnectionStatus } from './WooConnectionStatus';
 
 interface SettingsPageProps {
   onSiteNameChange?: (name: string) => void;
@@ -380,6 +381,7 @@ export function SettingsPage({
       {activeTab === 'install' && canManageSiteSettings && (
         <section className="mb-6 rounded border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-bold text-gray-700">اتصال وردپرس/ووکامرس</h2>
+          <WooConnectionStatus />
           <p className="mb-3 text-gray-500">
             افزونه‌ی میرا را روی سایت وردپرس نصب کن، از صفحه تنظیمات افزونه یک «کلید API» بساز، و
             همون کلید رو اینجا هم وارد کن تا داشبورد بتونه اطلاعات سفارش مشتری رو کنار گفتگو نشون

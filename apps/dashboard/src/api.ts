@@ -307,6 +307,10 @@ export class ApiClient {
     return this.authedGet<SiteSettingsDto>('/v1/sites/me');
   }
 
+  async getWooConnectionStatus(): Promise<import('@mira/shared-types').WooConnectionStatusDto> {
+    return this.authedGet('/v1/wordpress/status');
+  }
+
   async updateSiteSettings(dto: UpdateSiteSettingsDto): Promise<SiteSettingsDto> {
     return this.authedPatch<SiteSettingsDto>('/v1/sites/me', dto);
   }

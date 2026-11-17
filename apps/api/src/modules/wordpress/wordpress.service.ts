@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CustomerContextDto } from '@mira/shared-types';
+import { CustomerContextDto, WooConnectionStatusDto } from '@mira/shared-types';
+import { readSiteJson, WordPressReadError } from './wordpress-reader';
 import { SiteEntity, VisitorEntity } from '../../database/entities';
 import { wordPressUserId } from './wordpress-identity';
 
@@ -26,6 +27,74 @@ const REQUEST_TIMEOUT_MS = 15_000;
 @Injectable()
 export class WordPressService {
   private readonly logger = new Logger(WordPressService.name);
+
+  async connectionStatus(site: SiteEntity): Promise<WooConnectionStatusDto> {
+    if (!site.wordpressSiteUrl || !site.wordpressApiKey) return { status: 'not-configured' };
+    try {
+      const base = new URL(site.wordpressSiteUrl);
+      if (base.username || base.password) return { status: 'unavailable' };
+      const url = new URL(
+        `${base.pathname.replace(/\/$/, '')}/wp-json/mira/v1/status`,
+        base.origin,
+      );
+      const raw = (await readSiteJson(
+        url,
+        site.wordpressApiKey,
+      )) as Partial<WooConnectionStatusDto>;
+      const capabilities = raw?.capabilities;
+      if (
+        typeof raw?.pluginVersion !== 'string' ||
+        raw.pluginVersion.length > 32 ||
+        typeof raw.woocommerceAvailable !== 'boolean' ||
+        typeof raw.signedIdentity !== 'boolean' ||
+        !capabilities ||
+        ['products', 'pages', 'customerContext'].some(
+          (key) => typeof capabilities[key as keyof typeof capabilities] !== 'boolean',
+        )
+      ) {
+        return { status: 'unavailable' };
+      }
+      return {
+        status: 'connected',
+        pluginVersion: raw.pluginVersion,
+        woocommerceAvailable: raw.woocommerceAvailable,
+        signedIdentity: raw.signedIdentity,
+        capabilities: {
+          products: capabilities.products,
+          pages: capabilities.pages,
+          customerContext: capabilities.customerContext,
+        },
+      };
+    } catch (error) {
+      if (error instanceof WordPressReadError && [401, 403].includes(error.status))
+        return { status: 'auth-failed' };
+      if (error instanceof WordPressReadError && error.status === 404) {
+        try {
+          const base = new URL(site.wordpressSiteUrl);
+          const url = new URL(
+            `${base.pathname.replace(/\/$/, '')}/wp-json/mira/v1/ai-context`,
+            base.origin,
+          );
+          url.searchParams.set('search', 'میرا');
+          url.searchParams.set('products', '0');
+          url.searchParams.set('pages', '0');
+          const result = (await readSiteJson(url, site.wordpressApiKey)) as {
+            products?: unknown;
+            documents?: unknown;
+          };
+          if (Array.isArray(result?.products) && Array.isArray(result?.documents))
+            return { status: 'plugin-update' };
+        } catch (fallbackError) {
+          if (
+            fallbackError instanceof WordPressReadError &&
+            [401, 403].includes(fallbackError.status)
+          )
+            return { status: 'auth-failed' };
+        }
+      }
+      return { status: 'unavailable' };
+    }
+  }
 
   async fetchCustomerContext(
     site: SiteEntity,

@@ -28,6 +28,9 @@ class Mira_WooCommerce {
 			return $default;
 		}
 
+		if ( ! is_string( $email ) || ! is_email( $email ) ) {
+			return $default;
+		}
 		$user = get_user_by( 'email', $email );
 		$role = $user && in_array( 'administrator', $user->roles, true ) ? 'administrator' : ( $user && in_array( 'shop_manager', $user->roles, true ) ? 'shop_manager' : ( $user && in_array( 'customer', $user->roles, true ) ? 'customer' : 'member' ) );
 
@@ -50,10 +53,12 @@ class Mira_WooCommerce {
 			return $default;
 		}
 
-		$total_spent   = 0;
+		$total_spent   = $user && function_exists( 'wc_get_customer_total_spent' ) ? (float) wc_get_customer_total_spent( $user->ID ) : 0;
 		$recent_orders = array();
 		foreach ( $orders as $order ) {
-			$total_spent    += (float) $order->get_total();
+			if ( ! $user && $order->has_status( array( 'completed', 'processing' ) ) ) {
+				$total_spent += (float) $order->get_total();
+			}
 			$recent_orders[] = array(
 				'id'        => $order->get_id(),
 				'status'    => $order->get_status(),

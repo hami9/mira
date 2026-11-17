@@ -7,6 +7,14 @@ export interface CustomerOrderSummary {
   createdAt: string;
 }
 
+export interface WooConnectionStatusDto {
+  status: 'connected' | 'not-configured' | 'auth-failed' | 'unavailable' | 'plugin-update';
+  pluginVersion?: string;
+  woocommerceAvailable?: boolean;
+  signedIdentity?: boolean;
+  capabilities?: { products: boolean; pages: boolean; customerContext: boolean };
+}
+
 export interface CustomerContextDto {
   status?: 'connected' | 'not-configured' | 'unverified' | 'unavailable' | 'not-found';
   accountRole?: 'administrator' | 'shop_manager' | 'customer' | 'member';

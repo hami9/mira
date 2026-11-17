@@ -31,3 +31,11 @@ leave them saved but unavailable to retrieval; reindex after credit is restored.
 `tests/fixtures/wordpress-diagnostics.php` checks a disposable WordPress/WooCommerce installation,
 including missing identity and lifetime totals across more than ten orders. Never use customer
 accounts or production orders for that fixture.
+
+## Live check
+
+Plugin 1.5.4 was installed on Popmobile through the owner's authenticated WordPress admin
+session on November 17, 2026. Mira confirmed products, public pages, customer context and
+signed identity capabilities. The actual signed-in administrator session was recognized;
+its order context and a public product with a price were retrieved successfully. Missing
+customer identity returned HTTP 400. No orders or payment settings were changed.

@@ -158,6 +158,36 @@ test.describe('no-code widget studio', () => {
     await studio.getByLabel('رنگ زمینه', { exact: true }).fill('#757575');
     await expect(preview.locator('.mira-panel')).toHaveCSS('--mira-surface', '#757575');
     await studio.getByLabel('رنگ زمینه', { exact: true }).fill('#ffffff');
+    await studio.getByLabel('جنس پنجره', { exact: true }).selectOption('glass');
+    await expect(preview.locator('.mira-panel')).toHaveAttribute('data-surface-effect', 'glass');
+    await expect(preview.locator('.mira-panel')).toHaveCSS(
+      'backdrop-filter',
+      'blur(24px) saturate(1.25)',
+    );
+    await studio.getByRole('button', { name: 'پاسخ نمونه', exact: true }).click();
+    await expect(preview.locator('.mira-msg-bot')).toHaveCSS(
+      'background-color',
+      'rgb(255, 255, 255)',
+    );
+    await preview.locator('body').evaluate((body) => {
+      body.style.background = 'repeating-linear-gradient(45deg, #0b2447 0 30px, #0f766e 30px 60px)';
+    });
+    for (const width of [375, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      await info.attach(`glass-${width}`, {
+        body: await page.screenshot({ path: `test-results/glass-${width}.png` }),
+        contentType: 'image/png',
+      });
+    }
+    await preview.locator('body').evaluate((body) => {
+      body.style.background = '#eff3f5';
+    });
+    await studio.getByLabel('جنس پنجره', { exact: true }).selectOption('solid');
+    await expect(preview.locator('.mira-panel')).toHaveCSS('backdrop-filter', 'none');
+    await studio.getByLabel('جنس پنجره', { exact: true }).selectOption('glass');
     await studio.getByRole('button', { name: 'دکمه شناور', exact: true }).click();
     for (const value of ['none', 'breathe', 'float', 'ripple']) {
       await studio.getByLabel('انیمیشن دکمه شناور', { exact: true }).selectOption(value);
@@ -185,6 +215,7 @@ test.describe('no-code widget studio', () => {
     const stored = (await db.query('SELECT appearance FROM sites WHERE id=$1', [sites[0]])).rows[0]
       .appearance;
     expect(stored.motion).toEqual({ launcher: 'float', panel: 'scale' });
+    expect(stored.surfaceEffect).toBe('glass');
     const downloading = page.waitForEvent('download');
     await studio.getByRole('button', { name: 'خروجی قالب', exact: true }).click();
     const downloaded = JSON.parse(await readFile((await (await downloading).path())!, 'utf8'));
@@ -198,6 +229,7 @@ test.describe('no-code widget studio', () => {
     });
     await expect(studio.getByRole('alert')).toBeVisible();
     const imported = normalizeWidgetAppearance({
+      surfaceEffect: 'glass',
       launcher: { label: 'راهنمای پاپ موبایل' },
       welcome: { title: 'به پاپ موبایل خوش آمدید', cards: [] },
       features: { products: false, sources: false },
@@ -229,6 +261,9 @@ test.describe('no-code widget studio', () => {
     const visitor = await browser.newPage({ viewport: { width: 375, height: 812 } });
     try {
       await visitor.goto(`${origin}/chat.html?key=${keys[0]}`);
+      await expect(visitor.locator('.mira-panel')).toHaveAttribute('data-surface-effect', 'glass');
+      await visitor.reload();
+      await expect(visitor.locator('.mira-panel')).toHaveAttribute('data-surface-effect', 'glass');
       await expect(visitor.locator('.mira-welcome h1')).toHaveText('به پاپ موبایل خوش آمدید');
       await expect(visitor.locator('.mira-intent')).toHaveCount(0);
       await visitor.emulateMedia({ reducedMotion: 'reduce' });

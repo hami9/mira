@@ -14,6 +14,7 @@ export interface WidgetAppearance {
   color: string;
   accentColor: string;
   surfaceColor: string;
+  surfaceEffect: 'solid' | 'glass';
   position: 'bottom-left' | 'bottom-right';
   panelWidth: 'compact' | 'comfortable' | 'wide';
   radius: 'soft' | 'rounded' | 'square';
@@ -56,6 +57,7 @@ export const DEFAULT_WIDGET_APPEARANCE: WidgetAppearance = {
   color: '#2E6BE6',
   accentColor: '#168B6A',
   surfaceColor: '#ffffff',
+  surfaceEffect: 'solid',
   position: 'bottom-right',
   panelWidth: 'comfortable',
   radius: 'rounded',
@@ -175,6 +177,7 @@ export function normalizeWidgetAppearance(value: unknown): WidgetAppearance {
   for (const key of ['color', 'accentColor', 'surfaceColor'] as const)
     if (hex(value[key])) result[key] = value[key];
   const enums = {
+    surfaceEffect: ['solid', 'glass'],
     position: ['bottom-left', 'bottom-right'],
     panelWidth: ['compact', 'comfortable', 'wide'],
     radius: ['soft', 'rounded', 'square'],
@@ -240,7 +243,7 @@ export function parseWidgetAppearance(input: unknown): WidgetAppearance {
   if (own(input, 'version') && input.version !== 1) fail('نسخه قالب');
   for (const key of ['color', 'accentColor', 'surfaceColor'] as const)
     if (own(input, key) && !hex(input[key])) fail(key);
-  for (const key of ['position', 'panelWidth', 'radius', 'density'] as const)
+  for (const key of ['position', 'panelWidth', 'radius', 'density', 'surfaceEffect'] as const)
     if (own(input, key) && input[key] !== result[key]) fail(key);
   const object = (key: string, keys: string[]) => {
     if (!record(input[key])) fail(key);

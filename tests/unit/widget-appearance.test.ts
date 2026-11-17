@@ -16,6 +16,7 @@ describe('widget configuration boundaries', () => {
     });
     expect(first.color).toBe('#123456');
     expect(first.position).toBe('bottom-left');
+    expect(first.surfaceEffect).toBe('solid');
     expect(first.motion).toEqual({ launcher: 'breathe', panel: 'rise' });
     expect(first).not.toHaveProperty('privateKey');
     first.welcome.cards[0].label = 'changed';
@@ -37,6 +38,7 @@ describe('widget configuration boundaries', () => {
   it.each([
     { version: 2 },
     { color: 'red;display:none' },
+    { surfaceEffect: 'transparent' },
     { motion: { panel: 'unknown' } },
     { features: { human: 'false' } },
     { css: 'body{}' },
@@ -56,6 +58,7 @@ describe('widget configuration boundaries', () => {
   it('roundtrips a bounded theme including both motion selections without tenant identity', () => {
     const appearance = parseWidgetAppearance({
       motion: { launcher: 'float', panel: 'scale' },
+      surfaceEffect: 'glass',
       welcome: { title: '<b>عنوان متنی</b>', cards: [] },
     });
     const saved = exportWidgetTemplate(appearance);

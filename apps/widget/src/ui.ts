@@ -308,10 +308,24 @@ export class WidgetUi {
       this.primaryColor = hexColor(options.color) ?? this.appearance.color;
       this.accentColor = hexColor(options.accentColor) ?? this.appearance.accentColor;
     }
-    const surface = this.appearance.surfaceColor;
+    // شیشه روشن ته‌رنگ زمینه را نگه می‌دارد و روی سایت‌های تیره نیز خوانا می‌ماند.
+    const surface =
+      this.appearance.surfaceEffect === 'glass'
+        ? blendColor(this.appearance.surfaceColor, '#ffffff', 0.06)
+        : this.appearance.surfaceColor;
     const neutral = colorTokens('#64748b', '--mira-neutral', surface);
     const primary = colorTokens(this.primaryColor, '--mira-color', surface);
     const accent = colorTokens(this.accentColor, '--mira-accent', surface);
+    if (this.appearance.surfaceEffect === 'glass') {
+      // کنتراست متن با فرض تیره‌ترین تصویر ممکن در پشت شیشه بررسی می‌شود.
+      primary['--mira-color-ink'] = colorTokens(this.primaryColor, '--glass', '#b8b8b8')[
+        '--glass-ink'
+      ];
+      accent['--mira-accent-ink'] = colorTokens(this.accentColor, '--glass', '#b8b8b8')[
+        '--glass-ink'
+      ];
+      neutral['--mira-neutral-ink'] = '#334155';
+    }
     const ink = contrast('#ffffff', surface) > contrast('#000000', surface) ? '#f5f7fa' : '#1c2b49';
     const tokens = {
       ...primary,
@@ -342,6 +356,7 @@ export class WidgetUi {
       element.classList.toggle('mira-pos-right', position === 'bottom-right');
     }
     this.panel.dataset.appearance = '1';
+    this.panel.dataset.surfaceEffect = this.appearance.surfaceEffect;
     this.panel.dataset.density = this.appearance.density;
     this.panel.dataset.panelMotion = this.appearance.motion.panel;
     this.bubble.dataset.launcherMotion = this.appearance.motion.launcher;

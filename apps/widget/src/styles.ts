@@ -68,6 +68,19 @@ export function injectStyles(doc: Document = document): void {
       transform: translateY(16px) scale(.98); transition: opacity .2s, transform .25s, visibility .25s;
       isolation: isolate; color-scheme: light;
     }
+    .mira-panel[data-surface-effect="glass"] { background: var(--mira-surface); border-color: #ffffffcc; box-shadow: 0 24px 80px #0b244733, inset 0 1px #ffffffee; }
+    .mira-panel[data-surface-effect="glass"] .mira-header,
+    .mira-panel[data-surface-effect="glass"] .mira-footer { background: #ffffff66; }
+    .mira-panel[data-surface-effect="glass"] .mira-msg-agent,
+    .mira-panel[data-surface-effect="glass"] .mira-msg-bot { background: #fff; color: #1c2b49; padding: 16px 18px; border: 1px solid #e2e8f0; box-shadow: 0 3px 14px #0b244708; width: fit-content; max-width: 94%; border-end-end-radius: 6px; }
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .mira-panel[data-surface-effect="glass"] { background: linear-gradient(145deg, #fffffff0, #ffffffb8); -webkit-backdrop-filter: blur(24px) saturate(1.25); backdrop-filter: blur(24px) saturate(1.25); }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .mira-panel[data-surface-effect="glass"] { background: var(--mira-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+      .mira-panel[data-surface-effect="glass"] .mira-header,
+      .mira-panel[data-surface-effect="glass"] .mira-footer { background: var(--mira-surface); }
+    }
     .mira-panel.mira-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; }
     .mira-panel.mira-fullscreen {
       inset: 16px; width: auto; height: auto; max-width: none; max-height: none; border-radius: 24px;

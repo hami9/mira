@@ -96,6 +96,14 @@ and panel animations without changing the draft or creating a live chat session.
    Deploy through the configured server path and verify the installed widget before claiming
    deployment is complete.
 
+## Glass
+
+Appearance → Window material selects solid or glass. Existing stores default to solid.
+Glass uses a light translucent surface with a 24px backdrop blur and opaque white assistant
+message cards. It keeps text dark even with a dark configured surface. Unsupported browsers
+and reduced-transparency preferences receive a solid surface. Embedded glass blurs the host
+page behind the panel; it does not add a page-wide modal overlay.
+
 ## Later work
 
 Cart, account and order actions belong to a later integration phase with explicit trusted

@@ -848,3 +848,21 @@ status routes, missing-identity 400, twelve orders including a cancellation and 
 All 164 unit tests, relevant builds, scoped lint and a real-service mobile Chromium diagnostic
 scenario passed. The API/dashboard image is `mira-api:woo-20261117`; the worker/schema are unchanged.
 The prior image override and database backup are in `/var/backups/mira/woo-20261117`.
+
+## 22. Glass surface
+
+`appearance.surfaceEffect` is solid/glass; legacy settings normalize to solid. Studio exposes
+the material selector and templates retain it. Glass uses a light 24px frosted backdrop and
+white reply cards; reduced transparency and unsupported browsers receive a solid surface.
+Text tokens are checked against the darkest possible glass composite, not just white.
+
+All builds, scoped lint, 165 unit tests and three real-service Studio browser scenarios passed,
+including material switching, publish/import/reload and 375/768/1280px layouts. Copy the generated
+`apps/widget/dist` into the API's `public/widget-dist` when testing or deploying; dashboard
+preview uses source directly, so it can otherwise hide a stale public widget. Gzip is 39,775 bytes.
+
+Production runs `mira-api:glass-20261117` with unchanged worker/schema. Popmobile's stored appearance,
+welcome and real store links are personalized; its existing avatar and motion selections remain.
+The WordPress embed color matches the store teal. Live Chrome confirmed glass, blur and socket
+connection without sending a message. Prior override, database and public branding settings are
+backed up under `/var/backups/mira/glass-20261117`.

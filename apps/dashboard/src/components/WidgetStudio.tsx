@@ -616,6 +616,19 @@ function WidgetStudioEditor({ settings, onSave, onAvatarChange, onDirtyChange }:
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <SelectField
+                    label="جنس پنجره"
+                    value={appearance.surfaceEffect}
+                    onChange={(surfaceEffect) =>
+                      setAppearance({
+                        surfaceEffect: surfaceEffect as WidgetAppearance['surfaceEffect'],
+                      })
+                    }
+                    options={[
+                      ['solid', 'یکدست'],
+                      ['glass', 'شیشه‌ای (Glass)'],
+                    ]}
+                  />
+                  <SelectField
                     label="اندازه پنجره"
                     value={appearance.panelWidth}
                     onChange={(panelWidth) =>

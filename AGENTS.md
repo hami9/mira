@@ -866,3 +866,9 @@ welcome and real store links are personalized; its existing avatar and motion se
 The WordPress embed color matches the store teal. Live Chrome confirmed glass, blur and socket
 connection without sending a message. Prior override, database and public branding settings are
 backed up under `/var/backups/mira/glass-20261117`.
+
+The glass follow-up uses 80–60% white opacity and a 20% white header/footer, retaining the
+24px blur and opaque replies. Ink, muted text and errors are derived for the darkest `#999999`
+composite (at least 4.5:1). Widget/dashboard builds, scoped lint and real Chromium checks at
+375/768/1280px, reduced transparency and solid mode passed. The image is
+`mira-api:glass-clear-20261118`; the prior override is in `/var/backups/mira/glass-clear-20261118`.

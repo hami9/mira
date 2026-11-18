@@ -318,13 +318,13 @@ export class WidgetUi {
     const accent = colorTokens(this.accentColor, '--mira-accent', surface);
     if (this.appearance.surfaceEffect === 'glass') {
       // کنتراست متن با فرض تیره‌ترین تصویر ممکن در پشت شیشه بررسی می‌شود.
-      primary['--mira-color-ink'] = colorTokens(this.primaryColor, '--glass', '#b8b8b8')[
+      primary['--mira-color-ink'] = colorTokens(this.primaryColor, '--glass', '#999999')[
         '--glass-ink'
       ];
-      accent['--mira-accent-ink'] = colorTokens(this.accentColor, '--glass', '#b8b8b8')[
+      accent['--mira-accent-ink'] = colorTokens(this.accentColor, '--glass', '#999999')[
         '--glass-ink'
       ];
-      neutral['--mira-neutral-ink'] = '#334155';
+      neutral['--mira-neutral-ink'] = '#1c2b49';
     }
     const ink = contrast('#ffffff', surface) > contrast('#000000', surface) ? '#f5f7fa' : '#1c2b49';
     const tokens = {
@@ -338,7 +338,11 @@ export class WidgetUi {
       '--mira-line': blendColor(ink, surface, 0.16),
       '--mira-soft': blendColor(ink, surface, 0.035),
       '--mira-success': colorTokens('#137d71', '--success', surface)['--success-ink'],
-      '--mira-danger': colorTokens('#a33437', '--danger', surface)['--danger-ink'],
+      '--mira-danger': colorTokens(
+        '#a33437',
+        '--danger',
+        this.appearance.surfaceEffect === 'glass' ? '#999999' : surface,
+      )['--danger-ink'],
       '--mira-panel-width': { compact: '390px', comfortable: '560px', wide: '680px' }[
         this.appearance.panelWidth
       ],

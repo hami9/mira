@@ -241,6 +241,26 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
     expect(events.mock.calls.at(-1)?.[2].stage).toBe('idle');
   });
+  it('uses approved context when the store endpoint is unavailable', async () => {
+    await db.query(
+      `UPDATE sites SET "wordpressSiteUrl" = 'https://shop.test', "wordpressApiKey" = 'fixture-only', "aiPolicy" = $2 WHERE id = $1`,
+      [
+        siteId,
+        {
+          ...DEFAULT_AI_POLICY,
+          useKnowledgeBase: false,
+          useProducts: true,
+          serverContext: 'ارسال سفارش دو روز زمان می‌برد.',
+        },
+      ],
+    );
+    siteContext.mockRejectedValueOnce(new Error('store unavailable'));
+    await processBotReply(job());
+    expect(siteContext).toHaveBeenCalledTimes(1);
+    expect(model).toHaveBeenCalledTimes(1);
+    expect((await messages())[0].content).toContain('دو روز');
+  });
+
   it('does not post if the conversation is resolved while generating', async () => {
     model.mockImplementationOnce(async () => {
       await db.query(

@@ -198,7 +198,7 @@ export async function getSiteContext(
 
 export function siteSearchTerms(question: string): string {
   const stopWords = new Set(
-    'سلام لطفا لطفاً یه یک من ما شما برای از به با در و یا که این آن اون میخوام میخواهم می‌خواهم میشه می‌شود هست است آیا چطور چیه چیست چه کدام بهم بده بدید معرفی راهنمای راهنمایی انتخاب محصول محصولات خرید شرایط the a an i want need please can you show me about for to of is are'.split(
+    'سلام لطفا لطفاً یه یک من ما شما برای از به با در و یا که این آن اون میخوام میخواهم می‌خواهم میشه می‌شود هست است آیا چطور چیه چیست چه کدام بهم بده بدید معرفی راهنمای راهنمایی انتخاب محصول محصولات خرید انجام بدم می‌خوام میخام شرایط the a an i want need please can you show me about for to of is are'.split(
       ' ',
     ),
   );

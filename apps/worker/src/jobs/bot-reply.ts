@@ -47,6 +47,10 @@ interface SiteAiSettings {
 
 const DEFAULT_HANDOFF =
   'برای پاسخ دقیق‌تر، گفتگو را به پشتیبان انسانی سپردم. همکارانم در اولین فرصت پاسخ می‌دهند.';
+const NEEDS_DETAILS =
+  'اطلاعات کافی برای پاسخ دقیق پیدا نکردم. لطفاً کمی بیشتر توضیح دهید. اگر دنبال محصولی هستید، نام یا مدل دقیقش را بفرستید.';
+const TEMPORARILY_UNAVAILABLE =
+  'فعلاً نتوانستم پاسخ را آماده کنم. لطفاً کمی بعد دوباره پیام بدهید.';
 
 export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
   const data: AiBotReplyJobData & LifecycleJob = { ...input };
@@ -55,7 +59,6 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
   const lockKey = `${data.siteId}:${data.conversationId}`;
   let locked = false;
   let started = false;
-  let handoff = DEFAULT_HANDOFF;
   try {
     await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [lockKey]);
     locked = true;
@@ -74,7 +77,6 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
     ).rows[0];
     if (!site || !site.aiEnabled || !(await eligible(client, data))) return;
     if (site.aiReplyOnlyOutsideBusinessHours && isWithinBusinessHours(site.businessHours)) return;
-    handoff = plainText(site.aiHandoffMessage || DEFAULT_HANDOFF);
     const policy = { ...DEFAULT_AI_POLICY, ...site.aiPolicy };
     const visitor = (
       await client.query<{ content: string }>(
@@ -84,18 +86,42 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
     ).rows[0];
     if (!visitor) return;
     started = true;
+    if (containsHumanRequestKeywords(visitor.content)) {
+      await postReply(client, data, plainText(site.aiHandoffMessage || DEFAULT_HANDOFF), {
+        products: [],
+        sources: [],
+        handoff: true,
+      });
+      return;
+    }
     const count = (
       await client.query<{ count: string }>(
         `SELECT count(*) FROM messages WHERE "siteId" = $1 AND "conversationId" = $2 AND "senderType" = 'bot'`,
         [data.siteId, data.conversationId],
       )
     ).rows[0];
-    if (
-      containsHumanRequestKeywords(visitor.content) ||
-      blockedInput(visitor.content, policy) ||
-      Number(count.count) >= site.aiMaxRepliesPerConversation
-    ) {
-      await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
+    if (blockedInput(visitor.content, policy)) {
+      await postReply(
+        client,
+        data,
+        'در این مورد نمی‌توانم راهنمایی کنم. سؤال دیگری درباره فروشگاه دارید؟',
+        {
+          products: [],
+          sources: [],
+        },
+      );
+      return;
+    }
+    if (Number(count.count) >= site.aiMaxRepliesPerConversation) {
+      await postReply(
+        client,
+        data,
+        'به سقف پاسخ‌های این گفتگو رسیدیم. برای ادامه می‌توانید گفتگوی تازه‌ای شروع کنید.',
+        {
+          products: [],
+          sources: [],
+        },
+      );
       return;
     }
     if (isSimpleGreeting(visitor.content)) {
@@ -168,7 +194,7 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
       sources.push(...website.documents);
     }
     if (!sources.length && !website.products.length) {
-      await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
+      await postReply(client, data, NEEDS_DETAILS, { products: [], sources: [] });
       return;
     }
     const history = (
@@ -209,12 +235,15 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
       { siteId: data.siteId, conversationId: data.conversationId, kind: 'reply' },
     );
     const result = parseGroundedAnswer(raw, website.products, sources, policy);
+    if (!result) {
+      await postReply(client, data, TEMPORARILY_UNAVAILABLE, { products: [], sources: [] });
+      return;
+    }
     if (
-      !result ||
-      (policy.guardrailsEnabled !== false &&
-        (result.confidence === 0 || result.confidence < site.aiConfidenceThreshold))
+      policy.guardrailsEnabled !== false &&
+      (result.confidence === 0 || result.confidence < site.aiConfidenceThreshold)
     ) {
-      await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
+      await postReply(client, data, NEEDS_DETAILS, { products: [], sources: [] });
       return;
     }
     const posted = await postReply(
@@ -236,12 +265,11 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
         ).values(),
       ],
     );
-    if (!posted)
-      await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
+    if (!posted) await postReply(client, data, NEEDS_DETAILS, { products: [], sources: [] });
   } catch {
     // خطای SDK ممکن است حاوی درخواست یا کلید باشد؛ به مشتری و لاگ منتقل نمی‌شود.
     if (started)
-      await postReply(client, data, handoff, { products: [], sources: [], handoff: true });
+      await postReply(client, data, TEMPORARILY_UNAVAILABLE, { products: [], sources: [] });
     else throw new Error('آماده‌سازی پاسخ دستیار ناموفق بود');
   } finally {
     try {
@@ -347,7 +375,7 @@ async function postReply(
         `UPDATE knowledge_base_documents SET "usageCount"="usageCount"+1,"lastUsedAt"=now() WHERE "siteId"=$1 AND id=ANY($2::uuid[])`,
         [data.siteId, usedKnowledge.map((value) => value.id)],
       );
-    if (metadata.handoff)
+    if (row && metadata.handoff)
       await client.query(
         `UPDATE conversations SET "aiPaused" = true WHERE id = $1 AND "siteId" = $2`,
         [data.conversationId, data.siteId],

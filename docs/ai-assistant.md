@@ -80,8 +80,8 @@ payment opens the official AvalAI billing page; the user completes payment there
   These controls reduce risk; they do not detect every secret or guarantee factual answers.
   Model confidence is self-reported, not a calibrated probability. Retrieval similarity is
   an independent threshold for knowledge documents.
-- Missing evidence, invalid output, provider failure, a reply limit or a human request
-  pauses automatic replies for that conversation. Human agents can continue normally.
+- The assistant pauses automatic replies when the visitor asks for a human. Missing evidence,
+  invalid output, provider failures and reply limits get a message without transferring the chat.
   Closing and reopening that same conversation preserves the handoff. A new conversation
   starts with AI enabled according to site settings.
 - Conversation locks and a deterministic reply ID prevent duplicate bot messages. Before

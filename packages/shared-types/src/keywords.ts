@@ -20,19 +20,17 @@ const URGENT_KEYWORDS = [
   'furious',
 ];
 
-const HUMAN_REQUEST_KEYWORDS = [
-  'اپراتور',
-  'انسان',
-  'آدم واقعی',
-  'کارشناس',
-  'پشتیبان واقعی',
-  'گفتگو با پشتیبان',
-  'صحبت با انسان',
-  'human',
-  'real person',
-  'talk to agent',
-  'talk to a human',
-  'speak to someone',
+const HUMAN_ROLE =
+  '(?:اپراتور انسانی|اپراتور|پشتیبان انسانی|پشتیبان واقعی|پشتیبان|کارشناس|انسان|آدم واقعی)';
+const HUMAN_REQUEST_PATTERNS = [
+  new RegExp(`^(?:لطفا |لطفاً )?${HUMAN_ROLE}(?: لطفا| لطفاً| می خواهم| می خوام)?$`),
+  new RegExp(
+    `^(?:لطفا |لطفاً )?(?:می خواهم |می خوام )?(?:با ${HUMAN_ROLE} (?:صحبت|گفتگو|گفت و گو) کنم|(?:صحبت|گفتگو|گفت و گو) با ${HUMAN_ROLE})(?: لطفا| لطفاً)?$`,
+  ),
+  new RegExp(
+    `^(?:لطفا |لطفاً )?(?:من را |منو |من رو )?به ${HUMAN_ROLE} (?:وصل|ارجاع) (?:کن|کنید)$`,
+  ),
+  /^(?:human|real person|(?:talk|speak) to (?:an? )?(?:agent|human|real person|someone))(?: please)?$/,
 ];
 
 // جداکردن فهرست کلیدواژه‌ی نوشته‌شده توسط کاربر (قوانین اتوماسیون).
@@ -56,5 +54,12 @@ export function containsUrgentKeywords(text: string): boolean {
 }
 
 export function containsHumanRequestKeywords(text: string): boolean {
-  return containsAny(text, HUMAN_REQUEST_KEYWORDS);
+  const normalized = text
+    .toLowerCase()
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .replace(/[\s\u200c]+/g, ' ')
+    .replace(/[.!?؟،؛]+$/g, '')
+    .trim();
+  return HUMAN_REQUEST_PATTERNS.some((pattern) => pattern.test(normalized));
 }

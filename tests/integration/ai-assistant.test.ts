@@ -235,7 +235,7 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
   it('fails closed and clears thinking on provider errors', async () => {
     model.mockRejectedValueOnce(new Error('provider failed'));
     await processBotReply(job());
-    expect((await messages())[0].aiMetadata.handoff).toBe(true);
+    expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
     expect(events.mock.calls.at(-1)?.[2].stage).toBe('idle');
   });
   it('does not post if the conversation is resolved while generating', async () => {
@@ -268,14 +268,14 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     await processBotReply(job());
     expect(await messages()).toHaveLength(0);
   });
-  it('hands off on missing evidence without a model call', async () => {
+  it('asks for details without handing off or calling the model when evidence is missing', async () => {
     await db.query(`UPDATE sites SET "aiPolicy" = $2 WHERE id = $1`, [
       siteId,
       { ...DEFAULT_AI_POLICY, useKnowledgeBase: false },
     ]);
     await processBotReply(job());
     expect(model).not.toHaveBeenCalled();
-    expect((await messages())[0].aiMetadata.handoff).toBe(true);
+    expect((await messages())[0].aiMetadata.handoff).not.toBe(true);
   });
   it('enforces reply limits before calling the provider', async () => {
     await db.query(`UPDATE sites SET "aiMaxRepliesPerConversation" = 1 WHERE id = $1`, [siteId]);
@@ -285,7 +285,7 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     );
     await processBotReply(job());
     expect(model).not.toHaveBeenCalled();
-    expect((await messages()).some((m) => m.aiMetadata?.handoff)).toBe(true);
+    expect((await messages()).some((m) => m.aiMetadata?.handoff)).toBe(false);
   });
 
   it('persists only validated live product cards', async () => {
@@ -413,7 +413,7 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     await processBotReply(job());
     const rows = await messages();
     expect(rows).toHaveLength(1);
-    expect(rows[0].aiMetadata.handoff).toBe(true);
+    expect(rows[0].aiMetadata.handoff).not.toBe(true);
     expect(rows[0].aiMetadata.sources).toEqual([]);
     expect(
       (

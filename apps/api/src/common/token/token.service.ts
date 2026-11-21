@@ -13,6 +13,7 @@ export interface AgentAccessTokenPayload {
 export interface AgentRefreshTokenPayload {
   sub: string; // agentId
   type: 'agent_refresh';
+  exp?: number;
 }
 
 // توکن کوتاه‌عمر مرحله‌ی میانی لاگین وقتی 2FA فعاله — رمز عبور تأیید شده ولی accessToken واقعی
@@ -55,7 +56,7 @@ export class TokenService {
     });
   }
 
-  signAgentRefreshToken(payload: Omit<AgentRefreshTokenPayload, 'type'>): string {
+  signAgentRefreshToken(payload: Omit<AgentRefreshTokenPayload, 'type' | 'exp'>): string {
     return this.jwtService.sign(
       { ...payload, type: 'agent_refresh' },
       {

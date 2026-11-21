@@ -361,6 +361,12 @@ code.** This is the most important section of this file.
     against the real model, because raw output is not stored. Candidates are now ranked and
     capped before the model call. Keep the parser strict and fix contracts upstream.
 
+21. **Dashboard logins looked revoked, but the server never revoked them.** Production showed
+    107 of 107 refresh requests succeeding. Tokens lived only in tab memory, so a reload, new
+    tab or closed browser returned to login. Expired access tokens were not retried, and a
+    socket rejected with one never reconnected. Sessions now use an HttpOnly cookie, requests
+    refresh once on 401, and sockets fetch a fresh token before reconnecting.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have
@@ -628,7 +634,7 @@ runtime checks, not a production load benchmark or certification of hosting pane
 
 The dashboard has one authenticated ApiClient and Socket.io manager per signed-in store.
 ApiProvider scopes every page and child component; switching accounts unmounts the prior
-views. Tokens and refresh tokens remain in memory. Do not replace this with a mutable global
+views. Access tokens stay in client memory (section 24). Do not replace this with a mutable global
 active token: delayed requests could write the previous store's data into the next view.
 Unread totals use GET /v1/conversations/unread and include all conversations, not just the
 current list page. Background sockets refresh counts and label notifications by store.
@@ -907,3 +913,26 @@ Production runs `mira-worker:sales-assistant`, layered over `mira-worker:catalog
 the API and schema are unchanged. The prior override is in
 `/var/backups/mira/sales-assistant.8vUcBq/override.yml`. Latency under real traffic was not
 load-tested; each connected-store reply now includes the extra planning call.
+
+## 24. Dashboard sessions
+
+Login and 2FA set one `mira_rt_<agentId>` refresh cookie per signed-in operator. It is
+HttpOnly, SameSite=Strict, Secure in production and scoped to `/v1/auth`. On load the dashboard
+calls `POST /v1/auth/session`, which returns only short-lived access tokens, one per valid
+cookie; each store still has its own `ApiClient`. Never put refresh tokens in Web Storage.
+
+`/v1/auth/session` and `/v1/auth/logout` require `X-Mira-Session: 1` and an Origin whose host
+matches Host. Invalid, mismatched or deleted-agent cookies are cleared; a database error keeps
+them. Logout waits for cookie removal and keeps the session with an error if that fails.
+Refresh tokens remain stateless, so logout clears this browser but does not revoke a copied
+token before `JWT_REFRESH_EXPIRES_IN` (default 7 days). Sessions do not slide past that limit.
+
+Cookies need the API and dashboard on one origin, as in the Lite profile. Separate origins
+keep the previous in-memory session. Concurrent 401s share one refresh and retry once.
+
+Verification: 189 unit tests, 75 real Postgres/Redis integration tests, and a production-mode
+same-origin browser run covering login, reload, a new tab, a reopened browser pane, token
+expiry, an API restart followed by a live visitor message, logout and forged requests.
+Playwright E2E was not rerun for this change. Production runs `mira-api:session-cookie`; the
+worker and schema are unchanged. The prior override is in
+`/var/backups/mira/session-cookie.4BbPdm/override.yml`.

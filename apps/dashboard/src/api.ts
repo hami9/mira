@@ -2,6 +2,7 @@ import type {
   LoginRequestDto,
   LoginResponseDto,
   RefreshResponseDto,
+  AuthSessionsResponseDto,
   MessagePayload,
   CannedResponseDto,
   CreateCannedResponseDto,
@@ -47,6 +48,18 @@ import type {
   SaveChatFormDto,
 } from '@mira/shared-types';
 import { API_URL } from './config';
+import { decodeJwtPayload } from './jwt';
+
+const SESSION_HEADERS = { 'Content-Type': 'application/json', 'X-Mira-Session': '1' };
+
+// کوکی نشست فقط وقتی API و داشبورد هم‌مبدأ باشند کار می‌کند؛ نصب جدا همان نشست حافظه‌ای می‌ماند.
+function sessionCookiesAvailable(): boolean {
+  try {
+    return new URL(API_URL, window.location.href).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
 
 export interface ConversationDto {
   visitorName?: string | null;
@@ -154,11 +167,7 @@ export class ApiClient {
   async uploadAvatar(target: 'assistant' | 'me', image: Blob): Promise<{ url: string }> {
     const body = new FormData();
     body.append('image', image, 'avatar.png');
-    const response = await fetch(`${API_URL}/v1/avatars/${target}`, {
-      method: 'POST',
-      body,
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
+    const response = await this.authedFetch(`/v1/avatars/${target}`, { method: 'POST', body });
     if (!response.ok) throw new Error('ذخیره تصویر انجام نشد');
     return response.json() as Promise<{ url: string }>;
   }
@@ -191,19 +200,73 @@ export class ApiClient {
   }
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
+  private agentId: string | null = null;
+  private tokenGeneration = 0;
+  private refreshInFlight: Promise<void> | null = null;
+  onSessionExpired: (() => void) | null = null;
+
+  static async restoreSessions(): Promise<ApiClient[]> {
+    if (!sessionCookiesAvailable()) return [];
+    const response = await fetch(`${API_URL}/v1/auth/session`, {
+      method: 'POST',
+      headers: SESSION_HEADERS,
+      body: '{}',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return [];
+    const { sessions } = (await response.json()) as AuthSessionsResponseDto;
+    return sessions.map((session) => {
+      const client = new ApiClient();
+      client.agentId = session.agentId;
+      client.accessToken = session.accessToken;
+      return client;
+    });
+  }
 
   setTokens(accessToken: string, refreshToken: string): void {
+    this.tokenGeneration += 1;
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
+    this.agentId = decodeJwtPayload<{ sub?: string }>(accessToken)?.sub ?? null;
   }
 
   clearTokens(): void {
+    this.tokenGeneration += 1;
     this.accessToken = null;
     this.refreshToken = null;
+    this.agentId = null;
   }
 
   getAccessToken(): string | null {
     return this.accessToken;
+  }
+
+  getAgentId(): string | null {
+    return this.agentId;
+  }
+
+  // سوکت بعد از خواب سیستم نباید با توکن منقضی رد شود.
+  async getFreshAccessToken(): Promise<string | null> {
+    const expiresAt = this.accessToken
+      ? decodeJwtPayload<{ exp?: number }>(this.accessToken)?.exp
+      : undefined;
+    if (expiresAt && expiresAt * 1000 - Date.now() < 60_000) {
+      await this.refreshAccessToken().catch(() => undefined);
+    }
+    return this.accessToken;
+  }
+
+  // خروج باید کوکی را هم پاک کند؛ در صورت خطا نشست محلی نگه داشته می‌شود تا کاربر دوباره تلاش کند.
+  async endSession(): Promise<void> {
+    if (this.agentId && sessionCookiesAvailable()) {
+      const response = await fetch(`${API_URL}/v1/auth/logout`, {
+        method: 'POST',
+        headers: SESSION_HEADERS,
+        body: JSON.stringify({ agentId: this.agentId }),
+      });
+      if (!response.ok) throw new Error('خروج از حساب کامل نشد');
+    }
+    this.clearTokens();
   }
 
   async login(email: string, password: string): Promise<LoginResponseDto> {
@@ -219,21 +282,64 @@ export class ApiClient {
     return response.json() as Promise<LoginResponseDto>;
   }
 
-  async refreshAccessToken(): Promise<void> {
-    if (!this.refreshToken) return;
-    const refreshToken = this.refreshToken;
-    const response = await fetch(`${API_URL}/v1/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (this.refreshToken !== refreshToken) return;
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) this.clearTokens();
+  // درخواست‌های هم‌زمان یک تمدید مشترک دارند تا با یک توکن منقضی چند بار به سرور نزنند.
+  refreshAccessToken(): Promise<void> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.performRefresh().finally(() => {
+        this.refreshInFlight = null;
+      });
+    }
+    return this.refreshInFlight;
+  }
+
+  private expireSession(): void {
+    this.clearTokens();
+    this.onSessionExpired?.();
+  }
+
+  private async performRefresh(): Promise<void> {
+    const generation = this.tokenGeneration;
+    if (this.refreshToken) {
+      const response = await fetch(`${API_URL}/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: this.refreshToken }),
+      });
+      if (generation !== this.tokenGeneration) return;
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) this.expireSession();
+        return;
+      }
+      const data = (await response.json()) as RefreshResponseDto;
+      if (generation === this.tokenGeneration) this.accessToken = data.accessToken;
       return;
     }
-    const data = (await response.json()) as RefreshResponseDto;
-    if (this.refreshToken === refreshToken) this.accessToken = data.accessToken;
+    if (!this.agentId) return;
+    const response = await fetch(`${API_URL}/v1/auth/session`, {
+      method: 'POST',
+      headers: SESSION_HEADERS,
+      body: JSON.stringify({ agentId: this.agentId }),
+    });
+    if (generation !== this.tokenGeneration || !response.ok) return;
+    const { sessions } = (await response.json()) as AuthSessionsResponseDto;
+    if (generation !== this.tokenGeneration) return;
+    const session = sessions.find((item) => item.agentId === this.agentId);
+    if (session) this.accessToken = session.accessToken;
+    else this.expireSession();
+  }
+
+  private async authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+    const send = () =>
+      fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: { ...init.headers, Authorization: `Bearer ${this.accessToken}` },
+      });
+    const usedToken = this.accessToken;
+    const response = await send();
+    if (response.status !== 401) return response;
+    if (this.accessToken === usedToken) await this.refreshAccessToken().catch(() => undefined);
+    if (!this.accessToken || this.accessToken === usedToken) return response;
+    return send();
   }
 
   async listConversations(params: ListConversationsParams = {}): Promise<ConversationDto[]> {
@@ -340,9 +446,7 @@ export class ApiClient {
   }
 
   async downloadReportsCsv(from: string, to: string): Promise<void> {
-    const response = await fetch(`${API_URL}/v1/reports/export?from=${from}&to=${to}`, {
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
+    const response = await this.authedFetch(`/v1/reports/export?from=${from}&to=${to}`);
     if (!response.ok) {
       throw new Error('دریافت خروجی CSV با خطا مواجه شد');
     }
@@ -506,9 +610,7 @@ export class ApiClient {
   }
 
   private async authedGet<T>(path: string): Promise<T> {
-    const response = await fetch(`${API_URL}${path}`, {
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
+    const response = await this.authedFetch(path);
     if (!response.ok) {
       throw new ApiRequestError(
         `درخواست ${path} با خطا مواجه شد (${response.status})`,
@@ -519,12 +621,9 @@ export class ApiClient {
   }
 
   private async authedPost<T>(path: string, body?: unknown): Promise<T> {
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await this.authedFetch(path, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
@@ -534,12 +633,9 @@ export class ApiClient {
   }
 
   private async authedPatch<T>(path: string, body: unknown): Promise<T> {
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await this.authedFetch(path, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (!response.ok) {
@@ -549,20 +645,14 @@ export class ApiClient {
   }
 
   private async authedPostNoContent(path: string): Promise<void> {
-    const response = await fetch(`${API_URL}${path}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
+    const response = await this.authedFetch(path, { method: 'POST' });
     if (!response.ok) {
       throw new Error(`درخواست ${path} با خطا مواجه شد (${response.status})`);
     }
   }
 
   private async authedDelete(path: string): Promise<void> {
-    const response = await fetch(`${API_URL}${path}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
+    const response = await this.authedFetch(path, { method: 'DELETE' });
     if (!response.ok) {
       throw new Error(`درخواست ${path} با خطا مواجه شد (${response.status})`);
     }

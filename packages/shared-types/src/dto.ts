@@ -24,6 +24,15 @@ export interface RefreshResponseDto {
   accessToken: string;
 }
 
+export interface AuthSessionDto {
+  agentId: string;
+  accessToken: string;
+}
+
+export interface AuthSessionsResponseDto {
+  sessions: AuthSessionDto[];
+}
+
 export interface WidgetSessionRequestDto {
   visitorProof?: string;
   widgetKey: string;

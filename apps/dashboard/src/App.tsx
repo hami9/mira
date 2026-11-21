@@ -28,7 +28,7 @@ function BackgroundStore({
 }) {
   const { siteId, client } = session;
   useEffect(() => {
-    const socket = connectDashboardSocket(() => client.getAccessToken(), {
+    const socket = connectDashboardSocket(() => client.getFreshAccessToken(), {
       onConversationUpdated: (payload) => {
         onUnreadChange(siteId);
         if (payload.lastMessage?.senderType === 'visitor') onMessage(siteId, payload);
@@ -48,6 +48,8 @@ export default function App() {
   const [sessions, setSessions] = useState<StoreSession[]>([]);
   const [activeSiteId, setActiveSiteId] = useState<string | null>(null);
   const [loginClient, setLoginClient] = useState<ApiClient | null>(() => new ApiClient());
+  const [restoring, setRestoring] = useState(true);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{
     siteId: string;
     conversationId: string;
@@ -108,6 +110,53 @@ export default function App() {
       for (const request of requests.values()) clearTimeout(request.timer);
     };
   }, []);
+
+  const createSession = useCallback(
+    (client: ApiClient, site: { id: string; name: string }): StoreSession => {
+      client.onSessionExpired = () =>
+        setSessions((current) =>
+          current.map((s) => (s.client === client ? { ...s, expired: true } : s)),
+        );
+      return {
+        id: ++nextId.current,
+        siteId: site.id,
+        name: site.name,
+        client,
+        unread: 0,
+        expired: false,
+      };
+    },
+    [],
+  );
+
+  // با رفرش یا تب تازه، نشست‌های معتبر از کوکی HttpOnly برمی‌گردند.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const clients = await ApiClient.restoreSessions();
+        const restored: StoreSession[] = [];
+        for (const client of clients) {
+          const site = await client.getSiteSettings().catch(() => null);
+          if (cancelled) return;
+          if (site && !restored.some((session) => session.siteId === site.id))
+            restored.push(createSession(client, site));
+        }
+        if (cancelled || !restored.length) return;
+        setSessions(restored);
+        setActiveSiteId(restored[0].siteId);
+        setLoginClient(null);
+        for (const session of restored) refreshUnread(session.siteId);
+      } catch {
+        // قطع موقت شبکه کوکی را پاک نمی‌کند؛ فرم ورود نمایش داده می‌شود و رفرش بعدی دوباره تلاش می‌کند.
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [createSession, refreshUnread]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -177,15 +226,13 @@ export default function App() {
   async function finishLogin(client: ApiClient) {
     const site = await client.getSiteSettings();
     const previous = sessionsRef.current.find((s) => s.siteId === site.id);
-    if (previous && previous.client !== client) previous.client.clearTokens();
-    const session: StoreSession = {
-      id: ++nextId.current,
-      siteId: site.id,
-      name: site.name,
-      client,
-      unread: 0,
-      expired: false,
-    };
+    if (previous && previous.client !== client) {
+      // ورود دوباره با همان اپراتور کوکی تازه را نگه می‌دارد؛ اپراتور قبلی همان فروشگاه خارج می‌شود.
+      if (previous.client.getAgentId() !== client.getAgentId())
+        await previous.client.endSession().catch(() => previous.client.clearTokens());
+      else previous.client.clearTokens();
+    }
+    const session = createSession(client, site);
     setSessions((current) => [...current.filter((s) => s.siteId !== site.id), session]);
     setActiveSiteId(site.id);
     setLoginClient(null);
@@ -193,14 +240,31 @@ export default function App() {
     refreshUnread(site.id);
   }
 
-  function logout(siteId?: string) {
+  async function logout(siteId?: string) {
     const removed = sessionsRef.current.filter((s) => !siteId || s.siteId === siteId);
-    for (const session of removed) session.client.clearTokens();
+    const results = await Promise.allSettled(removed.map((s) => s.client.endSession()));
+    if (results.some((result) => result.status === 'rejected')) {
+      setLogoutError('خروج کامل نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.');
+      return;
+    }
+    setLogoutError(null);
     const remaining = sessionsRef.current.filter((s) => !removed.includes(s));
     setSessions(remaining);
     setActiveSiteId(remaining[0]?.siteId ?? null);
     setNotice(null);
     if (!remaining.length) setLoginClient(new ApiClient());
+  }
+
+  if (restoring) {
+    return (
+      <div
+        role="status"
+        dir="rtl"
+        className="flex h-dvh items-center justify-center bg-gray-50 text-sm text-gray-500"
+      >
+        در حال بازیابی نشست…
+      </div>
+    );
   }
 
   if (loginClient) {
@@ -291,7 +355,7 @@ export default function App() {
         </div>
         <button
           type="button"
-          onClick={() => logout()}
+          onClick={() => void logout()}
           className="control-button control-button-danger ms-auto"
         >
           خروج از همهٔ فروشگاه‌ها
@@ -317,7 +381,7 @@ export default function App() {
             >
               ورود مجدد به فروشگاه
             </button>
-            <button className="text-sm text-gray-500" onClick={() => logout(active.siteId)}>
+            <button className="text-sm text-gray-500" onClick={() => void logout(active.siteId)}>
               خروج از این فروشگاه
             </button>
           </div>
@@ -328,13 +392,21 @@ export default function App() {
               onStoreNameChange={updateStoreName}
               siteId={active.siteId}
               siteName={active.name}
-              onLogout={() => logout(active.siteId)}
+              onLogout={() => void logout(active.siteId)}
               onUnreadChange={refreshUnread}
               onMessage={notifyMessage}
             />
           </ApiProvider>
         )}
       </div>
+      {logoutError && (
+        <div
+          role="alert"
+          className="fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border border-red-200 bg-white p-4 text-sm text-red-700 shadow-xl"
+        >
+          {logoutError}
+        </div>
+      )}
       {notice && (
         <div
           role="status"

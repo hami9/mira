@@ -125,7 +125,7 @@ export function Dashboard({
     const token = apiClient.getAccessToken();
     if (!token) return;
 
-    const socket = connectDashboardSocket(() => apiClient.getAccessToken(), {
+    const socket = connectDashboardSocket(() => apiClient.getFreshAccessToken(), {
       onConversationUpdated: (payload) => {
         if (payload.deleted || payload.deletedAt) {
           setSelectedConversation((current) =>

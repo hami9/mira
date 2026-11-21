@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
@@ -12,6 +12,7 @@ import {
 } from '@mira/shared-types';
 import { AgentEntity } from '../../database/entities';
 import { TokenService } from '../../common/token/token.service';
+import { restoreSessionsFromCookies, sessionCookieName, SessionCookie } from './session-cookie';
 
 const TOTP_ISSUER = 'Mira';
 
@@ -134,6 +135,27 @@ export class AuthService {
       role: agent.role,
     });
     return { accessToken };
+  }
+
+  restoreSessions(cookies: SessionCookie[], agentId?: string) {
+    return restoreSessionsFromCookies(cookies, agentId, {
+      verify: (token) => this.tokenService.verifyAgentRefreshToken(token),
+      loadAgents: (ids) => this.agentsRepository.find({ where: { id: In(ids) } }),
+      signAccess: (agent) =>
+        this.tokenService.signAgentAccessToken({
+          sub: agent.id,
+          siteId: agent.siteId,
+          role: agent.role,
+        }),
+    });
+  }
+
+  describeRefreshToken(refreshToken: string): { cookieName: string; maxAgeMs: number } {
+    const payload = this.tokenService.verifyAgentRefreshToken(refreshToken);
+    return {
+      cookieName: sessionCookieName(payload.sub),
+      maxAgeMs: Math.max(0, (payload.exp ?? 0) * 1000 - Date.now()),
+    };
   }
 
   private async findAgentOrFail(agentId: string): Promise<AgentEntity> {

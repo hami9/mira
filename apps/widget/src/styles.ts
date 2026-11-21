@@ -95,6 +95,8 @@ export function injectStyles(doc: Document = document): void {
     .mira-connection { display: flex; align-items: center; gap: 5px; margin-top: 2px; font-size: 11px; color: var(--mira-muted); }
     .mira-connection::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #9b6b17; }
     .mira-connected .mira-connection::before { background: var(--mira-accent); }
+    .mira-restart { display: inline-flex; align-items: center; min-height: 44px; margin-block-start: 10px; padding: 0 14px; border: 1px solid var(--mira-color-border); border-radius: 12px; background: var(--mira-color-soft); color: var(--mira-color-ink); font: inherit; font-weight: 700; cursor: pointer; }
+    .mira-restart:disabled { opacity: .65; cursor: wait; }
     .mira-header-actions { display: flex; gap: 3px; }
     .mira-header-actions button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--mira-muted); }
     .mira-header-actions button:hover { color: var(--mira-color-ink); background: var(--mira-color-soft); }

@@ -123,10 +123,9 @@ export class VisitorsController {
       throw new HttpException('تعداد درخواست‌ها بیش از حد مجاز است', HttpStatus.TOO_MANY_REQUESTS);
     }
 
-    const existing = await this.conversationsService.findActiveForVisitor(
-      visitor.sub,
-      visitor.siteId,
-    );
+    const existing = dto.restartFrom
+      ? null
+      : await this.conversationsService.findActiveForVisitor(visitor.sub, visitor.siteId);
     if (existing) {
       return { conversationId: existing.id, status: existing.status };
     }
@@ -135,6 +134,7 @@ export class VisitorsController {
       visitor.siteId,
       visitor.sub,
       dto.pageUrl ? { url: dto.pageUrl, title: dto.pageTitle ?? null } : undefined,
+      dto.restartFrom,
     );
 
     // اگه خارج از ساعت کاری تنظیم‌شده‌ی سایت باشیم، همون اول یک پیام خودکار (bot) در مکالمه بگذار
@@ -146,6 +146,7 @@ export class VisitorsController {
         senderType: MessageSenderType.BOT,
         senderId: null,
         rawContent: site.offlineMessage,
+        clientMessageId: 'offline-welcome',
       });
     }
 

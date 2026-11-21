@@ -46,10 +46,17 @@ export class WidgetApi {
     return this.post<WidgetSessionResponseDto>('/v1/widget/sessions', payload);
   }
 
-  async startConversation(visitorToken: string): Promise<StartConversationResponseDto> {
+  async startConversation(
+    visitorToken: string,
+    restartFrom?: string,
+  ): Promise<StartConversationResponseDto> {
     return this.post<StartConversationResponseDto>(
       '/v1/widget/conversations',
-      { pageUrl: window.location.href.slice(0, 1024), pageTitle: document.title.slice(0, 255) },
+      {
+        pageUrl: window.location.href.slice(0, 1024),
+        pageTitle: document.title.slice(0, 255),
+        restartFrom,
+      },
       visitorToken,
     );
   }

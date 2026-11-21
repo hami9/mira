@@ -75,6 +75,20 @@ async function main(): Promise<void> {
 
   const ui = new WidgetUi(
     {
+      onRestart: async () => {
+        const targetId = conversationId;
+        if (!targetId || !socket?.connected || !visitorToken)
+          throw new WidgetSendError('اتصال برقرار نیست. دوباره تلاش کنید.');
+        const started = await api.startConversation(visitorToken, targetId);
+        conversationId = started.conversationId;
+        pendingSend = null;
+        pendingForms.clear();
+        if (targetId === conversationId)
+          throw new WidgetSendError('گفتگوی تازه شروع نشد. دوباره تلاش کنید.');
+        ui.resetConversation();
+        socket.emit(SocketEvent.ConversationJoin, { conversationId });
+        await loadHistory(conversationId);
+      },
       onFormSubmit: async (messageId, answers) => {
         const targetId = conversationId;
         if (!targetId) throw new WidgetSendError('گفتگو در دسترس نیست.');

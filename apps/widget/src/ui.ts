@@ -31,6 +31,7 @@ export interface WidgetUiOptions {
 }
 
 export interface WidgetUiCallbacks {
+  onRestart?: () => Promise<void>;
   onFormSubmit?: (messageId: string, answers: Record<string, string | boolean>) => Promise<void>;
   onSend: (content: string) => Promise<void>;
   onTypingChange: (isTyping: boolean) => void;
@@ -565,6 +566,29 @@ export class WidgetUi {
         ),
       );
     if (message?.aiMetadata && senderType === MessageSenderType.BOT) {
+      if (this.callbacks.onRestart && content.startsWith('به سقف پاسخ‌های این گفتگو رسیدیم.')) {
+        const restart = this.doc.createElement('button');
+        restart.type = 'button';
+        restart.className = 'mira-restart';
+        restart.textContent = 'شروع گفتگوی جدید';
+        restart.onclick = async () => {
+          if (this.sending || !this.connected || this.isRestricted()) return;
+          this.sending = true;
+          restart.disabled = true;
+          this.updateSendButton();
+          try {
+            await this.callbacks.onRestart?.();
+            this.inputEl.focus();
+          } catch {
+            this.showError('شروع گفتگوی جدید ممکن نشد. دوباره تلاش کنید.');
+          } finally {
+            this.sending = false;
+            restart.disabled = false;
+            this.updateSendButton();
+          }
+        };
+        el.appendChild(restart);
+      }
       this.appendProducts(el, message.aiMetadata.products ?? []);
       for (const source of message.aiMetadata.sources ?? []) {
         const url = source.url && safeHttpUrl(source.url);

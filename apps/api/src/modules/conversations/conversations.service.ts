@@ -69,34 +69,53 @@ export class ConversationsService {
     siteId: string,
     visitorId: string,
     entryPage?: { url: string; title: string | null },
+    restartFrom?: string,
   ): Promise<ConversationEntity> {
-    return this.conversationsRepository.manager.transaction(async (manager) => {
-      const visitors = await manager.query(
-        `SELECT id FROM visitors WHERE id=$1 AND "siteId"=$2 FOR UPDATE`,
-        [visitorId, siteId],
-      );
-      if (!visitors.length) throw new NotFoundException('بازدیدکننده پیدا نشد');
-      await this.moderation.assertVisitorAllowed(siteId, visitorId);
-      const repository = manager.getRepository(ConversationEntity);
-      const existing = await repository.findOne({
-        where: {
-          siteId,
-          visitorId,
-          deletedAt: IsNull(),
-          status: In([ConversationStatus.OPEN, ConversationStatus.PENDING]),
-        },
-        order: { createdAt: 'DESC' },
-      });
-      if (existing) return existing;
-      return repository.save(
-        repository.create({
-          siteId,
-          visitorId,
-          status: ConversationStatus.OPEN,
-          entryPage: entryPage ?? null,
-        }),
-      );
-    });
+    const { conversation, closed } = await this.conversationsRepository.manager.transaction(
+      async (manager) => {
+        const visitors = await manager.query(
+          `SELECT id, "lifecycleVersion" FROM visitors WHERE id=$1 AND "siteId"=$2 FOR UPDATE`,
+          [visitorId, siteId],
+        );
+        if (!visitors.length) throw new NotFoundException('بازدیدکننده پیدا نشد');
+        await this.moderation.assertVisitorAllowed(siteId, visitorId);
+        const repository = manager.getRepository(ConversationEntity);
+        const existing = await repository.findOne({
+          where: {
+            siteId,
+            visitorId,
+            deletedAt: IsNull(),
+            status: In([ConversationStatus.OPEN, ConversationStatus.PENDING]),
+          },
+          order: { createdAt: 'DESC' },
+        });
+        if (existing && existing.id !== restartFrom) return { conversation: existing };
+        let closed: ConversationResolvedEvent | undefined;
+        if (existing) {
+          existing.status = ConversationStatus.RESOLVED;
+          existing.resolvedAt = new Date();
+          existing.lifecycleVersion++;
+          await repository.save(existing);
+          closed = {
+            conversationId: existing.id,
+            siteId,
+            conversationVersion: existing.lifecycleVersion,
+            visitorVersion: visitors[0].lifecycleVersion,
+          };
+        }
+        const conversation = await repository.save(
+          repository.create({
+            siteId,
+            visitorId,
+            status: ConversationStatus.OPEN,
+            entryPage: entryPage ?? null,
+          }),
+        );
+        return { conversation, closed };
+      },
+    );
+    if (closed) this.eventEmitter.emit(CONVERSATION_RESOLVED_EVENT, closed);
+    return conversation;
   }
 
   async openForVisitor(

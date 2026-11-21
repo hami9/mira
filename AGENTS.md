@@ -354,6 +354,13 @@ code.** This is the most important section of this file.
     Adjustment now has an iteration bound, detects stalled progress and falls back to the
     contrasting endpoint. A live Studio test changes this surface before continuing edits.
 
+20. **Valid catalog answers were discarded because retrieval exceeded the card limit.**
+    Retrieval offered six products while `maxProducts` was three. The model selected all six
+    with 0.95 confidence and the parser rejected the whole answer, so customers saw a generic
+    "not enough information" reply. It was found by replaying the production prompt read-only
+    against the real model, because raw output is not stored. Candidates are now ranked and
+    capped before the model call. Keep the parser strict and fix contracts upstream.
+
 ## 7. Development environment traps (Windows + Docker Desktop)
 
 The project owner works on **Windows 10 with Git Bash and Docker Desktop**. These have
@@ -872,3 +879,31 @@ The glass follow-up uses 80–60% white opacity and a 20% white header/footer, r
 composite (at least 4.5:1). Widget/dashboard builds, scoped lint and real Chromium checks at
 375/768/1280px, reduced transparency and solid mode passed. The image is
 `mira-api:glass-clear-20261118`; the prior override is in `/var/backups/mira/glass-clear-20261118`.
+
+## 23. Sales and support replies
+
+When a store is connected, each visitor message first gets one small model call in
+`apps/worker/src/ai/catalog.ts`. It returns the intent, a standalone request, product type,
+device and search terms, so follow-ups keep their context. If it fails, the worker searches
+the original message. An understood request for a person hands off like a keyword match.
+
+Catalog search runs up to four bounded queries and stops once enough exact matches exist.
+Ranking treats `قاب`/`کاور` and Persian/Latin device names as equivalent, matches whole words
+(`قاب` is not `قابلیت`) and keeps device variants apart (S25 is not S25 Ultra or FE). Product
+cards are capped before the model call. Each offered product carries `exact`, `same_device`,
+`other_variant` or `same_type` so the reply cannot present a near match as compatible.
+
+Replies now have an `outcome`: `answer` requires valid citations and passes the confidence
+threshold; `clarify` and `unavailable` may be uncited but cannot state prices or percentages.
+Confidence means the stated sentences are supported, not that the answer is complete. Source
+IDs, link, sensitive-output and tenant checks are unchanged.
+
+Popmobile's two failed installment documents were reindexed from the dashboard. A failed
+document is invisible to retrieval, so check knowledge status when a topic seems unknown.
+
+Verification: 182 unit tests, 75 real Postgres/Redis integration tests, a read-only replay of
+six multi-turn scenarios with the real model and catalog, and three live widget messages.
+Production runs `mira-worker:sales-assistant`, layered over `mira-worker:catalog-followups`;
+the API and schema are unchanged. The prior override is in
+`/var/backups/mira/sales-assistant.8vUcBq/override.yml`. Latency under real traffic was not
+load-tested; each connected-store reply now includes the extra planning call.

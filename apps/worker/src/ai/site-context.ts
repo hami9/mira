@@ -132,6 +132,8 @@ export function parseSiteContext(raw: unknown, origin: string, policy: AiPolicy)
     ? data.products
     : []
   ).slice(0, 6)) {
+    // سقف کارت‌ها پیش از مدل اعمال می‌شود تا انتخاب همه‌ی نامزدها پاسخ معتبر را باطل نکند.
+    if (products.length >= policy.maxProducts) break;
     const p = value as Record<string, unknown> | null;
     if (
       !p ||
@@ -210,7 +212,7 @@ export function siteSearchTerms(question: string): string {
     .replace(/[۰-۹٠-٩]/g, (digit) => String(digit.charCodeAt(0) & 15))
     .replace(/(?<![\p{L}\p{N}])(?:اس\s*|س)(\d{2})(?![\p{L}\p{N}])/gu, 's$1')
     .split(/[^\p{L}\p{N}\u200c-]+/u)
-    .filter((word) => word.length > 1 && !stopWords.has(word));
+    .filter((word) => (word.length > 1 || /\d/.test(word)) && !stopWords.has(word));
   const normalized = terms.map((term) => {
     if (/^(?:ساسمونگ|ساسمونق|سامسونق|سامسومگ|سامسونغ)$/.test(term)) return 'سامسونگ';
     if (/^(?:کچسا|کجسا|کاجسا)$/.test(term)) return 'kajsa';

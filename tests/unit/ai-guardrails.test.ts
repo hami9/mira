@@ -109,6 +109,53 @@ describe('AI response boundary', () => {
       ),
     ).toBeNull();
   });
+  it('allows an uncited reply only as a question or honest unavailability', () => {
+    const uncited = { confidence: 0, productIds: [], sourceIds: [] };
+    for (const outcome of ['clarify', 'unavailable'])
+      expect(
+        parseGroundedAnswer(
+          JSON.stringify({ ...uncited, outcome, answer: 'مدل گوشی‌تان چیست؟' }),
+          products,
+          sources,
+          DEFAULT_AI_POLICY,
+        )?.outcome,
+      ).toBe(outcome);
+    for (const patch of [
+      { outcome: 'answer', answer: 'موجود است.' },
+      { outcome: 'other', answer: 'موجود است.' },
+      { outcome: 'unavailable', answer: 'این قاب ۲۰۰ هزار تومان است.' },
+    ])
+      expect(
+        parseGroundedAnswer(
+          JSON.stringify({ ...uncited, ...patch }),
+          products,
+          sources,
+          DEFAULT_AI_POLICY,
+        ),
+      ).toBeNull();
+  });
+  it('accepts an uncited courtesy reply only for conversational messages', () => {
+    const courtesy = JSON.stringify({
+      outcome: 'answer',
+      confidence: 1,
+      answer: 'خواهش می‌کنم، در خدمتم.',
+      productIds: [],
+      sourceIds: [],
+    });
+    expect(parseGroundedAnswer(courtesy, products, sources, DEFAULT_AI_POLICY)).toBeNull();
+    expect(parseGroundedAnswer(courtesy, products, sources, DEFAULT_AI_POLICY, true)?.outcome).toBe(
+      'clarify',
+    );
+    expect(
+      parseGroundedAnswer(
+        JSON.stringify({ ...JSON.parse(courtesy), answer: 'این قاب ۲۰۰ هزار تومان است.' }),
+        products,
+        sources,
+        DEFAULT_AI_POLICY,
+        true,
+      ),
+    ).toBeNull();
+  });
   it('normalizes Persian forbidden topics and ignores blank entries', () => {
     expect(blockedInput('خريد كالا', { ...DEFAULT_AI_POLICY, blockedTopics: ['خرید کالا'] })).toBe(
       true,
@@ -205,6 +252,32 @@ describe('site data boundary', () => {
     });
     expect(parsed.products).toEqual(products);
     expect(parsed.documents[0].content).toBe('متن');
+  });
+  it('offers the model no more valid products than the store can show', () => {
+    const catalog = Array.from({ length: 6 }, (_, index) => ({
+      ...products[0],
+      id: String(index + 1),
+      url: `https://shop.test/p/${index + 1}`,
+    }));
+    const policy = { ...DEFAULT_AI_POLICY, useProducts: true, maxProducts: 3 };
+    const offered = parseSiteContext(
+      { products: [{ ...catalog[0], url: 'https://evil.test' }, ...catalog.slice(1)] },
+      'https://shop.test',
+      policy,
+    ).products;
+    expect(offered.map((product) => product.id)).toEqual(['product:2', 'product:3', 'product:4']);
+    // مدل واقعی همه‌ی نامزدها را انتخاب می‌کند؛ این انتخاب نباید کل پاسخ را باطل کند.
+    const result = parseGroundedAnswer(
+      JSON.stringify({
+        ...answer,
+        productIds: offered.map((product) => product.id),
+        sourceIds: [],
+      }),
+      offered,
+      [],
+      policy,
+    );
+    expect(result?.products).toHaveLength(3);
   });
   it.each([
     'javascript:alert(1)',

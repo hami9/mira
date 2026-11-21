@@ -257,7 +257,8 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     siteContext.mockRejectedValueOnce(new Error('store unavailable'));
     await processBotReply(job());
     expect(siteContext).toHaveBeenCalledTimes(1);
-    expect(model).toHaveBeenCalledTimes(1);
+    // یک فراخوانی برای فهم پیام و یک فراخوانی برای پاسخ نهایی.
+    expect(model).toHaveBeenCalledTimes(2);
     expect((await messages())[0].content).toContain('دو روز');
   });
 
@@ -311,39 +312,127 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     expect((await messages()).some((m) => m.aiMetadata?.handoff)).toBe(false);
   });
 
-  it('retries a corrected product search and persists only validated live cards', async () => {
-    const product = {
-      id: 'product:1',
-      name: 'کابل',
-      url: 'https://shop.test/cable',
-      imageUrl: null,
-      price: '125000',
-      currency: 'IRT',
-      inStock: true,
-    };
-    siteContext
-      .mockResolvedValueOnce({ products: [], documents: [] })
-      .mockResolvedValueOnce({ products: [product], documents: [] });
+  const storeProduct = (id: string, name: string) => ({
+    id: `product:${id}`,
+    name,
+    url: `https://shop.test/p/${id}`,
+    imageUrl: null,
+    price: '125000',
+    currency: 'IRT',
+    inStock: true,
+  });
+  const connectStore = async () =>
+    db.query(
+      `UPDATE sites SET "wordpressSiteUrl" = 'https://shop.test', "wordpressApiKey" = 'fixture-only', "aiPolicy" = $2 WHERE id = $1`,
+      [siteId, { ...DEFAULT_AI_POLICY, useKnowledgeBase: false, useProducts: true }],
+    );
+
+  it('searches with the understood request and persists only validated live cards', async () => {
+    const product = storeProduct('1', 'کابل');
+    siteContext.mockResolvedValue({ products: [product], documents: [] });
     await db.query('UPDATE messages SET content=$3 WHERE id=$1 AND "siteId"=$2', [
       visitorMessageId,
       siteId,
       'کبلا میخوام',
     ]);
-    await db.query(
-      `UPDATE sites SET "wordpressSiteUrl" = 'https://shop.test', "wordpressApiKey" = 'fixture-only', "aiPolicy" = $2 WHERE id = $1`,
-      [siteId, { ...DEFAULT_AI_POLICY, useKnowledgeBase: false, useProducts: true }],
+    await connectStore();
+    model
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          intent: 'product',
+          standalone: 'کابل می‌خواهم',
+          productType: 'cable',
+          device: null,
+          queries: ['کابل'],
+        }),
+      )
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          outcome: 'answer',
+          confidence: 0.9,
+          answer: 'این کابل را بررسی کنید.',
+          productIds: ['product:1'],
+          sourceIds: [],
+        }),
+      );
+    await processBotReply(job());
+    expect(siteContext.mock.calls[0][2]).toBe('کابل');
+    expect((await messages())[0].aiMetadata.products).toEqual([product]);
+  });
+
+  it('keeps a valid answer when more catalog candidates exist than visible cards', async () => {
+    const catalog = Array.from({ length: 6 }, (_, index) =>
+      storeProduct(String(index + 1), `قاب آیفون 17 پرو مکس مدل ${index + 1}`),
     );
-    model.mockResolvedValueOnce('کابل').mockResolvedValueOnce(
-      JSON.stringify({
-        confidence: 0.9,
-        answer: 'این کابل را بررسی کنید.',
-        productIds: ['product:1'],
-        sourceIds: [],
-      }),
+    siteContext.mockResolvedValue({ products: catalog, documents: [] });
+    await connectStore();
+    model
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          intent: 'product',
+          standalone: 'قاب iPhone 17 Pro Max',
+          productType: 'case',
+          device: 'iPhone 17 Pro Max',
+          queries: [],
+        }),
+      )
+      .mockImplementationOnce(async (turns) => {
+        const offered = JSON.parse(turns[1].content).products;
+        expect(offered).toHaveLength(DEFAULT_AI_POLICY.maxProducts);
+        return JSON.stringify({
+          outcome: 'answer',
+          confidence: 0.95,
+          answer: 'این سه قاب برای گوشی شما موجود است.',
+          productIds: offered.map((item: { id: string }) => item.id),
+          sourceIds: [],
+        });
+      });
+    await processBotReply(job());
+    const [row] = await messages();
+    expect(row.content).toBe('این سه قاب برای گوشی شما موجود است.');
+    expect(row.aiMetadata.products).toHaveLength(DEFAULT_AI_POLICY.maxProducts);
+  });
+
+  it('posts an honest unavailable reply instead of a generic fallback', async () => {
+    siteContext.mockResolvedValue({
+      products: [storeProduct('9', 'کاور سیلیکونی مناسب گوشی سامسونگ S25 Ultra')],
+      documents: [],
+    });
+    await connectStore();
+    model
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          intent: 'product',
+          standalone: 'قاب Galaxy S25',
+          productType: 'case',
+          device: 'Galaxy S25',
+          queries: [],
+        }),
+      )
+      .mockImplementationOnce(async (turns) => {
+        expect(JSON.parse(turns[1].content).products[0].match).toBe('other_variant');
+        return JSON.stringify({
+          outcome: 'unavailable',
+          confidence: 0,
+          answer: 'قاب S25 معمولی را موجود ندارم؛ برای S25 Ultra کاور سیلیکونی داریم.',
+          productIds: ['product:9'],
+          sourceIds: [],
+        });
+      });
+    await processBotReply(job());
+    const [row] = await messages();
+    expect(row.content).toContain('موجود ندارم');
+    expect(row.aiMetadata.products).toHaveLength(1);
+  });
+
+  it('hands off when the understood request asks for a person', async () => {
+    await connectStore();
+    model.mockResolvedValueOnce(
+      JSON.stringify({ intent: 'human', standalone: 'پشتیبان می‌خواهم', queries: [] }),
     );
     await processBotReply(job());
-    expect(siteContext.mock.calls.map((call) => call[2])).toEqual(['کبلا میخوام', 'کابل']);
-    expect((await messages())[0].aiMetadata.products).toEqual([product]);
+    expect(siteContext).not.toHaveBeenCalled();
+    expect((await messages())[0].aiMetadata.handoff).toBe(true);
   });
 
   it.each([true, false])(

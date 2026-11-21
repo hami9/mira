@@ -147,3 +147,14 @@ origins registered. Sharing one widget key across unrelated stores intentionally
 one identity and one conversation space. The current dashboard session belongs to one site;
 central account switching and hosted customer provisioning are separate work, not delivered
 by this identity change. `SEED_SITE_NAME` only names newly created sites.
+
+## Understanding requests and catalog matching
+
+With a connected store, the worker first interprets each message using recent conversation
+history, then searches the catalog by product type and exact device. `قاب` and `کاور` are
+treated as the same type, and a different device variant is never presented as compatible.
+
+Replies are one of three outcomes. An answer must cite a valid product or source and meet the
+confidence threshold. A clarification asks for one missing detail. An unavailable reply says
+the item was not found and may show clearly labeled nearby options. Uncited replies cannot
+state prices or percentages. This adds one small model call per message on connected stores.

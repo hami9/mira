@@ -17,7 +17,10 @@ const siteContext = vi.hoisted(() => vi.fn());
 vi.mock('../../apps/worker/src/ai/chat', () => ({ chatCompletion: model }));
 vi.mock('../../apps/worker/src/ai/embeddings', () => ({ embedTexts: embedding }));
 vi.mock('../../apps/worker/src/redis-bridge', () => ({ publishSocketEvent: events }));
-vi.mock('../../apps/worker/src/ai/site-context', () => ({ getSiteContext: siteContext }));
+vi.mock('../../apps/worker/src/ai/site-context', async (original) => ({
+  ...(await original<typeof import('../../apps/worker/src/ai/site-context')>()),
+  getSiteContext: siteContext,
+}));
 import { processBotReply } from '../../apps/worker/src/jobs/bot-reply';
 import { pool } from '../../apps/worker/src/db';
 
@@ -288,7 +291,7 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
     expect((await messages()).some((m) => m.aiMetadata?.handoff)).toBe(false);
   });
 
-  it('persists only validated live product cards', async () => {
+  it('retries a corrected product search and persists only validated live cards', async () => {
     const product = {
       id: 'product:1',
       name: 'کابل',
@@ -298,12 +301,19 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
       currency: 'IRT',
       inStock: true,
     };
-    siteContext.mockResolvedValueOnce({ products: [product], documents: [] });
+    siteContext
+      .mockResolvedValueOnce({ products: [], documents: [] })
+      .mockResolvedValueOnce({ products: [product], documents: [] });
+    await db.query('UPDATE messages SET content=$3 WHERE id=$1 AND "siteId"=$2', [
+      visitorMessageId,
+      siteId,
+      'کبلا میخوام',
+    ]);
     await db.query(
       `UPDATE sites SET "wordpressSiteUrl" = 'https://shop.test', "wordpressApiKey" = 'fixture-only', "aiPolicy" = $2 WHERE id = $1`,
       [siteId, { ...DEFAULT_AI_POLICY, useKnowledgeBase: false, useProducts: true }],
     );
-    model.mockResolvedValueOnce(
+    model.mockResolvedValueOnce('کابل').mockResolvedValueOnce(
       JSON.stringify({
         confidence: 0.9,
         answer: 'این کابل را بررسی کنید.',
@@ -312,6 +322,7 @@ describe.skipIf(!hasDatabase)('AI assistant with real Postgres', () => {
       }),
     );
     await processBotReply(job());
+    expect(siteContext.mock.calls.map((call) => call[2])).toEqual(['کبلا میخوام', 'کابل']);
     expect((await messages())[0].aiMetadata.products).toEqual([product]);
   });
 

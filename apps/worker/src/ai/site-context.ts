@@ -209,5 +209,8 @@ export function siteSearchTerms(question: string): string {
     .replace(/ك/g, 'ک')
     .split(/[^\p{L}\p{N}\u200c-]+/u)
     .filter((word) => word.length > 1 && !stopWords.has(word));
-  return [...new Set(terms)].slice(0, 5).join(' ').slice(0, 160) || question.slice(0, 160);
+  const normalized = terms.map((term) =>
+    /^(?:ساسمونگ|ساسمونق|سامسونق|سامسومگ)$/.test(term) ? 'سامسونگ' : term,
+  );
+  return [...new Set(normalized)].slice(0, 5).join(' ').slice(0, 160) || question.slice(0, 160);
 }

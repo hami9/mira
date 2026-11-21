@@ -74,7 +74,7 @@ export class ConversationsService {
     const { conversation, closed } = await this.conversationsRepository.manager.transaction(
       async (manager) => {
         const visitors = await manager.query(
-          `SELECT id, "lifecycleVersion" FROM visitors WHERE id=$1 AND "siteId"=$2 FOR UPDATE`,
+          `SELECT id, "moderationVersion" FROM visitors WHERE id=$1 AND "siteId"=$2 FOR UPDATE`,
           [visitorId, siteId],
         );
         if (!visitors.length) throw new NotFoundException('بازدیدکننده پیدا نشد');
@@ -100,7 +100,7 @@ export class ConversationsService {
             conversationId: existing.id,
             siteId,
             conversationVersion: existing.lifecycleVersion,
-            visitorVersion: visitors[0].lifecycleVersion,
+            visitorVersion: visitors[0].moderationVersion,
           };
         }
         const conversation = await repository.save(

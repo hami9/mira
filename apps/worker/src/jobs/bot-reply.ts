@@ -134,6 +134,11 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
     }
     await status(data, 'retrieving');
     const question = redactSensitive(visitor.content);
+    const search = siteSearchTerms(question);
+    const modelName = search.match(/\bs\d{2}\b/i)?.[0]?.toUpperCase();
+    const clarification = modelName
+      ? `برای ${modelName} گزینه سازگار را تأیید نکردم. مدل گوشی‌تان معمولی، پلاس یا اولتراست؟`
+      : NEEDS_DETAILS;
     const history = (
       await client.query<{ senderType: string; content: string }>(
         `SELECT "senderType", content FROM messages WHERE "siteId" = $1 AND "conversationId" = $2
@@ -209,7 +214,6 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
       site.wordpressSiteUrl &&
       site.wordpressApiKey
     ) {
-      const search = siteSearchTerms(question);
       const initial = await getSiteContext(
         site.wordpressSiteUrl,
         site.wordpressApiKey,
@@ -222,8 +226,26 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
       if (initial) website = initial;
       if (
         initial &&
+        policy.useWebsite &&
+        !website.documents.length &&
+        search !== 'اقساطی' &&
+        search.includes('اقساطی')
+      ) {
+        const installmentContext = await getSiteContext(
+          site.wordpressSiteUrl,
+          site.wordpressApiKey,
+          'اقساطی',
+          {
+            ...policy,
+            useProducts: false,
+          },
+        ).catch(() => null);
+        if (installmentContext) website.documents = installmentContext.documents;
+      }
+      if (
+        initial &&
         policy.useProducts &&
-        !website.products.length &&
+        (!website.products.length || search === modelName?.toLowerCase()) &&
         (await eligible(client, data))
       ) {
         try {
@@ -253,7 +275,7 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
                   useWebsite: false,
                 },
               );
-              website.products = recovered.products;
+              if (recovered.products.length) website.products = recovered.products;
             }
           }
         } catch {
@@ -263,7 +285,7 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
       sources.push(...website.documents);
     }
     if (!sources.length && !website.products.length) {
-      await postReply(client, data, sourceUnavailable ? TEMPORARILY_UNAVAILABLE : NEEDS_DETAILS, {
+      await postReply(client, data, sourceUnavailable ? TEMPORARILY_UNAVAILABLE : clarification, {
         products: [],
         sources: [],
       });
@@ -275,7 +297,7 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
       [
         {
           role: 'system',
-          content: `${site.aiSystemPrompt || ''}\n\nهویت همین گفتگو: ${JSON.stringify({ storeName: plainText(site.name).slice(0, 255), assistantName: plainText(site.aiBotName).slice(0, 100) })}\nفقط نماینده همین فروشگاه هستی؛ نام یا اطلاعات فروشگاه دیگری را جایگزین هویت این گفتگو نکن.\n${SAFETY_PROMPT}\nغلط‌های تایپی سؤال را با توجه به محصولات و منابع موجود تفسیر کن. اگر نوع محصول روشن است ولی مدل دقیق مشخص نیست، یک سؤال مشخص درباره مدل یا نیاز مشتری بپرس.\nحداکثر ${policy.maxProducts} محصول انتخاب کن.`,
+          content: `${site.aiSystemPrompt || ''}\n\nهویت همین گفتگو: ${JSON.stringify({ storeName: plainText(site.name).slice(0, 255), assistantName: plainText(site.aiBotName).slice(0, 100) })}\nفقط نماینده همین فروشگاه هستی؛ نام یا اطلاعات فروشگاه دیگری را جایگزین هویت این گفتگو نکن.\n${SAFETY_PROMPT}\nغلط‌های تایپی سؤال را با توجه به محصولات و منابع موجود تفسیر کن. برای مدل مشخص، لوازم مدل دیگر یا کالایی از نوع دیگر را پیشنهاد نکن. اگر نوع محصول روشن است ولی مدل دقیق مشخص نیست، یک سؤال مشخص درباره مدل یا نیاز مشتری بپرس.\nحداکثر ${policy.maxProducts} محصول انتخاب کن.`,
         },
         // منابع هرگز به دستور سطح سیستم تبدیل نمی‌شوند.
         {
@@ -299,14 +321,17 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
     );
     const result = parseGroundedAnswer(raw, website.products, sources, policy);
     if (!result) {
-      await postReply(client, data, TEMPORARILY_UNAVAILABLE, { products: [], sources: [] });
+      await postReply(client, data, raw ? clarification : TEMPORARILY_UNAVAILABLE, {
+        products: [],
+        sources: [],
+      });
       return;
     }
     if (
       policy.guardrailsEnabled !== false &&
       (result.confidence === 0 || result.confidence < site.aiConfidenceThreshold)
     ) {
-      await postReply(client, data, NEEDS_DETAILS, { products: [], sources: [] });
+      await postReply(client, data, clarification, { products: [], sources: [] });
       return;
     }
     const posted = await postReply(
@@ -328,7 +353,7 @@ export async function processBotReply(input: AiBotReplyJobData): Promise<void> {
         ).values(),
       ],
     );
-    if (!posted) await postReply(client, data, NEEDS_DETAILS, { products: [], sources: [] });
+    if (!posted) await postReply(client, data, clarification, { products: [], sources: [] });
   } catch {
     // خطای SDK ممکن است حاوی درخواست یا کلید باشد؛ به مشتری و لاگ منتقل نمی‌شود.
     if (started)

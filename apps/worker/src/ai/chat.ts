@@ -66,16 +66,23 @@ async function openaiChat(
   model?: string,
   context?: AiUsageContext,
 ): Promise<string> {
+  const selectedModel = model || config.ai.openaiModel;
+  // سقف توکن دیپ‌سیک بین استدلال و پاسخ مشترک است. برای چت فروشگاهی، خروجی مستقیم می‌خواهیم.
+  const thinking =
+    openaiProvider() === 'avalai' && selectedModel === 'deepseek-v4-flash'
+      ? { thinking: { type: 'disabled' } }
+      : {};
   const { data: response, response: http } = await openaiClient.chat.completions
     .create({
-      model: model || config.ai.openaiModel,
+      model: selectedModel,
       messages,
       max_tokens: maxTokens,
+      ...thinking,
       ...(temperature !== undefined ? { temperature } : {}),
     })
     .withResponse();
   await recordAiUsage(context, {
-    model: model || config.ai.openaiModel,
+    model: selectedModel,
     provider: openaiProvider(),
     status: 'success',
     inputTokens: response.usage?.prompt_tokens,

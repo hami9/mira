@@ -198,7 +198,7 @@ export async function getSiteContext(
 
 export function siteSearchTerms(question: string): string {
   const stopWords = new Set(
-    'سلام لطفا لطفاً یه یک من ما شما برای از به با در و یا که این آن اون میخوام میخواهم می‌خواهم میشه می‌شود هست است آیا چطور چیه چیست چه کدام بهم بده بدید معرفی راهنمای راهنمایی انتخاب محصول محصولات خرید انجام بدم می‌خوام میخام شرایط the a an i want need please can you show me about for to of is are'.split(
+    'سلام لطفا لطفاً یه یک من ما شما برای از به با در و یا که این آن اون میخوام میخواهم می‌خواهم میخواستم می‌خواستم میشه می‌شود هست است آیا چطور چیه چیست چه کدام بهم بده بدید معرفی راهنمای راهنمایی انتخاب محصول محصولات خرید انجام بدم می‌خوام میخام شرایط the a an i want need please can you show me about for to of is are'.split(
       ' ',
     ),
   );
@@ -207,10 +207,15 @@ export function siteSearchTerms(question: string): string {
     .toLowerCase()
     .replace(/ي/g, 'ی')
     .replace(/ك/g, 'ک')
+    .replace(/[۰-۹٠-٩]/g, (digit) => String(digit.charCodeAt(0) & 15))
+    .replace(/(?<![\p{L}\p{N}])(?:اس\s*|س)(\d{2})(?![\p{L}\p{N}])/gu, 's$1')
     .split(/[^\p{L}\p{N}\u200c-]+/u)
     .filter((word) => word.length > 1 && !stopWords.has(word));
-  const normalized = terms.map((term) =>
-    /^(?:ساسمونگ|ساسمونق|سامسونق|سامسومگ)$/.test(term) ? 'سامسونگ' : term,
-  );
+  const normalized = terms.map((term) => {
+    if (/^(?:ساسمونگ|ساسمونق|سامسونق|سامسومگ|سامسونغ)$/.test(term)) return 'سامسونگ';
+    if (/^(?:کچسا|کجسا|کاجسا)$/.test(term)) return 'kajsa';
+    if (term === 'قابلش') return 'قاب';
+    return term;
+  });
   return [...new Set(normalized)].slice(0, 5).join(' ').slice(0, 160) || question.slice(0, 160);
 }
